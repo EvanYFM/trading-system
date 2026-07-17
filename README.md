@@ -1,0 +1,160 @@
+# 期货席位资金面分析
+
+本项目用于跟踪奇货可查主要期货公司席位资金面变化，并生成每日 HTML 资金日报与主力趋势表格更新辅助文件。
+
+## 数据来源
+
+- 奇货可查席位持仓页：`https://x.qhkch.com/broker/position`
+- 奇货可查品种持仓结构页：`https://x.qhkch.com/variety/structure`
+- OpenVLab 图表/期权页：`https://www.openvlab.cn/chart/light/`
+- 奇货可查 AI 天眼天气风险：`https://eye.qhkch.com/?view=overview`
+- BW Research 持仓分析参考：`https://bwresearch.club/reports/brokerseats/`
+
+## 当前席位分组
+
+- 内资：国泰君安、浙商期货、永安期货、东证期货、海通期货
+- 外资：高盛期货、摩根大通、瑞银期货
+- 家人：东方财富、徽商期货、方正中期、华安期货、中信建投
+
+席位名称以网页实际可返回持仓表的名称为准；用户简称只作为别名。原“乾坤期货”已按现名“高盛期货”处理。
+
+机构专题日报内资样本扩展为：国泰君安、东证期货、永安期货、海通期货、浙商期货、中财期货、南华期货、申银万国；外资仍为高盛期货、摩根大通、瑞银期货。机构专题重点观察内外资同向共振，以及家人席位反向后的三方共振。
+
+## 当前分析口径
+
+- 加多或减空计为偏多；减多或加空计为偏空。
+- 品种层面合并同一席位下所有合约的多头、空头持仓及日变化。
+- 内资、外资按正向资金解读；家人席位按反向指标解读。
+- 日报重点输出反向共振品种、三组最强偏多/偏空品种、家人反向解读，以及强共振品种最近 5 个可用披露日的持续/反转。
+- 不再输出单席位 40% 阈值观察；EC 集运欧线因网页无持仓数据，不纳入重点持仓观察。
+- 中文交易语境下，看多/上涨/正向使用红色；看空/下跌/负向使用绿色。
+- 每日正式输出只保留机构合并专题和保证金金额口径日报；旧全席位日报已停用，除非用户后续单独要求，不再自动生成。
+- 两份日报均取消共振地图/散点象限地图；机构合并专题和保证金金额口径日报是后续主要观察版本。
+- 机构合并专题和保证金金额口径日报新增“期货资金潮汐”模块：当前无行情涨跌字段时，以资金净流入/流出 × 总持仓增/减判断资金潮汐；接入行情源后可升级为资金流入/流出 × 上涨/下跌四象限。
+- 核心品种/边际矩阵应以同一行内条形刻度、进度条等方式可视化内资、外资、家人相对变化，避免只列纯数字。
+- 机构专题的核心品种全景同时展示当前净持仓与今日边际变化；农产品板块加入 AI 天眼的当日及未来天气风险，并将天气事实与席位资金验证分列。
+- 保证金日报保留商品主分析，并单独增加股指资金与趋势观察：席位金额只统计上证 50、沪深 300、中证 500、中证 1000 股指期货；科创 50、创业板 50 仅在趋势动物可定位且数据日有效时展示趋势和日收益原值。
+- 两份日报从 02 到后续所有涉及具体品种的分析板块，先按商品板块分组，再在板块下列出品种净偏多/净偏空；02 排行板块统一使用三方共振净结果，计算口径为“内资 + 外资 - 家人席位”，并对每个已出现的商品板块分别列出前三净多、前三净空，某侧为空时保留板块并写明“今天没有净多/净空品种”。02 卡片中只保留机构合计与家人反向拆解，不再单独列内资、外资排行。板块标题只列净多/净空品种，不再展示整体净多、净空金额或合计手数。板块口径：贵金属、有色金属、家人品种、黑色系、油化工、谷物饲料、油脂油料、农副软商、其他商品。黑色系合并原黑色矿钢和煤化工，包含焦煤、煤炭、铁矿石、螺纹钢、热卷、锰硅、硅铁、尿素、PVC；油化工包括原油、燃油、低硫油、沥青、LPG、甲醇、苯乙烯、纯苯、PX、PTA、天然橡胶、PP、合成橡胶、塑料、乙二醇、短纤、瓶片；谷物饲料为豆粕、菜粕、玉米、豆一、豆二；油脂油料为棕榈油、菜油、花生、豆油；农副软商为棉花、白糖、生猪、苹果、鸡蛋、红枣、20号胶；玻璃、纯碱、氧化铝、烧碱单独归入“家人品种”板块。淀粉 `CS` 因流动性偏低不参与统计。
+- 保证金金额口径日报优先读取趋势动物 API 生成的 `data/trend_temperature_YYYYMMDD.csv`，否则才读取 `data/trend_temperature_latest.csv`，并新增“趋势温度与资金共振”模块。趋势温度仅纳入 `温/热/沸/凉/寒/冻`，过滤 `平`；`温/凉`为左侧预警，`热/寒`为右侧确认，`沸/冻`为极端警戒；资金关系用三方净金额 `内资 + 外资 - 家人` 判断顺势、逆势或未验证。API 直接事实和资金判断在报告中分列；文档未定义单位的字段按原值展示。
+
+## 重点品种
+
+当前固定重点品种为：燃油、苯乙烯、碳酸锂、豆粕、鸡蛋、焦煤、沪金、沪银、欧线集运、生猪主力合约。
+
+结构页抓取名称按奇货可查页面映射：沪金 -> 沪金，沪银 -> 沪银，欧线集运 -> 集运欧线。重点品种持仓结构只展示净多前 5 与净空前 5 席位构成；欧线集运因奇货可查无可用持仓数据，不参与席位合计或结构页结论。品种结构页交叉验证仅后台写入 CSV，不单独展示在 report 页面。
+
+## 登录状态
+
+品种持仓结构页通常需要登录态。后续运行时优先使用 Chrome 插件/浏览器缓存中的已登录状态；若不可用，再临时登录并只通过环境变量传递会话 Cookie。不得把账号、密码、Cookie 或令牌写入项目文件、报告或日志。
+
+## 休市日处理
+
+日报只在中国期货市场交易日生成。2026 年法定节假日或调休放假日不做席位分析；自动化已同步跳过元旦、春节、清明节、劳动节、端午节、中秋节和国庆节放假区间。
+
+## 常用命令
+
+Windows PowerShell 下不要使用 Bash 风格 heredoc；临时 Python 校验请使用原生 `python -c "..."`，或直接运行项目已有脚本。
+
+生成合并机构席位专题日报：
+
+```powershell
+$env:REPORT_DATE="YYYYMMDD"; python scripts/generate_institutional_seat_report.py
+```
+
+外资席位不再单独生成专题日报；机构合并专题日报统一介绍内资、外资和家人共振情况。
+旧全席位日报不再作为每日正式输出；如需临时排查旧口径，可手动运行 `scripts/generate_futures_report.py`。
+
+生成保证金金额口径席位日报：
+
+```powershell
+$env:REPORT_DATE="YYYYMMDD"; python scripts/generate_margin_weighted_seat_report.py
+```
+
+生成当日趋势动物 API 快照后再生成保证金日报：
+
+```powershell
+$env:TREND_ANIMAL_API_KEY="<secure-session-key>"; $env:REPORT_DATE="YYYYMMDD"; python scripts/fetch_trend_animal_snapshot.py
+$env:REPORT_DATE="YYYYMMDD"; python scripts/generate_margin_weighted_seat_report.py
+```
+
+API Key 仅可存在于当前安全会话环境变量中。脚本每日调用一次，先检查商品期货与所选指数的数据日期和实时字段计费，再抓取燃油、苯乙烯、碳酸锂、豆粕、鸡蛋、焦煤、沪金、沪银、欧线集运、生猪，以及股指板块所需的最小快照字段。费用不再作为调用前阻断条件；脚本会在调用后读取当日账单，只有当日实际消费超过 1 元时输出提醒，且不落盘余额或账单明细。详情见 `docs/trend-animal-api.md`。
+
+生成知识星球 A 股社区情绪摘要后再生成保证金日报：
+
+```powershell
+$env:REPORT_DATE="YYYYMMDD"; python scripts/fetch_zsxq_equity_sentiment.py
+$env:REPORT_DATE="YYYYMMDD"; python scripts/generate_margin_weighted_seat_report.py
+```
+
+该脚本复用 `zsxq-cli` 的安全登录态，读取“趋势小程序”知识星球报告日内帖子、评论与 Nick 的当日发帖/回复，输出脱敏 CSV/JSON。保证金日报股指板块将社区事实、Nick 观点和规则化风险偏好判断分列；它不是股指涨跌预测。账号、Cookie、token、签名媒体 URL 和完整原帖不得落盘。
+
+保证金表默认 7 天内复用 `data/margin_reference.csv` 缓存；需要强制刷新东方财富保证金表时：
+
+```powershell
+$env:FORCE_MARGIN_REFRESH="1"; $env:REPORT_DATE="YYYYMMDD"; python scripts/generate_margin_weighted_seat_report.py
+```
+
+主要输出目录：
+
+- `output/institutional_seat_report_YYYYMMDD/report.html`
+- `output/institutional_seat_report_YYYYMMDD/data/`
+- `output/margin_weighted_seat_report_YYYYMMDD/report.html`
+- `output/margin_weighted_seat_report_YYYYMMDD/data/`
+- `output/main_trend_update_YYYYMMDD/`
+
+## 交易系统文档
+
+- `docs/trading-system.md`：唯一主文档，包含五问分析、开仓闸门、工具选择、仓位退出和冷却规则。
+- `docs/trading-decision-checklist.md`：每笔交易前使用的十问清单，硬纪律也统一放在这里，不再单独建立纪律文档。
+- `docs/trading-philosophy.md`：只保留长期市场观、风险观和情绪原则，不承担具体开平仓判断。
+- `docs/technical-analysis-framework.md`：需要判断图形和执行位置时使用，按大周期、中周期和小周期分析。
+- `docs/trading-log-framework.md`：只负责固化开仓假设、平仓归因和每周复盘。
+- `docs/yuque-integration.md`：语雀 CLI/MCP 连接方案。
+
+日常使用顺序：先用主系统形成交易假设，再用决策清单决定是否下单；需要图形判断时打开技术框架，交易结束后填写日志。交易哲学只在复盘系统和校正心态时回看。
+
+## 商品期货与期权过滤口径
+
+机构专题只观察商品期货。保证金日报的商品主体同样排除股指、国债和外盘，但另设股指专栏读取 `IH/IF/IC/IM`；股指数据写入独立 CSV，不混入商品板块、共振和保证金覆盖率。国债与外盘仍不纳入两份正式日报。
+
+期权波动率 demo 脚本为：
+
+```powershell
+$env:REPORT_DATE="YYYYMMDD"; python scripts/generate_option_vol_report.py
+```
+
+该脚本输出 `output/option_vol_report_YYYYMMDD/report.html`，观察用户关注的商品期权合约，并尝试从 OpenVLab market、行情 light 页面和 volatility analysis 页面读取隐波、实波、偏度、隐波百分位、偏度百分位及 5 日变化。若公开页面只返回动态前端壳或历史接口不可见，报告必须标注抓取状态，不得把截图样例或缺失数据伪装成实时确认数据。
+
+## 本地研究工作站 MVP
+
+`scripts/build_research_dashboard.py` 将已有机构专题、保证金日报、趋势、天气和独立股指 CSV 合并为只读历史快照，并生成统一网页：
+
+```powershell
+$py="C:\Users\29266\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe"
+$env:REPORT_DATE="YYYYMMDD"
+& $py scripts\fetch_eastmoney_main_quotes.py
+& $py scripts\build_research_dashboard.py
+& $py -m http.server 8787 --bind 127.0.0.1 --directory output\research_dashboard
+```
+
+浏览器打开 `http://127.0.0.1:8787/`。当前 MVP 包含总览、历史日期切换、品种全景、单品种历史路径和数据状态；总览中的强共振卡可直接进入对应品种详情。详情页在方向信号左侧展示东方财富期货主力合约的报告日收盘价与当日涨跌幅，并按样本席位汇总所有合约后列出净多、净空前五；样本不足五家时显示实际数量。趋势动物只提供趋势温度和强度，行情与趋势事实分列。页面只消费已生成底表，不改变两份正式日报的抓取或三方计算逻辑。行情或趋势快照日期与报告日不一致时会明确标记为非当日。
+
+主要输出：
+
+- `output/research_dashboard/index.html`
+- `output/research_dashboard/data/dashboard.json`
+- `output/research_dashboard/data/snapshots/YYYYMMDD.json`
+- `data/eastmoney_main_quotes_YYYYMMDD.csv`
+- `data/eastmoney_main_quotes_status_YYYYMMDD.json`
+
+### 长图版候选工作流
+
+研究工作站总览已升级为一页式长图，统一迁移机构专题与保证金日报的核心观察：三方强共振、资金潮汐、板块前三净多/净空、趋势温度与资金验证、重点品种全景、内外资及家人反向席位贡献、农业天气、股指与 A 股社区情绪、来源状态。任一品种可继续进入净持仓前五、三组存量与边际、行情趋势事实和历史路径。
+
+沪银 `AG` 已加入技术面试点：`scripts/fetch_eastmoney_technical_snapshot.py` 读取主力合约日线，计算均线、收益率、RSI、MACD、ATR、布林带、区间高低与量比，并按“大周期方向 -> 中周期结构 -> 小周期触发”分层展示。技术指标是本地确定性计算，不消耗 LLM token；当前主力合约历史不等同于复权连续合约，页面会明确标注这一限制。Pandadata DeepView 只有在 SDK 与凭据可用后才启用，不得用本地指标伪装成 DeepView 结果。
+
+私有网页部署包装位于 `sites/research_dashboard/`，只承载已验证的 `output/research_dashboard/` 静态产物，不复制或重算资金逻辑。部署默认仅本人访问，公开或共享必须另行确认。
+
+原 `output/research_dashboard_v2_mockup/index.html` 的交互概念已经合并进主工作站“品种详情”视图。强共振、板块、核心品种和侧栏重点观察均可进入统一详情，依次展示行情与资金图、证据链摘要、三组存量/边际、席位前五、趋势周期、基本面事实和历史事件。概念稿中的示意数字不会进入主站；库存、基差、利润、研报等尚未接入的模块必须明确显示数据缺口。
+
+构建时会把每个交易日固化为独立 `snapshots/YYYYMMDD.json`，主页面只汇总快照，因此历史数据不会被次日覆盖。当前两份正式日报仍保留作为数据生产和对账层；待用户确认网页版信息覆盖充分后，再把自动化收敛为“抓取结构化数据 -> 写入每日快照 -> 构建网页”，届时才停用日报 HTML。

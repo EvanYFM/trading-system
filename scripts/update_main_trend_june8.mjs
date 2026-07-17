@@ -1,0 +1,129 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
+
+const desktop = "C:/Users/29266/Desktop";
+const inputName = (await fs.readdir(desktop))
+  .filter((name) => name.endsWith(".xlsx") && name.includes("6.5"))
+  .sort((a, b) => b.length - a.length)[0];
+if (!inputName) throw new Error("Could not find the 6.5 updated trend workbook.");
+
+const inputPath = path.join(desktop, inputName);
+const outputPath = path.join(desktop, "主力趋势-6.8-已更新.xlsx");
+const outputDir = "output/main_trend_update_20260608";
+
+const workbook = await SpreadsheetFile.importXlsx(await FileBlob.load(inputPath));
+const sheet = workbook.worksheets.getItemAt(0);
+const values = sheet.getUsedRange().values;
+
+const targetSerial = 46181; // 2026-06-08
+const header = values[1];
+const targetCol = header.findIndex((value) => Number(value) === targetSerial);
+if (targetCol < 0) throw new Error("Could not find 2026-06-08 column.");
+
+const targetAddress = sheet.getRangeByIndexes(0, targetCol, 1, 1).address.replace(/\d+$/, "");
+if (targetAddress !== "EQ") {
+  throw new Error(`2026-06-08 is in ${targetAddress}, expected EQ.`);
+}
+
+const rowByVariety = new Map();
+for (let r = 2; r < values.length; r += 1) {
+  const variety = values[r][1];
+  if (variety) rowByVariety.set(String(variety).split("\n")[0].trim(), r);
+}
+
+const styles = {
+  plusLight: { color: "F4B183" },
+  plusDark: { color: "FF0000" },
+  minusLight: { color: "92D050" },
+  minusDark: { color: "00B050" },
+};
+
+const updates = new Map([
+  ["金", ["内资-"]],
+  ["银", ["家人+"]],
+  ["铜", ["内资-", "外资-"]],
+  ["铝", ["内资-", "外资-"]],
+  ["锡", ["家人+", "内资-", "外资-"]],
+  ["沥青", ["内资+", "外资+"]],
+  ["燃油", ["家人-", "内资+"]],
+  ["甲醇", ["内资+", "外资+"]],
+  ["苯乙烯", ["内资+", "外资+"]],
+  ["PP", ["内资+", "外资+"]],
+  ["塑料", ["内资+"]],
+  ["20号胶", ["外资+"]],
+  ["焦煤", ["家人+", "内资-"]],
+  ["螺纹钢", ["外资-"]],
+  ["PVC", ["内资-"]],
+  ["烧碱", ["家人+", "内资-"]],
+  ["纯碱", ["家人+", "内资-"]],
+  ["玻璃", ["家人+", "内资-"]],
+  ["多晶硅", ["内资-"]],
+  ["苹果", ["内资-"]],
+  ["红枣", ["家人+", "内资-"]],
+  ["鸡蛋", ["家人+", "内资-"]],
+  ["生猪", ["家人+", "内资-"]],
+  ["白糖", ["外资-"]],
+  ["花生", ["内资+", "外资+"]],
+  ["豆粕", ["外资-"]],
+  ["菜粕", ["外资-"]],
+  ["豆油", ["外资-"]],
+  ["菜油", ["外资-"]],
+  ["棕榈油", ["外资-"]],
+]);
+
+function chooseStyle(tags) {
+  const hasInnerPlus = tags.includes("内资+");
+  const hasOuterPlus = tags.includes("外资+");
+  const hasInnerMinus = tags.includes("内资-");
+  const hasOuterMinus = tags.includes("外资-");
+
+  if (hasInnerPlus && hasOuterPlus) return styles.plusDark;
+  if (hasInnerMinus && hasOuterMinus) return styles.minusDark;
+  if (hasInnerPlus || hasOuterPlus) return styles.plusLight;
+  if (hasInnerMinus || hasOuterMinus) return styles.minusLight;
+  if (tags.some((tag) => tag.endsWith("+"))) return styles.plusLight;
+  if (tags.some((tag) => tag.endsWith("-"))) return styles.minusLight;
+  return null;
+}
+
+const written = [];
+for (const [variety, tags] of updates.entries()) {
+  const row = rowByVariety.get(variety);
+  if (row === undefined) {
+    written.push({ variety, status: "missing-row" });
+    continue;
+  }
+
+  const target = sheet.getRangeByIndexes(row, targetCol, 1, 1);
+  const style = chooseStyle(tags);
+  target.values = [[tags.join("\n")]];
+  target.format.wrapText = tags.length > 1;
+  if (style) target.format.fill.color = style.color;
+  written.push({
+    variety,
+    row1: row + 1,
+    col1: targetCol + 1,
+    address: `EQ${row + 1}`,
+    value: tags.join("\n"),
+    color: style?.color ?? "",
+    status: "updated",
+  });
+}
+
+await fs.mkdir(outputDir, { recursive: true });
+await fs.writeFile(`${outputDir}/written_cells.json`, JSON.stringify(written, null, 2), "utf8");
+
+const preview = await workbook.render({ sheetName: sheet.name, range: "EQ1:EQ57", scale: 2, format: "png" });
+await fs.writeFile(`${outputDir}/eq_column_preview.png`, new Uint8Array(await preview.arrayBuffer()));
+
+const xlsx = await SpreadsheetFile.exportXlsx(workbook);
+await xlsx.save(outputPath);
+
+console.log(JSON.stringify({
+  inputPath,
+  outputPath,
+  targetColumn: "EQ",
+  updated: written.filter((x) => x.status === "updated").length,
+  missing: written.filter((x) => x.status !== "updated"),
+}, null, 2));

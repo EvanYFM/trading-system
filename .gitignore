@@ -1,0 +1,46 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*cookie*
+*credentials*
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Node and frontend build output
+node_modules/
+dist/
+.next/
+.vinext/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Generated research data and reports
+data/
+output/
+tmp/
+
+# Local application state
+.obsidian/
+.playwright-cli/
+.agents/
+.codex/
+.wrangler/
+.DS_Store
+Thumbs.db
+
+# The private Sites deployment wrapper has its own repository.
+sites/research_dashboard/
