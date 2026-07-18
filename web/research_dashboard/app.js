@@ -383,11 +383,30 @@ function technicalValue(value, digits = 2, suffix = "") {
   return `${Number(value).toLocaleString("zh-CN", { minimumFractionDigits: digits, maximumFractionDigits: digits })}${suffix}`;
 }
 
+function technicalStateClass(state) {
+  return state === "偏多" ? "bull-text" : state === "偏空" ? "bear-text" : "";
+}
+
+function chanSequence(points) {
+  if (!Array.isArray(points) || points.length < 2) return "结构不足";
+  return points.map((point) => technicalValue(point.price, 0)).join(" → ");
+}
+
+function chanZone(snapshot) {
+  const zone = snapshot?.centralZone;
+  return zone ? `${technicalValue(zone.lower, 0)} – ${technicalValue(zone.upper, 0)}` : "暂无有效中枢";
+}
+
+function levelText(levels, emptyText) {
+  if (!Array.isArray(levels) || !levels.length) return emptyText;
+  return levels.map((item) => `${escapeHtml(item.label)} ${technicalValue(item.value, 0)}`).join("；");
+}
+
 function technicalRelationship(technical, item, trend) {
   if (!technical || technical.status !== "OK") return "技术指标尚未生成";
   const technicalSign = technical.bias === "偏多" ? 1 : technical.bias === "偏空" ? -1 : 0;
   const moneySign = Math.sign(numeric(item.amountSignal));
-  if (!technicalSign) return "技术结构震荡，等待方向确认";
+  if (!technicalSign) return "15/60分钟未形成同向突破，按中枢震荡处理";
   const direction = technicalSign > 0 ? "偏多" : "偏空";
   const moneyRead = !moneySign ? "三方资金中性" : moneySign === technicalSign ? `三方资金${direction}同向` : "三方资金反向";
   const trendSign = trend?.fresh && ["温", "热", "沸"].includes(trend.temperature) ? 1 : trend?.fresh && ["凉", "寒", "冻"].includes(trend.temperature) ? -1 : 0;
@@ -438,7 +457,26 @@ function renderDetailWorkspace() {
       <aside class="detail-surface executive-surface"><div class="detail-section-head"><div><small>EXECUTIVE READ</small><h3>今日研究读数</h3></div></div><dl><div><dt>接口事实</dt><dd>${trend ? `趋势温度“${escapeHtml(trend.temperature)}”，强度 ${formatSigned(trend.strength, 1)}，${trend.rightSide ? "处于右侧" : "未处于右侧"}。` : "趋势数据暂无。"} 三方资金 ${formatAmount(item.amountSignal)}。</dd></div><div><dt>策略判断</dt><dd>${escapeHtml(relationship)}；席位信号为“${escapeHtml(item.resonance.label || item.direction)}”。这是规则化解读，不是接口原文。</dd></div><div><dt>反向证据</dt><dd>${escapeHtml(weatherRead)}</dd></div></dl><button class="detail-action" data-view="history">查看完整历史路径</button></aside>
     </section>
     <section id="detail-positioning" class="detail-surface detail-wide-section"><div class="detail-section-head"><div><small>POSITIONING</small><h3>资金与席位结构</h3></div><p>存量净持仓与今日边际分列；家人按原始方向展示</p></div><div class="position-matrix"><div class="position-matrix-head"><span>资金群体</span><span>存量净持仓</span><span>今日净金额</span><span>边际动作</span></div>${groupRows.map(([label, group]) => `<div class="position-matrix-row"><b>${label}</b>${positionVisual(group.netPosition, stockScale)}<strong class="${signClass(group.amount)}">${formatAmount(group.amount)}</strong><span>${escapeHtml(flowAction(group))}</span></div>`).join("")}</div><div class="seat-rank-grid detail-ranks"><div class="seat-rank-list"><div class="seat-rank-title bull-text">净多席位 ${item.brokerRanking.netLong.length}/5</div>${rankRows(item.brokerRanking.netLong, "bull-text", "暂无净多席位")}</div><div class="seat-rank-list"><div class="seat-rank-title bear-text">净空席位 ${item.brokerRanking.netShort.length}/5</div>${rankRows(item.brokerRanking.netShort, "bear-text", "暂无净空席位")}</div></div></section>
-    <section id="detail-technical" class="detail-surface detail-wide-section technical-section"><div class="detail-section-head"><div><small>TECHNICAL EXECUTION</small><h3>技术面三层验证</h3></div><span class="detail-stamp ${technical?.bias === "偏多" ? "bullish" : technical?.bias === "偏空" ? "bearish" : "neutral"}">${technical ? `规则判断 · ${escapeHtml(technical.bias)}` : "沪银试验模块"}</span></div>${technical ? `<div class="technical-summary"><div><small>综合评分</small><strong class="${technical.bias === "偏多" ? "bull-text" : technical.bias === "偏空" ? "bear-text" : ""}">${formatSigned(technical.score, 0)} / 7</strong></div><div><small>交叉验证</small><strong>${escapeHtml(technicalRead)}</strong></div><div><small>样本</small><strong>${technical.barCount} 日 · ${escapeHtml(technical.contract)}</strong></div></div><div class="technical-layer-grid"><article><span>01 · 大周期方向</span><h4>${technical.close > technical.ma60 ? "站上 60 日均线" : "位于 60 日均线下方"}</h4><dl><div><dt>MA20</dt><dd>${technicalValue(technical.ma20, 0)}</dd></div><div><dt>MA60</dt><dd>${technicalValue(technical.ma60, 0)}</dd></div><div><dt>20 日涨跌</dt><dd class="${signClass(technical.return20)}">${technicalValue(technical.return20, 2, "%")}</dd></div><div><dt>60 日涨跌</dt><dd class="${signClass(technical.return60)}">${technicalValue(technical.return60, 2, "%")}</dd></div></dl></article><article><span>02 · 中周期结构</span><h4>${technical.macdHist > 0 ? "MACD 柱体回升" : "MACD 柱体走弱"}</h4><dl><div><dt>RSI14</dt><dd>${technicalValue(technical.rsi14, 1)}</dd></div><div><dt>MACD DIF</dt><dd>${technicalValue(technical.macdDif, 1)}</dd></div><div><dt>布林位置</dt><dd>${technicalValue(technical.bollPosition, 1, "%")}</dd></div><div><dt>ATR14</dt><dd>${technicalValue(technical.atrPct, 2, "%")}</dd></div></dl></article><article><span>03 · 小周期触发</span><h4>${technical.close > technical.ma5 ? "收盘站上 MA5" : "收盘仍在 MA5 下方"}</h4><dl><div><dt>MA5</dt><dd>${technicalValue(technical.ma5, 0)}</dd></div><div><dt>MA10</dt><dd>${technicalValue(technical.ma10, 0)}</dd></div><div><dt>20 日支撑</dt><dd>${technicalValue(technical.low20, 0)}</dd></div><div><dt>20 日压力</dt><dd>${technicalValue(technical.high20, 0)}</dd></div></dl></article></div><div class="technical-readout"><div><b>接口事实</b><p>收盘 ${technicalValue(technical.close, 0)}；MA20 ${technicalValue(technical.ma20, 0)}；MA60 ${technicalValue(technical.ma60, 0)}；RSI14 ${technicalValue(technical.rsi14, 1)}；ATR14 占价格 ${technicalValue(technical.atrPct, 2, "%")}。</p></div><div><b>规则判断</b><p>${escapeHtml(technicalRead)}。技术面只负责大周期方向、中周期结构和小周期触发，不替代资金面与基本面。</p></div><div><b>数据限制</b><p>${escapeHtml(technical.limitations)}</p></div></div><p class="detail-panel-note">来源：${escapeHtml(technical.source)}，数据日 ${escapeHtml(technical.sourceDate)}，区间 ${escapeHtml(technical.startDate)} 至 ${escapeHtml(technical.endDate)}。本模块按市场成交数据生成，不构成投资建议。</p>` : `<div class="data-gap"><strong>当前仅对沪银 AG 生成技术面试验快照</strong><p>其他品种暂不推算，也不使用旧数据填充。沪银验证通过后再扩展全局。</p></div>`}</section>
+    <section id="detail-technical" class="detail-surface detail-wide-section technical-section">
+      <div class="detail-section-head"><div><small>TECHNICAL EXECUTION</small><h3>技术面三层验证</h3></div><span class="detail-stamp ${technical?.bias === "偏多" ? "bullish" : technical?.bias === "偏空" ? "bearish" : "neutral"}">${technical ? `结构判断 · ${escapeHtml(technical.bias)}` : "沪银试验模块"}</span></div>
+      ${technical ? `<div class="technical-summary">
+        <div><small>综合结论</small><strong class="${technicalStateClass(technical.bias)}">${escapeHtml(technical.bias)} · ${escapeHtml(technical.signalStrength || "-")}</strong></div>
+        <div><small>量仓驱动</small><strong>${escapeHtml(technical.marketActivity?.label || "数据不足")} · ${escapeHtml(technical.marketActivity?.impulse || "无法确认")}</strong></div>
+        <div><small>样本</small><strong>${technical.barCount} 日 · ${escapeHtml(technical.contract)}</strong></div>
+      </div>
+      <div class="technical-layer-grid">
+        <article><span>01 · 日线均线</span><h4 class="${technicalStateClass(technical.dailyState)}">${escapeHtml(technical.dailyState)}</h4><dl><div><dt>收盘</dt><dd>${technicalValue(technical.close, 0)}</dd></div><div><dt>MA5</dt><dd>${technicalValue(technical.ma5, 0)}</dd></div><div><dt>MA20</dt><dd>${technicalValue(technical.ma20, 0)}</dd></div><div><dt>MA60</dt><dd>${technicalValue(technical.ma60, 0)}</dd></div></dl></article>
+        <article><span>02 · 15分钟缠论</span><h4 class="${technicalStateClass(technical.chan15?.state)}">${escapeHtml(technical.chan15?.state || "无法确认")}</h4><dl><div><dt>最近高点</dt><dd>${chanSequence(technical.chan15?.recentTops)}</dd></div><div><dt>最近低点</dt><dd>${chanSequence(technical.chan15?.recentBottoms)}</dd></div><div><dt>最近中枢</dt><dd>${chanZone(technical.chan15)}</dd></div><div><dt>有效笔</dt><dd>${technicalValue(technical.chan15?.strokeCount, 0)}</dd></div></dl></article>
+        <article><span>03 · 60分钟缠论</span><h4 class="${technicalStateClass(technical.chan60?.state)}">${escapeHtml(technical.chan60?.state || "无法确认")}</h4><dl><div><dt>最近高点</dt><dd>${chanSequence(technical.chan60?.recentTops)}</dd></div><div><dt>最近低点</dt><dd>${chanSequence(technical.chan60?.recentBottoms)}</dd></div><div><dt>最近中枢</dt><dd>${chanZone(technical.chan60)}</dd></div><div><dt>有效笔</dt><dd>${technicalValue(technical.chan60?.strokeCount, 0)}</dd></div></dl></article>
+      </div>
+      <div class="technical-readout">
+        <div><b>成交与持仓事实</b><p>成交量 ${technicalValue(technical.marketActivity?.volume, 0)}，较前日 ${technicalValue((technical.marketActivity?.volumeRatio - 1) * 100, 1, "%")}；收盘持仓 ${technicalValue(technical.marketActivity?.openInterest, 0)}，日变动 ${technicalValue(technical.marketActivity?.openInterestChange, 0)}。${escapeHtml(technical.marketActivity?.label || "")}${escapeHtml(technical.marketActivity?.impulse ? `，${technical.marketActivity.impulse}` : "")}。</p></div>
+        <div><b>支撑与压力</b><p>支撑：${levelText(technical.keyLevels?.supports, "暂无下方有效位置")}。压力：${levelText(technical.keyLevels?.resistances, "暂无上方有效位置")}。位置由 MA5/20/60 与最近有效中枢共同筛选。</p></div>
+        <div><b>规则判断</b><p>${escapeHtml(technicalRead)}。增仓同向用于增强趋势置信度，减仓同向视为力度较弱；技术面不替代资金面与基本面。</p></div>
+      </div>
+      <div class="technical-limit"><b>数据限制</b><p>${escapeHtml(technical.limitations)}</p></div>
+      <p class="detail-panel-note">来源：${escapeHtml(technical.source)}与${escapeHtml(technical.chan15?.source || "分钟数据未取得")}；数据日 ${escapeHtml(technical.sourceDate)}，分钟数据截至 ${escapeHtml(technical.chan15?.endTime || "无法确认")}。本模块按市场成交数据生成，不构成投资建议。</p>` : `<div class="data-gap"><strong>当前仅对沪银 AG 生成技术面试验快照</strong><p>其他品种暂不推算，也不使用旧数据填充。沪银验证通过后再扩展全局。</p></div>`}
+    </section>
     <section class="detail-split">
       <article id="detail-trend" class="detail-surface"><div class="detail-section-head"><div><small>TREND REGIME</small><h3>趋势与周期</h3></div><span class="detail-stamp">API事实</span></div><div class="temperature-scale">${tempOrder.map((name) => `<span class="${trend?.temperature === name ? "is-active" : ""}">${name}</span>`).join("")}</div><div class="trend-fact-row"><span>趋势强度</span><strong>${trend ? formatSigned(trend.strength, 1) : "暂无"}</strong></div><div class="trend-fact-row"><span>右侧状态</span><strong>${trend ? (trend.rightSide ? "是" : "否") : "暂无"}</strong></div><div class="trend-fact-row"><span>进入天数</span><strong>${trend?.daysSinceEntry == null ? "暂无" : `${trend.daysSinceEntry} 天`}</strong></div><p class="detail-panel-note">趋势动物直接事实与本页资金判断分列。温度为“平”或数据非当日时，不把它写成右侧趋势确认。</p></article>
       <article id="detail-fundamental" class="detail-surface"><div class="detail-section-head"><div><small>FUNDAMENTALS</small><h3>基本面证据板</h3></div><span class="detail-stamp neutral">外部事实</span></div>${relevantWeather.length ? `<div class="fundamental-grid">${relevantWeather.map((entry) => `<div><small>${escapeHtml(entry.window)} · ${escapeHtml(entry.date)}</small><strong>${escapeHtml(entry.types)}</strong><span>${escapeHtml(entry.origins)}</span></div>`).join("")}</div><p class="detail-panel-note">天气预警只作为外部事实，不直接推导涨跌。</p>` : `<div class="data-gap"><strong>当前没有该品种的基本面结构化数据</strong><p>库存、基差、仓单、利润、产量和消费尚未接入。保留此入口，避免用席位资金代替基本面结论。</p></div>`}</article>

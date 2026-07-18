@@ -388,12 +388,16 @@ h1 { margin: 6px 0 0; font-size: 30px; line-height: 1.15; letter-spacing: 0; }
 .technical-layer-grid dt, .technical-layer-grid dd { margin: 0; font-size: 10px; }
 .technical-layer-grid dt { color: var(--muted); }
 .technical-layer-grid dd { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.technical-layer-grid article:nth-child(2) dd, .technical-layer-grid article:nth-child(3) dd { white-space: normal; text-align: right; }
 .technical-readout { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
 .technical-readout > div { min-width: 0; padding: 13px 14px; border-left: 3px solid var(--line); background: var(--surface-subtle); }
 .technical-readout > div:nth-child(2) { border-left-color: #d8b866; }
 .technical-readout > div:nth-child(3) { border-left-color: var(--muted); }
 .technical-readout b { font-size: 11px; }
 .technical-readout p { margin: 7px 0 0; color: var(--muted); font-size: 10px; line-height: 1.65; }
+.technical-limit { margin-top: 12px; padding: 12px 14px; border-left: 3px solid var(--muted); background: var(--surface-subtle); }
+.technical-limit b { font-size: 11px; }
+.technical-limit p { margin: 6px 0 0; color: var(--muted); font-size: 10px; line-height: 1.65; }
 .temperature-scale { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; padding: 11px 0; }
 .temperature-scale span { display: grid; place-items: center; min-height: 32px; border: 1px solid var(--line); font-size: 11px; font-weight: 700; }
 .temperature-scale span.is-active { color: #fff; background: var(--line-strong); border-color: var(--line-strong); }
