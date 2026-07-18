@@ -17,9 +17,9 @@ RUN_DATE = os.environ.get("REPORT_DATE", datetime.now().strftime("%Y%m%d"))
 OUT_DIR = ROOT / "output" / f"institutional_seat_report_{RUN_DATE}"
 DATA_DIR = OUT_DIR / "data"
 
-DOMESTIC_BROKERS = ["国泰君安", "东证期货", "永安期货", "海通期货", "浙商期货", "中财期货", "南华期货", "申银万国"]
+DOMESTIC_BROKERS = ["国泰君安", "东证期货", "永安期货", "海通期货", "浙商期货", "中财期货", "南华期货", "申银万国", "中信期货", "光大期货", "一德期货", "瑞达期货", "银河期货"]
 FOREIGN_BROKERS = ["高盛期货", "摩根大通", "瑞银期货"]
-FAMILY_BROKERS = ["东方财富", "徽商期货", "方正中期", "华安期货", "中信建投"]
+FAMILY_BROKERS = ["东方财富", "徽商期货", "方正中期", "华安期货", "中信建投", "广发期货", "民生期货", "平安期货", "中泰期货"]
 
 GROUPS = {
     "内资": DOMESTIC_BROKERS,
