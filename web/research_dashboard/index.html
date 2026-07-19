@@ -21,10 +21,6 @@
         <button class="nav-item" data-view="history">历史回看</button>
         <button class="nav-item" data-view="status">数据状态</button>
       </nav>
-      <div class="rail-watchlist">
-        <div class="rail-label">重点观察</div>
-        <div id="watchlistRail" class="watchlist-rail"></div>
-      </div>
       <div class="rail-section history-rail">
         <div class="rail-label">历史快照</div>
         <div id="dateList" class="date-list"></div>
@@ -111,6 +107,13 @@
 
       <section id="view-detail" class="view" aria-labelledby="detail-view-title">
         <h2 id="detail-view-title" class="sr-only">品种详情</h2>
+        <div class="detail-filter-shell">
+          <div class="filter-bar">
+            <label class="search-field"><span class="sr-only">搜索详情品种</span><input id="detailSearchInput" type="search" placeholder="搜索品种或代码"></label>
+            <select id="detailSectorFilter" aria-label="筛选详情板块"><option value="all">全部板块</option></select>
+          </div>
+          <div id="detailFilterResults" class="detail-filter-results" aria-label="已接入技术详情品种"></div>
+        </div>
         <div id="detailWorkspace"></div>
       </section>
 

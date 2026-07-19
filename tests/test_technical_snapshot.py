@@ -7,12 +7,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 from fetch_eastmoney_technical_snapshot import (  # noqa: E402
+    DEFAULT_SYMBOLS,
     build_strokes,
     build_key_levels,
     classify_chan,
     classify_daily_ma,
     classify_position_price,
     combine_technical_bias,
+    parse_sina_daily_payload,
     recent_central_zone,
     session_activity,
 )
@@ -23,6 +25,15 @@ def point(index, kind, price):
 
 
 class TechnicalSnapshotTests(unittest.TestCase):
+    def test_default_coverage_symbols(self):
+        self.assertEqual(DEFAULT_SYMBOLS, ("AG", "JM", "FU", "LH", "LC", "JD"))
+
+    def test_sina_daily_history_is_cut_off_and_calculates_change(self):
+        payload = 'x=([{"d":"2026-07-16","o":"100","h":"105","l":"99","c":"102","v":"8"},{"d":"2026-07-17","o":"102","h":"106","l":"101","c":"104","v":"9"},{"d":"2026-07-20","o":"104","h":"108","l":"103","c":"107","v":"10"}]);'
+        rows = parse_sina_daily_payload(payload, "20260717")
+        self.assertEqual(len(rows), 2)
+        self.assertAlmostEqual(rows[-1]["change_pct"], 1.960784, places=5)
+
     def test_daily_ma_states(self):
         self.assertEqual(classify_daily_ma(120, 115, 110, 100), "偏多")
         self.assertEqual(classify_daily_ma(80, 85, 90, 100), "偏空")

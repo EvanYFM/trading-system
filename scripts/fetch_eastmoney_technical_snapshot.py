@@ -7,6 +7,7 @@ import json
 import os
 import re
 import statistics
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.request import Request, urlopen
@@ -22,10 +23,14 @@ from fetch_eastmoney_main_quotes import (
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_SYMBOLS = ("AG",)
+DEFAULT_SYMBOLS = ("AG", "JM", "FU", "LH", "LC", "JD")
 SINA_MINUTE_URL = (
     "https://stock2.finance.sina.com.cn/futures/api/jsonp.php/"
     "{contract}_{period}_=/InnerFuturesNewService.getFewMinLine?symbol={contract}&type={period}"
+)
+SINA_DAILY_URL = (
+    "https://stock2.finance.sina.com.cn/futures/api/jsonp.php/"
+    "{contract}=/InnerFuturesNewService.getDailyKLine?symbol={contract}"
 )
 
 
@@ -95,6 +100,46 @@ def fetch_minute_bars(contract: str, period: int, report_date: str) -> tuple[lis
     with urlopen(request, timeout=30) as response:
         text = response.read().decode("utf-8", errors="replace")
     return parse_minute_payload(text, report_date), url
+
+
+def parse_sina_daily_payload(text: str, report_date: str) -> list[dict[str, float | str]]:
+    match = re.search(r"=\((\[.*\])\);?\s*$", text, re.S)
+    if not match:
+        raise ValueError("Sina daily response is not valid JSONP")
+    rows: list[dict[str, float | str]] = []
+    previous_close: float | None = None
+    for item in json.loads(match.group(1)):
+        date = str(item.get("d", ""))
+        if not date or date.replace("-", "") > report_date:
+            continue
+        close = value(item.get("c"))
+        change_amount = close - previous_close if previous_close is not None else 0.0
+        change_pct = change_amount / previous_close * 100 if previous_close else 0.0
+        rows.append(
+            {
+                "date": date,
+                "open": value(item.get("o")),
+                "close": close,
+                "high": value(item.get("h")),
+                "low": value(item.get("l")),
+                "volume": value(item.get("v")),
+                "turnover": 0.0,
+                "amplitude_pct": 0.0,
+                "change_pct": change_pct,
+                "change_amount": change_amount,
+            }
+        )
+        previous_close = close
+    return rows
+
+
+def fetch_sina_daily_history(contract: str, report_date: str) -> list[dict[str, float | str]]:
+    symbol = contract.upper()
+    url = SINA_DAILY_URL.format(contract=symbol)
+    request = Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urlopen(request, timeout=30) as response:
+        text = response.read().decode("utf-8", errors="replace")
+    return parse_sina_daily_payload(text, report_date)
 
 
 def remove_inclusion(bars: list[dict[str, object]]) -> list[dict[str, object]]:
@@ -404,25 +449,29 @@ def build_snapshot(contract: dict[str, object], report_date: str) -> tuple[dict[
     secid = f"{contract['market']}.{contract['contract']}"
     history_status = "LIVE_KLINE"
     try:
-        payload = get_json(
-            KLINE_URL,
-            {
-                "secid": secid,
-                "klt": 101,
-                "fqt": 1,
-                "beg": begin_date,
-                "end": report_date,
-                "iscca": 1,
-                "fields1": KLINE_FIELDS_1,
-                "fields2": KLINE_FIELDS_2,
-            },
-        )
+        params = {
+            "secid": secid,
+            "klt": 101,
+            "fqt": 1,
+            "beg": begin_date,
+            "end": report_date,
+            "iscca": 1,
+            "fields1": KLINE_FIELDS_1,
+            "fields2": KLINE_FIELDS_2,
+        }
+        try:
+            payload = get_json(KLINE_URL, params)
+        except OSError:
+            time.sleep(1)
+            payload = get_json(KLINE_URL, params)
         rows = parse_klines(((payload.get("data") or {}).get("klines") or []))
     except OSError:
         rows = read_cached_history(str(contract["symbol"]), report_date)
-        if not rows:
-            raise
-        history_status = "CACHED_HISTORY"
+        if rows:
+            history_status = "CACHED_HISTORY"
+        else:
+            rows = fetch_sina_daily_history(str(contract["contract"]), report_date)
+            history_status = "SINA_DAILY_FALLBACK"
     if reconcile_latest_quote(rows, str(contract["symbol"]), report_date):
         history_status += "+FINAL_QUOTE"
     if len(rows) < 20:
@@ -455,12 +504,13 @@ def build_snapshot(contract: dict[str, object], report_date: str) -> tuple[dict[
     )
 
     latest = rows[-1]
+    daily_source = "新浪财经合约日线 + 东方财富报告日收盘校正" if history_status.startswith("SINA") else "东方财富期货主力合约日线"
     return {
         **contract,
         "reportDate": report_date,
         "sourceDate": str(latest["date"]),
         "status": "OK" if str(latest["date"]).replace("-", "") == report_date else "STALE",
-        "source": "东方财富期货主力合约日线",
+        "source": daily_source,
         "sourceUrl": SOURCE_PAGE,
         "historyStatus": history_status,
         "barCount": len(rows),
@@ -514,13 +564,24 @@ def main() -> None:
         if not contract:
             snapshots.append({"symbol": symbol, "reportDate": report_date, "status": "MAIN_CONTRACT_NOT_FOUND"})
             continue
-        snapshot, rows = build_snapshot(contract, report_date)
+        try:
+            snapshot, rows = build_snapshot(contract, report_date)
+        except (OSError, ValueError) as error:
+            snapshot = {
+                **contract,
+                "reportDate": report_date,
+                "status": "DAILY_FETCH_FAILED",
+                "error": type(error).__name__,
+            }
+            rows = []
         snapshots.append(snapshot)
-        history_path = output_dir / f"eastmoney_technical_history_{symbol}_{report_date}.csv"
-        with history_path.open("w", encoding="utf-8-sig", newline="") as handle:
-            writer = csv.DictWriter(handle, fieldnames=list(rows[0]) if rows else ["date"])
-            writer.writeheader()
-            writer.writerows(rows)
+        if rows:
+            history_path = output_dir / f"eastmoney_technical_history_{symbol}_{report_date}.csv"
+            with history_path.open("w", encoding="utf-8-sig", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+                writer.writeheader()
+                writer.writerows(rows)
+        time.sleep(0.4)
 
     snapshot_path = output_dir / f"eastmoney_technical_snapshot_{report_date}.json"
     snapshot_path.write_text(json.dumps({"reportDate": report_date, "items": snapshots}, ensure_ascii=False, indent=2), encoding="utf-8")
