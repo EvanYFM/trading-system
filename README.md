@@ -61,6 +61,12 @@ Windows PowerShell 下不要使用 Bash 风格 heredoc；临时 Python 校验请
 $env:REPORT_DATE="YYYYMMDD"; python scripts/generate_institutional_seat_report.py
 ```
 
+只更新研究工作站所需 CSV、跳过日报 HTML 时：
+
+```powershell
+$env:REPORT_DATE="YYYYMMDD"; $env:SKIP_REPORT_HTML="1"; python scripts/generate_institutional_seat_report.py
+```
+
 外资席位不再单独生成专题日报；机构合并专题日报统一介绍内资、外资和家人共振情况。
 旧全席位日报不再作为每日正式输出；如需临时排查旧口径，可手动运行 `scripts/generate_futures_report.py`。
 
@@ -68,6 +74,12 @@ $env:REPORT_DATE="YYYYMMDD"; python scripts/generate_institutional_seat_report.p
 
 ```powershell
 $env:REPORT_DATE="YYYYMMDD"; python scripts/generate_margin_weighted_seat_report.py
+```
+
+只更新研究工作站所需保证金 CSV、跳过日报 HTML 时：
+
+```powershell
+$env:REPORT_DATE="YYYYMMDD"; $env:SKIP_REPORT_HTML="1"; python scripts/generate_margin_weighted_seat_report.py
 ```
 
 生成当日趋势动物 API 快照后再生成保证金日报：
