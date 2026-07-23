@@ -22,19 +22,14 @@
 
 ## Current State
 
-本项目当前维护两条主线：
+本项目当前维护一条每日交付主线：
 
-- 每日拉取奇货可查主要期货公司席位资金面，生成 HTML 资金日报。
-- 按机构席位生成合并专题日报，统一观察内资 8 席、外资 3 席和家人席位反向后的三方共振；不再单独生成外资专题日报。
-- 根据用户提供的“交易蓝图”图片，更新 `主力趋势` Excel 的对应日期资金面列。
+- 每个中国期货交易日拉取席位、天气、社区情绪、趋势、主力行情和技术面数据，固化为 `output/research_dashboard/data/snapshots/YYYYMMDD.json`，并构建本地静态研究工作站。
+- `scripts/generate_institutional_seat_report.py` 与 `scripts/generate_margin_weighted_seat_report.py` 设置 `SKIP_REPORT_HTML=1` 后只承担数据生产和对账；日报 HTML 仅在用户明确要求时手动生成。
+- `scripts/generate_futures_report.py` 仅保留为基础函数来源和手动排查脚本。
+- 趋势优先使用报告日有效的 API 快照；若用户提供当日截图，只转录截图可确认的温度、强度和阶段，不把截图行情当作收盘行情。
 
-当前正式日报脚本：`scripts/generate_institutional_seat_report.py` 与 `scripts/generate_margin_weighted_seat_report.py`。`scripts/generate_futures_report.py` 仅保留为基础函数来源和手动排查脚本。
-
-趋势动物 API 快照脚本：`scripts/fetch_trend_animal_snapshot.py`；仅在当前安全会话提供 `TREND_ANIMAL_API_KEY` 时运行。
-
-最新可核对日报：`output/institutional_seat_report_20260710/report.html` 与 `output/margin_weighted_seat_report_20260710/report.html`。
-
-最新主力趋势更新：桌面 `主力趋势-已更新.xlsx` 已原地写入 2026-07-06/FL 与 2026-07-07/FM 两列。
+最新可核对工作站快照：`output/research_dashboard/data/snapshots/20260723.json`；本地网页为 `output/research_dashboard/index.html`。当前不自动同步 Sites。
 
 ## Stable Decisions
 
@@ -48,7 +43,7 @@
 - EC 集运欧线因网页无持仓数据，不纳入重点持仓观察。
 - 强共振观察回看最近 5 个可用披露日，识别持续多/空、反转或方向切换。
 - 不再单独生成外资专题日报；外资席位分析并入机构合并专题日报。
-- 2026 年中国法定节假日或调休放假日不生成日报；自动化在这些休市日跳过抓取、报告生成和通知。
+- 2026 年中国法定节假日或调休放假日不更新工作站；自动化在这些休市日跳过抓取、快照构建和通知。
 
 ## Broker Groups
 
@@ -56,7 +51,7 @@
 - 外资：高盛期货、摩根大通、瑞银期货
 - 家人：东方财富、徽商期货、方正中期、华安期货、中信建投、广发期货、民生期货、平安期货、中泰期货
 
-两份正式日报统一使用内资 13 家、外资 3 家、家人 9 家样本；内资、外资为正向资金，家人为反向指标，三方净结果为内资 + 外资 - 家人。
+两份数据脚本统一使用内资 13 家、外资 3 家、家人 9 家样本；内资、外资为正向资金，家人为反向指标，三方净结果为内资 + 外资 - 家人。
 
 ## Focus Varieties
 
@@ -737,3 +732,12 @@ $env:REPORT_DATE="YYYYMMDD"; python scripts/generate_margin_weighted_seat_report
 - 7 月 20 日快照包含 63 个商品、19 个三方强共振、63 个当日行情匹配、6 个技术品种、4 个股指、19 条天气风险和 15 条社区情绪样本；席位披露日期为 2026-07-20。
 - 趋势动物官方商品数据仍为 2026-07-17，因此 7 月 20 日付费快照被安全跳过，工作站趋势当日有效数为 0，不沿用旧趋势作为当日事实。
 - 验证：两份 `report.html` 均未生成；保证金覆盖 63/63；商品列表无股指、国债、淀粉残留；站点包装构建及 2 项渲染测试通过，私有 Sites 版本已发布。
+
+## 2026-07-23 Local Dashboard Delivery
+
+- 用户将每日交付从两份日报 HTML 改为本地研究工作站静态网页。机构与保证金脚本继续设置 `SKIP_REPORT_HTML=1` 生成 CSV，日报 HTML 仅在用户明确要求时手动生成。
+- 每日流程为：席位与天气数据、知识星球情绪、有效的趋势 API 或用户当日截图、东方财富主力行情、六个重点品种技术快照、研究工作站每日 JSON 快照与本地静态网页。
+- Sites 暂不随每日数据更新；待用户统一确认页面结构后再部署。
+- 2026-07-23 本地快照包含 63 个商品、14 个三方强共振、63 个当日行情、16 个截图趋势和 6 个技术品种；席位披露日为 2026-07-23。
+- 当日截图趋势只转录明确可见的 16 个商品温度与强度，不使用截图行情替代东方财富收盘价，也不沿用截图未出现的前一日趋势。
+- 本地服务地址为 `http://127.0.0.1:8788/`；快照接口返回 200，技术面 9 项单元测试通过。自动化提示词已同步为本地静态网页工作流，并保留原暂停状态。
