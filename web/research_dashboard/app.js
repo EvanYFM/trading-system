@@ -9,6 +9,7 @@ const state = {
   detailSector: "all",
   activeSymbol: null,
   historySymbol: null,
+  railCollapsed: false,
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -29,6 +30,14 @@ const formatAxisAmount = (value) => numeric(value) === 0 ? "0" : `${formatSigned
 const currentSnapshot = () => state.data.snapshots[state.date];
 const DETAIL_SYMBOLS = ["AG", "JM", "FU", "LH", "LC", "JD"];
 const DETAIL_SEARCH_ALIASES = { FU: "燃油", AG: "白银", JM: "焦煤", LH: "生猪", LC: "碳酸锂", JD: "鸡蛋" };
+const CORE_GROUPS = [
+  ["贵金属", ["AU", "AG"]],
+  ["有色金属", ["SN", "LC"]],
+  ["能源化工", ["FU"]],
+  ["黑色系", ["JM"]],
+  ["家人品种", ["FG", "SA", "AO", "SH"]],
+  ["农产品", ["M", "JD", "LH"]],
+];
 
 function maxAbs(items, getter) {
   return Math.max(1, ...items.map((item) => Math.abs(numeric(getter(item)))));
@@ -37,7 +46,6 @@ function maxAbs(items, getter) {
 function renderDateControls() {
   const options = state.data.dates.map((date) => `<option value="${date}" ${date === state.date ? "selected" : ""}>${formatDate(date)}</option>`).join("");
   $("#dateSelect").innerHTML = options;
-  $("#dateList").innerHTML = state.data.dates.map((date) => `<button class="date-button ${date === state.date ? "is-active" : ""}" data-date="${date}">${formatDate(date)}</button>`).join("");
 }
 
 function summaryCard(label, value, note, tone = "") {
@@ -65,7 +73,15 @@ function renderSummary() {
 }
 
 function renderFocus() {
-  const items = currentSnapshot().tripleResonance.slice(0, 8);
+  const items = [...currentSnapshot().tripleResonance]
+    .sort((a, b) => {
+      const aBull = numeric(a.amountSignal) >= 0;
+      const bBull = numeric(b.amountSignal) >= 0;
+      if (aBull !== bBull) return aBull ? -1 : 1;
+      return aBull
+        ? numeric(b.amountSignal) - numeric(a.amountSignal)
+        : numeric(a.amountSignal) - numeric(b.amountSignal);
+    });
   if (!items.length) {
     $("#resonanceFocus").innerHTML = `<div class="detail-empty">今天没有满足三方强共振条件的商品品种。</div>`;
     return;
@@ -135,19 +151,20 @@ function renderSectors() {
 }
 
 function coreItems() {
-  const instruments = currentSnapshot().instruments;
-  const preferred = instruments.filter((item) => item.watchlist);
-  const additions = currentSnapshot().tripleResonance.filter((item) => !preferred.some((entry) => entry.symbol === item.symbol));
-  return [...preferred, ...additions].slice(0, 14);
+  const indexed = new Map(currentSnapshot().instruments.map((item) => [item.symbol, item]));
+  return CORE_GROUPS.map(([sector, symbols]) => ({
+    sector,
+    items: symbols.map((symbol) => indexed.get(symbol)).filter(Boolean),
+  })).filter((group) => group.items.length);
 }
 
 function renderCorePanorama() {
-  const rows = coreItems();
-  if (!rows.length) {
+  const groups = coreItems();
+  if (!groups.length) {
     $("#corePanorama").innerHTML = `<div class="detail-empty">该快照没有可用重点品种。</div>`;
     return;
   }
-  $("#corePanorama").innerHTML = `<div class="panorama-head"><span>品种 / 行情</span><span>三方净变动</span><span>内资 / 外资 / 家人反向</span><span>趋势与信号</span></div>${rows.map((item) => {
+  $("#corePanorama").innerHTML = groups.map((group) => `<section class="panorama-group"><header>${escapeHtml(group.sector)}</header><div class="panorama-head"><span>品种 / 行情</span><span>三方净变动</span><span>内资 / 外资 / 家人反向</span><span>趋势与信号</span></div>${group.items.map((item) => {
     const quote = item.quote;
     return `<button class="panorama-row" data-open-symbol="${escapeHtml(item.symbol)}">
       <span class="panorama-name"><strong>${escapeHtml(item.variety)} ${escapeHtml(item.symbol)}</strong><small>${escapeHtml(item.sector)} · ${escapeHtml(quote?.contract || item.margin.contract || "主力待披露")}</small>${quote ? `<em>${numeric(quote.close).toLocaleString("zh-CN", {maximumFractionDigits:4})} <b class="${signClass(quote.changePct)}">${formatSigned(quote.changePct, 2)}%</b></em>` : `<em>行情暂无</em>`}</span>
@@ -155,7 +172,7 @@ function renderCorePanorama() {
       <span>${groupBars(item)}</span>
       <span class="panorama-tags">${trendChip(item.trend)}<span class="tag ${dirClass(item.amountSignal)}">${escapeHtml(item.resonance.label || item.direction)}</span></span>
     </button>`;
-  }).join("")}`;
+  }).join("")}</section>`).join("");
 }
 
 function brokerSide(items, side) {
@@ -190,37 +207,24 @@ function renderWeather() {
 
 function renderStockIndices() {
   const rows = currentSnapshot().stockIndices;
-  $("#stockIndexList").innerHTML = rows.length ? rows.map((item) => `<div class="index-row"><div class="index-name"><strong>${escapeHtml(item.variety)}</strong><small>${escapeHtml(item.symbol)} · 独立专栏${item.trend ? ` · 趋势${escapeHtml(item.trend.temperature || "-")}${item.trend.fresh ? "" : "（旧）"}` : ""}</small></div><div class="index-value ${signClass(item.amountSignal)}">${formatAmount(item.amountSignal)}</div></div>`).join("") : `<div class="detail-empty">该快照没有独立股指数据。</div>`;
-}
-
-function renderEquitySentiment() {
-  const item = currentSnapshot().equitySentiment || {};
-  if (item.status !== "ok") {
-    $("#equitySentiment").innerHTML = `<div class="detail-empty">该快照没有可用A股社区情绪数据。</div>`;
-    return;
-  }
-  const tone = item.score > 0 ? "bullish" : item.score < 0 ? "bearish" : "";
-  const evidence = (item.evidence || []).slice(0, 3).map((entry) => `<li>${escapeHtml(entry.excerpt)}</li>`).join("");
-  $("#equitySentiment").innerHTML = `<div class="sentiment-head"><div><span>A股社区情绪</span><strong class="${signClass(item.score)}">${escapeHtml(item.label)}</strong></div><div class="sentiment-score ${tone}">${formatSigned(item.score, 0)}</div></div>
-    <div class="sentiment-meta">${escapeHtml(item.dataDate)} · ${item.sampleCount} 条样本 · Nick ${item.nickCount} 条 · 置信度${escapeHtml(item.confidence)}</div>
-    <p>${escapeHtml(item.communitySummary)}</p>
-    <div class="sentiment-nick"><strong>Nick 当日观点</strong><span>${escapeHtml(item.nickSummary || "暂无")}</span></div>
-    ${evidence ? `<details><summary>查看方向证据摘录</summary><ul>${evidence}</ul></details>` : ""}
-    <small>${escapeHtml(item.methodology)}</small>`;
+  $("#stockIndexList").innerHTML = rows.length ? rows.map((item) => `<div class="index-row">
+    <div class="index-name"><strong>${escapeHtml(item.variety)}</strong><small>${escapeHtml(item.symbol)}${item.trend ? ` · 趋势${escapeHtml(item.trend.temperature || "-")}${item.trend.fresh ? "" : "（旧）"}` : ""}</small></div>
+    <div class="index-change"><small>当日涨跌</small><strong class="${item.quote?.changePct == null ? "" : signClass(item.quote.changePct)}">${item.quote?.changePct == null ? "暂无" : `${formatSigned(item.quote.changePct, 2)}%`}</strong></div>
+    <div class="index-value ${item.hasFuturesFlow ? signClass(item.amountSignal) : ""}"><small>三方资金</small><strong>${item.hasFuturesFlow ? formatAmount(item.amountSignal) : "无期货席位流"}</strong></div>
+  </div>`).join("") : `<div class="detail-empty">该快照没有独立股指数据。</div>`;
 }
 
 function renderOverviewStatus() {
   const snapshot = currentSnapshot();
   const summary = snapshot.summary;
   const latestDisclosure = snapshot.disclosureDates.at(-1) || "未披露";
-  const sentiment = snapshot.equitySentiment || {};
   $("#overviewStatus").innerHTML = [
     ["席位披露", latestDisclosure, `${summary.instrumentCount} 个商品品种`],
     ["收盘行情", sourceFileDate(summary.quoteSourceFile), `${summary.quoteFreshCount}/${summary.instrumentCount} 与报告日同日 · 东方财富`],
     ["趋势快照", sourceFileDate(summary.trendSourceFile), `${summary.trendFreshCount}/${summary.instrumentCount} 与报告日同日 · 趋势动物`],
     ["保证金", `${(summary.marginCoverage * 100).toFixed(0)}% 覆盖`, summary.marginSourceUpdate || "更新时间未披露"],
-    ["天气风险", `${snapshot.weather.length} 条`, snapshot.weather[0]?.date || "无数据"],
-    ["A股情绪", sentiment.status === "ok" ? `${sentiment.sampleCount} 条样本` : "不可用", sentiment.dataDate || "无数据"],
+    ["期现基差", `${summary.basisCoveredCount || 0} 个`, sourceFileDate(summary.basisSourceFile)],
+    ["仓单数据", `${summary.warehouseCoveredCount || 0} 个`, sourceFileDate(summary.warehouseSourceFile)],
   ].map(([label, value, note]) => `<article><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(note)}</small></article>`).join("");
 }
 
@@ -294,6 +298,8 @@ function seriesFor(symbol) {
       changePct: item.quote?.changePct ?? null,
       structure: item.marginalStructure || "边际待判",
       trend: item.trend || null,
+      basis: item.fundamentals?.basis?.at(-1) ?? null,
+      warehouseReceipt: item.fundamentals?.warehouseReceipt?.at(-1) ?? null,
     } : null;
   }).filter(Boolean);
 }
@@ -380,6 +386,40 @@ function priceFlowChart(series, variety) {
   </svg>`;
 }
 
+function factLineChart(rows, field, label) {
+  const points = (rows || []).filter((item) => item[field] != null);
+  if (!points.length) return `<div class="fact-chart-empty">暂无可用历史数据</div>`;
+  const width = 430, height = 150;
+  const padding = {top: 14, right: 14, bottom: 25, left: 58};
+  const values = points.map((item) => numeric(item[field]));
+  const max = Math.max(...values), min = Math.min(...values);
+  const range = max - min || Math.max(1, Math.abs(max) * 0.02);
+  const x = (index) => padding.left + (points.length === 1 ? 0 : index / (points.length - 1) * (width - padding.left - padding.right));
+  const y = (value) => padding.top + (max - value) / range * (height - padding.top - padding.bottom);
+  const line = values.map((value, index) => `${x(index).toFixed(1)},${y(value).toFixed(1)}`).join(" ");
+  return `<svg class="fact-line-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(label)}历史折线图">
+    <line x1="${padding.left}" x2="${width - padding.right}" y1="${y(max)}" y2="${y(max)}"></line><line x1="${padding.left}" x2="${width - padding.right}" y1="${y(min)}" y2="${y(min)}"></line>
+    <text x="${padding.left - 7}" y="${y(max) + 4}" text-anchor="end">${technicalValue(max, 0)}</text><text x="${padding.left - 7}" y="${y(min) + 4}" text-anchor="end">${technicalValue(min, 0)}</text>
+    <polyline points="${line}"></polyline><text x="${padding.left}" y="${height - 6}">${escapeHtml(points[0].sourceDate)}</text><text x="${width - padding.right}" y="${height - 6}" text-anchor="end">${escapeHtml(points.at(-1).sourceDate)}</text>
+  </svg>`;
+}
+
+function fundamentalEvidence(item) {
+  const basis = item.fundamentals?.basis || [];
+  const warehouse = item.fundamentals?.warehouseReceipt || [];
+  const latestBasis = basis.at(-1);
+  const latestWarehouse = warehouse.at(-1);
+  const pending = (label, note) => `<article class="fundamental-fact is-pending"><small>${label}</small><strong>待接入</strong><p>${note}</p></article>`;
+  return `<div class="fundamental-evidence-grid">
+    ${pending("供给", "产量、开工率与进口等品种专属数据尚未接入。")}
+    ${pending("需求", "表观消费、下游开工与终端需求尚未接入。")}
+    ${pending("成本", "主流企业现金成本尚未形成稳定公开日频口径。")}
+    ${pending("库存", "社会库存与产业库存尚未统一接入。")}
+    <article class="fundamental-fact chart-fact"><small>仓单</small><strong>${latestWarehouse ? technicalValue(latestWarehouse.warehouse_receipt, 0) : "暂无"}</strong><p>${latestWarehouse ? `${escapeHtml(latestWarehouse.sourceDate)} · 当日变化 ${formatSigned(latestWarehouse.change, 0)}` : "东方财富库存数据未覆盖该品种"}</p>${factLineChart(warehouse, "warehouse_receipt", `${item.variety}仓单`)}</article>
+    <article class="fundamental-fact chart-fact"><small>期现基差</small><strong class="${latestBasis ? signClass(latestBasis.basis) : ""}">${latestBasis ? technicalValue(latestBasis.basis, 2) : "暂无"}</strong><p>${latestBasis ? `${escapeHtml(latestBasis.sourceDate)} · 现货价减主力期货价` : "公开期现表未覆盖该品种"}</p>${factLineChart(basis, "basis", `${item.variety}期现基差`)}</article>
+  </div>`;
+}
+
 function detailRelationship(item) {
   const temperature = item.trend?.temperature;
   const trendDirection = ["温", "热", "沸"].includes(temperature) ? 1 : ["凉", "寒", "冻"].includes(temperature) ? -1 : 0;
@@ -443,12 +483,15 @@ function renderDetailWorkspace() {
   const seatBias = longTotal > shortTotal ? "多方样本占优" : shortTotal > longTotal ? "空方样本占优" : "席位样本均衡";
   const relationship = detailRelationship(item);
   const technicalRead = technicalRelationship(technical, item, trend);
-  const relevantWeather = currentSnapshot().weather.filter((entry) => entry.symbol === item.symbol).slice(0, 4);
   const trendState = trend ? `${trend.temperature || "-"} · ${trend.active ? (trend.stage || (trend.rightSide ? "右侧" : "左侧")) : "未进入趋势"}` : "暂无趋势数据";
   const researchState = `${item.amountSignal >= 0 ? "资金偏多" : "资金偏空"} · ${trend?.active ? relationship : "等待趋势确认"}`;
   const disclosure = currentSnapshot().disclosureDates.at(-1) || "未披露";
   const recentEvents = [...series].reverse().slice(0, 5);
-  const weatherRead = relevantWeather.length ? `${relevantWeather[0].types}，${relevantWeather[0].reason}` : "该品种尚未接入库存、基差、利润或天气等基本面事实。";
+  const latestBasis = item.fundamentals?.basis?.at(-1);
+  const latestWarehouse = item.fundamentals?.warehouseReceipt?.at(-1);
+  const fundamentalRead = latestBasis || latestWarehouse
+    ? `基差 ${latestBasis ? technicalValue(latestBasis.basis, 2) : "暂无"}；仓单 ${latestWarehouse ? technicalValue(latestWarehouse.warehouse_receipt, 0) : "暂无"}。`
+    : "基差与仓单尚无可用公开数据。";
   const tempOrder = ["凉", "寒", "冻", "平", "温", "热", "沸"];
   $("#detailWorkspace").innerHTML = `<header class="instrument-detail-hero">
       <div class="instrument-detail-title"><span class="instrument-sector-mark"></span><div><p>${escapeHtml(item.sector)} · ${escapeHtml(item.margin.exchange || "交易所未披露")}</p><h2>${escapeHtml(item.variety)} <em>${escapeHtml(item.symbol)}</em></h2></div><span class="contract-pill">主力 ${escapeHtml(quote?.contract || item.margin.contract || "未披露")}</span></div>
@@ -465,7 +508,7 @@ function renderDetailWorkspace() {
     <nav class="detail-subnav" aria-label="品种详情导航"><button class="is-active" data-detail-anchor="detail-overview">总览</button><button data-detail-anchor="detail-positioning">资金与席位</button><button data-detail-anchor="detail-technical">技术面</button><button data-detail-anchor="detail-trend">趋势</button><button data-detail-anchor="detail-fundamental">基本面</button><button data-detail-anchor="detail-events">历史事件</button></nav>
     <section id="detail-overview" class="detail-dashboard-grid">
       <article class="detail-surface chart-surface"><div class="detail-section-head"><div><small>PRICE & FLOW</small><h3>价格与三方资金</h3></div><div class="detail-legend"><i></i>收盘价 <b></b>资金净变动</div></div><div class="combo-chart-wrap">${priceFlowChart(series, item.variety)}</div><div class="detail-chart-foot"><span>历史快照 <b>${series.length} 日</b></span><span>今日手数 <b class="${signClass(item.handsSignal)}">${formatHands(item.handsSignal)}</b></span><span>边际结构 <b>${escapeHtml(item.marginalStructure)}</b></span></div></article>
-      <aside class="detail-surface executive-surface"><div class="detail-section-head"><div><small>EXECUTIVE READ</small><h3>今日研究读数</h3></div></div><dl><div><dt>接口事实</dt><dd>${trend ? `趋势温度“${escapeHtml(trend.temperature)}”，强度 ${formatSigned(trend.strength, 1)}，${trend.rightSide ? "处于右侧" : "未处于右侧"}。` : "趋势数据暂无。"} 三方资金 ${formatAmount(item.amountSignal)}。</dd></div><div><dt>策略判断</dt><dd>${escapeHtml(relationship)}；席位信号为“${escapeHtml(item.resonance.label || item.direction)}”。这是规则化解读，不是接口原文。</dd></div><div><dt>反向证据</dt><dd>${escapeHtml(weatherRead)}</dd></div></dl><button class="detail-action" data-view="history">查看完整历史路径</button></aside>
+      <aside class="detail-surface executive-surface"><div class="detail-section-head"><div><small>EXECUTIVE READ</small><h3>今日研究读数</h3></div></div><dl><div><dt>接口事实</dt><dd>${trend ? `趋势温度“${escapeHtml(trend.temperature)}”，强度 ${formatSigned(trend.strength, 1)}，${trend.rightSide ? "处于右侧" : "未处于右侧"}。` : "趋势数据暂无。"} 三方资金 ${formatAmount(item.amountSignal)}。</dd></div><div><dt>策略判断</dt><dd>${escapeHtml(relationship)}；席位信号为“${escapeHtml(item.resonance.label || item.direction)}”。这是规则化解读，不是接口原文。</dd></div><div><dt>基本面验证</dt><dd>${escapeHtml(fundamentalRead)}</dd></div></dl><button class="detail-action" data-view="history">查看完整历史路径</button></aside>
     </section>
     <section id="detail-positioning" class="detail-surface detail-wide-section"><div class="detail-section-head"><div><small>POSITIONING</small><h3>资金与席位结构</h3></div><p>存量净持仓与今日边际分列；家人按原始方向展示</p></div><div class="position-matrix"><div class="position-matrix-head"><span>资金群体</span><span>存量净持仓</span><span>今日净金额</span><span>边际动作</span></div>${groupRows.map(([label, group]) => `<div class="position-matrix-row"><b>${label}</b>${positionVisual(group.netPosition, stockScale)}<strong class="${signClass(group.amount)}">${formatAmount(group.amount)}</strong><span>${escapeHtml(flowAction(group))}</span></div>`).join("")}</div><div class="seat-rank-grid detail-ranks"><div class="seat-rank-list"><div class="seat-rank-title bull-text">净多席位 ${item.brokerRanking.netLong.length}/5</div>${rankRows(item.brokerRanking.netLong, "bull-text", "暂无净多席位")}</div><div class="seat-rank-list"><div class="seat-rank-title bear-text">净空席位 ${item.brokerRanking.netShort.length}/5</div>${rankRows(item.brokerRanking.netShort, "bear-text", "暂无净空席位")}</div></div></section>
     <section id="detail-technical" class="detail-surface detail-wide-section technical-section">
@@ -490,9 +533,9 @@ function renderDetailWorkspace() {
     </section>
     <section class="detail-split">
       <article id="detail-trend" class="detail-surface"><div class="detail-section-head"><div><small>TREND REGIME</small><h3>趋势与周期</h3></div><span class="detail-stamp">API事实</span></div><div class="temperature-scale">${tempOrder.map((name) => `<span class="${trend?.temperature === name ? "is-active" : ""}">${name}</span>`).join("")}</div><div class="trend-fact-row"><span>趋势强度</span><strong>${trend ? formatSigned(trend.strength, 1) : "暂无"}</strong></div><div class="trend-fact-row"><span>右侧状态</span><strong>${trend ? (trend.rightSide ? "是" : "否") : "暂无"}</strong></div><div class="trend-fact-row"><span>进入天数</span><strong>${trend?.daysSinceEntry == null ? "暂无" : `${trend.daysSinceEntry} 天`}</strong></div><p class="detail-panel-note">趋势动物直接事实与本页资金判断分列。温度为“平”或数据非当日时，不把它写成右侧趋势确认。</p></article>
-      <article id="detail-fundamental" class="detail-surface"><div class="detail-section-head"><div><small>FUNDAMENTALS</small><h3>基本面证据板</h3></div><span class="detail-stamp neutral">外部事实</span></div>${relevantWeather.length ? `<div class="fundamental-grid">${relevantWeather.map((entry) => `<div><small>${escapeHtml(entry.window)} · ${escapeHtml(entry.date)}</small><strong>${escapeHtml(entry.types)}</strong><span>${escapeHtml(entry.origins)}</span></div>`).join("")}</div><p class="detail-panel-note">天气预警只作为外部事实，不直接推导涨跌。</p>` : `<div class="data-gap"><strong>当前没有该品种的基本面结构化数据</strong><p>库存、基差、仓单、利润、产量和消费尚未接入。保留此入口，避免用席位资金代替基本面结论。</p></div>`}</article>
+      <article id="detail-fundamental" class="detail-surface fundamental-surface"><div class="detail-section-head"><div><small>FUNDAMENTALS</small><h3>基本面证据板</h3></div><span class="detail-stamp neutral">事实与缺口分列</span></div>${fundamentalEvidence(item)}<p class="detail-panel-note">基差口径为现货价减主力期货价；仓单使用东方财富期货库存数据。供需、现金成本与产业库存未接入前不作推断。</p></article>
     </section>
-    <section id="detail-events" class="detail-surface detail-wide-section"><div class="detail-section-head"><div><small>EVENT PATH</small><h3>历史事件与数据缺口</h3></div><p>快照事实可追溯；研报观点库尚未接入</p></div><div class="event-layout"><div class="research-gap"><strong>研报分歧</strong><span>待接入</span><p>正式接入前不展示概念稿中的看多/震荡/看空数量。</p></div><div class="event-timeline">${recentEvents.map((entry) => `<div><time>${formatDate(entry.date)}</time><b class="${signClass(entry.amount)}">${formatAmount(entry.amount)}</b><p>${escapeHtml(entry.structure)} · ${formatHands(entry.hands)} 手${entry.close == null ? "" : ` · 收盘 ${formatPrice(entry.close)}`}</p></div>`).join("")}</div></div></section>`;
+    <section id="detail-events" class="detail-surface detail-wide-section"><div class="detail-section-head"><div><small>EVENT PATH</small><h3>历史事件</h3></div><p>快照事实按披露日追溯</p></div><div class="event-timeline">${recentEvents.map((entry) => `<div><time>${formatDate(entry.date)}</time><b class="${signClass(entry.amount)}">${formatAmount(entry.amount)}</b><p>${escapeHtml(entry.structure)} · ${formatHands(entry.hands)} 手${entry.close == null ? "" : ` · 收盘 ${formatPrice(entry.close)}`}</p></div>`).join("")}</div></section>`;
 }
 
 function renderDetail() {
@@ -516,9 +559,7 @@ function renderDetail() {
       <div class="detail-metric"><span>一手保证金</span><strong>${numeric(item.margin.perLot).toLocaleString("zh-CN", {maximumFractionDigits:0})}</strong></div>
     </div>
     <div class="detail-section"><h4>三组存量与今日边际</h4><div class="stock-delta-head"><span></span><span>净持仓</span><span>今日边际</span></div>${groupRows.map(([label, group]) => `<div class="stock-delta"><span>${label}</span>${positionVisual(group.netPosition, stockScale)}<strong class="${signClass(group.amount)}">${formatAmount(group.amount)}</strong></div>`).join("")}</div>
-    <div class="detail-section"><h4>样本席位净持仓前五</h4><div class="seat-rank-grid"><div class="seat-rank-list"><div class="seat-rank-title bull-text">净多席位 ${item.brokerRanking.netLong.length}/5</div>${rankRows(item.brokerRanking.netLong, "bull-text", "暂无净多席位")}</div><div class="seat-rank-list"><div class="seat-rank-title bear-text">净空席位 ${item.brokerRanking.netShort.length}/5</div>${rankRows(item.brokerRanking.netShort, "bear-text", "暂无净空席位")}</div></div></div>
-    <div class="detail-section"><h4>资金信号历史路径</h4><div class="spark-wrap">${sparkline(series.map((entry) => entry.amount), dirClass(item.amountSignal))}</div></div>
-    <div class="detail-section"><h4>行情与趋势事实</h4><div class="status-line"><span>收盘行情</span><strong>${item.quote ? `${escapeHtml(item.quote.sourceDate)} · 东方财富` : "暂无"}${item.quote && !item.quote.fresh ? "（非当日）" : ""}</strong></div><div class="status-line"><span>趋势温度</span><strong>${item.trend ? `${escapeHtml(item.trend.temperature)} · ${escapeHtml(item.trend.stage)}` : "暂无"}</strong></div><div class="status-line"><span>趋势日期</span><strong>${item.trend ? escapeHtml(item.trend.sourceDate) : "暂无"}${item.trend && !item.trend.fresh ? "（非当日）" : ""}</strong></div></div>`;
+    <div class="detail-section"><h4>样本席位净持仓前五</h4><div class="seat-rank-grid"><div class="seat-rank-list"><div class="seat-rank-title bull-text">净多席位 ${item.brokerRanking.netLong.length}/5</div>${rankRows(item.brokerRanking.netLong, "bull-text", "暂无净多席位")}</div><div class="seat-rank-list"><div class="seat-rank-title bear-text">净空席位 ${item.brokerRanking.netShort.length}/5</div>${rankRows(item.brokerRanking.netShort, "bear-text", "暂无净空席位")}</div></div></div>`;
 }
 
 function renderHistory() {
@@ -537,7 +578,7 @@ function renderStatus() {
   const fetchStatus = Object.entries(summary.fetchStatus).map(([key, value]) => `<div class="status-line"><span>${escapeHtml(key)}</span><strong>${value} 个席位</strong></div>`).join("");
   $("#statusPanel").innerHTML = `<section class="status-block"><h3>席位披露</h3><div class="status-list"><div class="status-line"><span>报告日期</span><strong>${formatDate(snapshot.date)}</strong></div><div class="status-line"><span>网页披露日</span><strong>${escapeHtml(snapshot.disclosureDates.join(" / ") || "未披露")}</strong></div>${fetchStatus}</div></section>
     <section class="status-block"><h3>保证金口径</h3><div class="status-list"><div class="status-line"><span>覆盖率</span><strong>${(summary.marginCoverage * 100).toFixed(1)}%</strong></div><div class="status-line"><span>来源更新</span><strong>${escapeHtml(summary.marginSourceUpdate || "未披露")}</strong></div><div class="status-line"><span>缓存状态</span><strong>${escapeHtml(summary.marginCacheNote || "未知")}</strong></div></div></section>
-    <section class="status-block"><h3>行情、趋势与天气</h3><div class="status-list"><div class="status-line"><span>当日收盘行情</span><strong>${summary.quoteFreshCount || 0} / ${summary.instrumentCount}</strong></div><div class="status-line"><span>当日趋势品种</span><strong>${summary.trendFreshCount} / ${summary.instrumentCount}</strong></div><div class="status-line"><span>天气预警</span><strong>${snapshot.weather.length} 条</strong></div><div class="status-line"><span>股指独立观察</span><strong>${snapshot.stockIndices.length} 个</strong></div></div></section>`;
+    <section class="status-block"><h3>行情、趋势与基本面</h3><div class="status-list"><div class="status-line"><span>当日收盘行情</span><strong>${summary.quoteFreshCount || 0} / ${summary.instrumentCount}</strong></div><div class="status-line"><span>当日趋势品种</span><strong>${summary.trendFreshCount} / ${summary.instrumentCount}</strong></div><div class="status-line"><span>期现基差覆盖</span><strong>${summary.basisCoveredCount || 0} 个</strong></div><div class="status-line"><span>仓单覆盖</span><strong>${summary.warehouseCoveredCount || 0} 个</strong></div><div class="status-line"><span>股指独立观察</span><strong>${snapshot.stockIndices.length} 个</strong></div></div></section>`;
 }
 
 function renderAll() {
@@ -549,9 +590,7 @@ function renderAll() {
   renderTrendResonance();
   renderCorePanorama();
   renderBrokerHighlights();
-  renderWeather();
   renderStockIndices();
-  renderEquitySentiment();
   renderOverviewStatus();
   renderDetailWorkspace();
   renderInstrumentTable();
@@ -577,6 +616,14 @@ function setDate(date) {
 
 function bindEvents() {
   document.addEventListener("click", (event) => {
+    const railToggle = event.target.closest("#railToggle");
+    if (railToggle) {
+      state.railCollapsed = !state.railCollapsed;
+      $("#app").classList.toggle("rail-collapsed", state.railCollapsed);
+      railToggle.textContent = state.railCollapsed ? "›" : "‹";
+      railToggle.setAttribute("aria-label", state.railCollapsed ? "展开侧边栏" : "收起侧边栏");
+      railToggle.title = state.railCollapsed ? "展开侧边栏" : "收起侧边栏";
+    }
     const nav = event.target.closest("[data-view]");
     if (nav) switchView(nav.dataset.view);
     const dateButton = event.target.closest("[data-date]");

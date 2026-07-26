@@ -17,7 +17,7 @@ SNAPSHOT_DIR = TARGET_DIR / "data" / "snapshots"
 DATE_RE = re.compile(r"(\d{8})$")
 EXCLUDED_SYMBOLS = {"IC", "IF", "IH", "IM", "T", "TF", "TL", "TS", "CS"}
 SECTOR_OVERRIDES = {"LU": "油化工", "PR": "油化工", "NR": "农副软商"}
-WATCHLIST_SYMBOLS = {"FU", "EB", "LC", "M", "JD", "JM", "AU", "AG", "EC", "LH"}
+WATCHLIST_SYMBOLS = {"AU", "AG", "SN", "LC", "FU", "JM", "FG", "SA", "AO", "SH", "M", "JD", "LH"}
 ACTIVE_TEMPERATURES = {"温", "热", "沸", "凉", "寒", "冻"}
 
 
@@ -132,6 +132,40 @@ def technical_index(payload: dict[str, object]) -> dict[str, dict[str, object]]:
     return indexed
 
 
+def market_history(rows: list[dict[str, str]], report_date: str, value_fields: tuple[str, ...]) -> dict[str, list[dict[str, object]]]:
+    indexed: dict[str, list[dict[str, object]]] = defaultdict(list)
+    iso_date = f"{report_date[:4]}-{report_date[4:6]}-{report_date[6:]}"
+    for row in rows:
+        symbol = row.get("symbol", "").upper()
+        source_date = row.get("source_date", "")
+        if not symbol or not source_date or source_date > iso_date or row.get("status") not in {"", "OK"}:
+            continue
+        item: dict[str, object] = {"sourceDate": source_date}
+        for field in value_fields:
+            raw = row.get(field)
+            item[field] = number(raw) if raw not in (None, "") else None
+        indexed[symbol].append(item)
+    for items in indexed.values():
+        items.sort(key=lambda item: str(item["sourceDate"]))
+    return indexed
+
+
+def index_quote_history(rows: list[dict[str, str]], report_date: str) -> dict[str, dict[str, object]]:
+    histories = market_history(rows, report_date, ("close", "change_pct"))
+    result: dict[str, dict[str, object]] = {}
+    iso_date = f"{report_date[:4]}-{report_date[4:6]}-{report_date[6:]}"
+    for symbol, items in histories.items():
+        latest = items[-1]
+        result[symbol] = {
+            "close": latest.get("close"),
+            "changePct": latest.get("change_pct"),
+            "sourceDate": latest.get("sourceDate", ""),
+            "fresh": latest.get("sourceDate") == iso_date,
+            "source": "东方财富指数日线",
+        }
+    return result
+
+
 def build_broker_rankings(rows: list[dict[str, str]]) -> dict[str, dict[str, list[dict[str, object]]]]:
     aggregated: dict[tuple[str, str, str], dict[str, object]] = {}
     for row in rows:
@@ -231,6 +265,8 @@ def build_instrument(
     quote: dict[str, object] | None,
     broker_ranking: dict[str, list[dict[str, object]]] | None,
     technical: dict[str, object] | None,
+    basis_history: list[dict[str, object]] | None,
+    warehouse_history: list[dict[str, object]] | None,
 ) -> dict[str, object]:
     domestic = group_values(amount_row, "domestic")
     foreign = group_values(amount_row, "foreign")
@@ -278,15 +314,25 @@ def build_instrument(
         "quote": quote,
         "brokerRanking": broker_ranking or {"netLong": [], "netShort": []},
         "technical": technical,
+        "fundamentals": {
+            "basis": basis_history or [],
+            "warehouseReceipt": warehouse_history or [],
+        },
     }
 
 
-def build_stock_rows(rows: list[dict[str, str]], trends: dict[str, dict[str, object]]) -> list[dict[str, object]]:
+def build_stock_rows(
+    rows: list[dict[str, str]],
+    trends: dict[str, dict[str, object]],
+    index_quotes: dict[str, dict[str, object]],
+) -> list[dict[str, object]]:
     result = []
+    seen: set[str] = set()
     for row in rows:
         symbol = row.get("symbol", "").upper()
         if symbol not in {"IH", "IF", "IC", "IM"}:
             continue
+        seen.add(symbol)
         result.append(
             {
                 "variety": row.get("variety", ""),
@@ -297,8 +343,26 @@ def build_stock_rows(rows: list[dict[str, str]], trends: dict[str, dict[str, obj
                 "foreign": number(row.get("foreign_amount_score")),
                 "familyReverse": -number(row.get("family_amount_score")),
                 "trend": trends.get(symbol),
+                "quote": index_quotes.get(symbol),
+                "hasFuturesFlow": True,
             }
         )
+    for symbol, variety in (("STAR50", "科创50"), ("GEM50", "创业板50")):
+        if symbol not in seen:
+            result.append(
+                {
+                    "variety": variety,
+                    "symbol": symbol,
+                    "direction": "观察",
+                    "amountSignal": None,
+                    "domestic": None,
+                    "foreign": None,
+                    "familyReverse": None,
+                    "trend": trends.get(symbol),
+                    "quote": index_quotes.get(symbol),
+                    "hasFuturesFlow": False,
+                }
+            )
     return result
 
 
@@ -429,6 +493,12 @@ def build_snapshot(report_date: str) -> dict[str, object]:
     quote_file = current_quote_file if current_quote_file.exists() else fallback_quote_file
     quotes = quote_index(read_csv(quote_file) if quote_file else [], report_date)
     technicals = technical_index(read_json(ROOT / "data" / f"eastmoney_technical_snapshot_{report_date}.json"))
+    basis_file = latest_dated_file("futures_basis_history_*.csv", report_date)
+    warehouse_file = latest_dated_file("eastmoney_warehouse_receipts_*.csv", report_date)
+    index_quote_file = latest_dated_file("eastmoney_index_quotes_*.csv", report_date)
+    basis_by_symbol = market_history(read_csv(basis_file) if basis_file else [], report_date, ("spot_price", "main_price", "basis", "basis_pct"))
+    warehouse_by_symbol = market_history(read_csv(warehouse_file) if warehouse_file else [], report_date, ("warehouse_receipt", "change"))
+    index_quotes = index_quote_history(read_csv(index_quote_file) if index_quote_file else [], report_date)
     contract_rows = read_csv(institutional_dir / "contract_rows.csv")
     broker_rankings = build_broker_rankings(contract_rows)
 
@@ -445,6 +515,8 @@ def build_snapshot(report_date: str) -> dict[str, object]:
                 quotes.get(symbol),
                 broker_rankings.get(symbol),
                 technicals.get(symbol),
+                basis_by_symbol.get(symbol),
+                warehouse_by_symbol.get(symbol),
             )
         )
 
@@ -502,6 +574,10 @@ def build_snapshot(report_date: str) -> dict[str, object]:
             "marginCacheNote": margin_source.get("note", ""),
             "trendSourceFile": trend_file.name if trend_file else "",
             "quoteSourceFile": quote_file.name if quote_file else "",
+            "basisSourceFile": basis_file.name if basis_file else "",
+            "warehouseSourceFile": warehouse_file.name if warehouse_file else "",
+            "basisCoveredCount": sum(1 for item in instruments if item["fundamentals"]["basis"]),
+            "warehouseCoveredCount": sum(1 for item in instruments if item["fundamentals"]["warehouseReceipt"]),
         },
         "sectorSummary": sector_summary,
         "tripleResonance": triples,
@@ -510,7 +586,7 @@ def build_snapshot(report_date: str) -> dict[str, object]:
         "brokerHighlights": build_broker_highlights(contract_rows, margin_by_symbol),
         "instruments": instruments,
         "weather": build_weather(read_csv(institutional_dir / "agri_weather_risk.csv")),
-        "stockIndices": build_stock_rows(read_csv(amount_dir / "stock_index_amount_resonance.csv"), trends),
+        "stockIndices": build_stock_rows(read_csv(amount_dir / "stock_index_amount_resonance.csv"), trends, index_quotes),
         "equitySentiment": build_sentiment(report_date),
     }
 

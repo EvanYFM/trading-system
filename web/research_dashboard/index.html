@@ -5,11 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>中国期货研究全景</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20260726c">
 </head>
 <body>
   <div id="app" class="app-shell" data-ready="false">
     <aside class="side-rail">
+      <button id="railToggle" class="rail-toggle" type="button" aria-label="收起侧边栏" title="收起侧边栏">‹</button>
       <div class="brand-block">
         <span class="brand-mark">FR</span>
         <div><strong>期货研究工作站</strong><small>FUTURES RESEARCH</small></div>
@@ -19,12 +20,7 @@
         <button class="nav-item" data-view="detail">品种详情</button>
         <button class="nav-item" data-view="instruments">品种全景</button>
         <button class="nav-item" data-view="history">历史回看</button>
-        <button class="nav-item" data-view="status">数据状态</button>
       </nav>
-      <div class="rail-section history-rail">
-        <div class="rail-label">历史快照</div>
-        <div id="dateList" class="date-list"></div>
-      </div>
       <div class="rail-footer">只读研究台 · 非投资建议</div>
     </aside>
 
@@ -80,26 +76,16 @@
         </div>
         <div id="brokerHighlights" class="broker-highlights"></div>
 
-        <div class="overview-split">
-          <section class="overview-band">
-            <div class="section-heading compact">
-              <div><span class="section-index">07</span><h2>农业天气风险</h2></div>
-              <p>外部事实与资金信号分列</p>
-            </div>
-            <div id="weatherList" class="weather-list"></div>
-          </section>
-          <section class="overview-band">
-            <div class="section-heading compact">
-              <div><span class="section-index">08</span><h2>股指与A股情绪</h2></div>
-              <p>独立观察，不参与商品共振统计</p>
-            </div>
-            <div id="stockIndexList" class="index-list"></div>
-            <div id="equitySentiment" class="sentiment-panel"></div>
-          </section>
-        </div>
+        <section class="overview-band">
+          <div class="section-heading compact">
+            <div><span class="section-index">07</span><h2>股指观察</h2></div>
+            <p>股指期货资金与现货指数涨跌分列，不参与商品共振统计</p>
+          </div>
+          <div id="stockIndexList" class="index-list"></div>
+        </section>
 
         <div class="section-heading">
-          <div><span class="section-index">09</span><h2>快照与来源状态</h2></div>
+          <div><span class="section-index">08</span><h2>快照与来源状态</h2></div>
           <p>所有日期独立固化；旧来源不冒充当日事实</p>
         </div>
         <div id="overviewStatus" class="overview-status"></div>
@@ -149,18 +135,15 @@
         </div>
         <div id="historyControls" class="history-controls"></div>
         <div id="historyPanel" class="history-panel"></div>
-      </section>
-
-      <section id="view-status" class="view" aria-labelledby="status-title">
         <div class="section-heading top-heading">
-          <div><span class="section-index">12</span><h2 id="status-title">数据状态</h2></div>
-          <p>披露、保证金、趋势与外部风险源分开标记</p>
+          <div><span class="section-index">12</span><h2>数据状态</h2></div>
+          <p>披露、保证金、行情、趋势与基本面来源分开标记</p>
         </div>
         <div id="statusPanel" class="status-panel"></div>
       </section>
     </main>
   </div>
   <div id="loadingState" class="loading-state">正在装载历史快照…</div>
-  <script src="app.js" defer></script>
+  <script src="app.js?v=20260726c" defer></script>
 </body>
 </html>
