@@ -409,6 +409,28 @@ h1 { margin: 6px 0 0; font-size: 30px; line-height: 1.15; letter-spacing: 0; }
 .technical-limit { margin-top: 12px; padding: 12px 14px; border-left: 3px solid var(--muted); background: var(--surface-subtle); }
 .technical-limit b { font-size: 11px; }
 .technical-limit p { margin: 6px 0 0; color: var(--muted); font-size: 10px; line-height: 1.65; }
+.wuxing-summary { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; border: 1px solid var(--line); background: var(--line); }
+.wuxing-summary article { min-width: 0; padding: 14px; background: var(--surface-subtle); }
+.wuxing-summary small, .wuxing-summary strong, .wuxing-summary p { display: block; }
+.wuxing-summary small { color: var(--muted); font-size: 9px; }
+.wuxing-summary strong { margin-top: 8px; font-size: 15px; font-variant-numeric: tabular-nums; }
+.wuxing-summary p { margin: 6px 0 0; color: var(--muted); font-size: 9px; line-height: 1.4; }
+.wuxing-probability { display: grid; grid-template-columns: minmax(280px, .8fr) minmax(420px, 1.2fr); gap: 20px; margin-top: 16px; }
+.wuxing-probability-bars { display: grid; gap: 10px; }
+.wuxing-probability-bars > div { display: grid; grid-template-columns: 38px minmax(120px, 1fr) 48px; gap: 10px; align-items: center; font-size: 10px; }
+.wuxing-probability-bars i { height: 8px; overflow: hidden; background: #e8ecef; }
+.wuxing-probability-bars b { display: block; height: 100%; }
+.wuxing-probability-bars b.bullish { background: var(--bull); }
+.wuxing-probability-bars b.bearish { background: var(--bear); }
+.wuxing-probability-bars b.neutral { background: #9ba7b1; }
+.wuxing-probability-bars strong { text-align: right; font-variant-numeric: tabular-nums; }
+.wuxing-month-strip { display: grid; grid-template-columns: repeat(6, minmax(48px, 1fr)); gap: 5px; }
+.wuxing-month-strip span { display: grid; place-items: center; min-height: 43px; padding: 5px; border: 1px solid var(--line); background: var(--surface); }
+.wuxing-month-strip span.is-resonant { border-color: #d8b866; background: #fff9e8; }
+.wuxing-month-strip span.is-current { outline: 2px solid var(--line-strong); outline-offset: -2px; }
+.wuxing-month-strip b { font-size: 10px; }
+.wuxing-month-strip em { color: var(--muted); font-size: 9px; font-style: normal; }
+.wuxing-readout { margin: 14px 0 0; padding: 12px 14px; border-left: 3px solid #d8b866; background: var(--surface-subtle); font-size: 12px; font-weight: 650; line-height: 1.6; }
 .temperature-scale { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; padding: 11px 0; }
 .temperature-scale span { display: grid; place-items: center; min-height: 32px; border: 1px solid var(--line); font-size: 11px; font-weight: 700; }
 .temperature-scale span.is-active { color: #fff; background: var(--line-strong); border-color: var(--line-strong); }
@@ -461,6 +483,8 @@ h1 { margin: 6px 0 0; font-size: 30px; line-height: 1.15; letter-spacing: 0; }
   .detail-panel { position: static; min-height: 0; }
   .evidence-rail { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .detail-dashboard-grid, .detail-split { grid-template-columns: 1fr; }
+  .wuxing-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .wuxing-probability { grid-template-columns: 1fr; }
   .technical-summary { grid-template-columns: 130px minmax(220px, 1fr) 160px; }
   .technical-layer-grid { grid-template-columns: 1fr 1fr; }
   .technical-layer-grid article:last-child { grid-column: 1 / -1; }
@@ -528,6 +552,8 @@ h1 { margin: 6px 0 0; font-size: 30px; line-height: 1.15; letter-spacing: 0; }
   .fundamental-fact.chart-fact { grid-column: auto; }
   .index-row { grid-template-columns: 1fr 88px 110px; gap: 8px; }
   .technical-summary, .technical-layer-grid, .technical-readout { grid-template-columns: 1fr; }
+  .wuxing-summary { grid-template-columns: 1fr 1fr; }
+  .wuxing-month-strip { grid-template-columns: repeat(4, minmax(48px, 1fr)); }
   .technical-layer-grid article:last-child { grid-column: auto; }
   .technical-summary > div { min-height: 0; }
   .event-timeline { grid-template-columns: 1fr; }

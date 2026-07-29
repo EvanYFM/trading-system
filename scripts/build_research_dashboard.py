@@ -267,6 +267,7 @@ def build_instrument(
     technical: dict[str, object] | None,
     basis_history: list[dict[str, object]] | None,
     warehouse_history: list[dict[str, object]] | None,
+    wuxing_seasonality: dict[str, object] | None,
 ) -> dict[str, object]:
     domestic = group_values(amount_row, "domestic")
     foreign = group_values(amount_row, "foreign")
@@ -318,6 +319,7 @@ def build_instrument(
             "basis": basis_history or [],
             "warehouseReceipt": warehouse_history or [],
         },
+        "wuxingSeasonality": wuxing_seasonality,
     }
 
 
@@ -493,6 +495,11 @@ def build_snapshot(report_date: str) -> dict[str, object]:
     quote_file = current_quote_file if current_quote_file.exists() else fallback_quote_file
     quotes = quote_index(read_csv(quote_file) if quote_file else [], report_date)
     technicals = technical_index(read_json(ROOT / "data" / f"eastmoney_technical_snapshot_{report_date}.json"))
+    wuxing_file = latest_dated_file("wuxing_month_seasonality_*.json", report_date)
+    wuxing_payload = read_json(wuxing_file) if wuxing_file else {}
+    wuxing_methodology = wuxing_payload.get("methodology", {}) if isinstance(wuxing_payload, dict) else {}
+    wuxing_calendar = wuxing_payload.get("monthCalendar", []) if isinstance(wuxing_payload, dict) else []
+    wuxing_results = wuxing_payload.get("instruments", {}) if isinstance(wuxing_payload, dict) else {}
     basis_file = latest_dated_file("futures_basis_history_*.csv", report_date)
     warehouse_file = latest_dated_file("eastmoney_warehouse_receipts_*.csv", report_date)
     index_quote_file = latest_dated_file("eastmoney_index_quotes_*.csv", report_date)
@@ -517,6 +524,17 @@ def build_snapshot(report_date: str) -> dict[str, object]:
                 technicals.get(symbol),
                 basis_by_symbol.get(symbol),
                 warehouse_by_symbol.get(symbol),
+                (
+                    {
+                        **wuxing_results[symbol],
+                        "reportDate": wuxing_payload.get("reportDate", ""),
+                        "source": wuxing_payload.get("source", ""),
+                        "methodology": wuxing_methodology,
+                        "monthCalendar": wuxing_calendar,
+                    }
+                    if symbol in wuxing_results
+                    else None
+                ),
             )
         )
 
@@ -576,6 +594,7 @@ def build_snapshot(report_date: str) -> dict[str, object]:
             "quoteSourceFile": quote_file.name if quote_file else "",
             "basisSourceFile": basis_file.name if basis_file else "",
             "warehouseSourceFile": warehouse_file.name if warehouse_file else "",
+            "wuxingSourceFile": wuxing_file.name if wuxing_file else "",
             "basisCoveredCount": sum(1 for item in instruments if item["fundamentals"]["basis"]),
             "warehouseCoveredCount": sum(1 for item in instruments if item["fundamentals"]["warehouseReceipt"]),
         },

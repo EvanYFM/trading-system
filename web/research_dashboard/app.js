@@ -244,7 +244,7 @@ function renderSectorFilter() {
 }
 
 function renderDetailFilter() {
-  const covered = currentSnapshot().instruments.filter((item) => DETAIL_SYMBOLS.includes(item.symbol));
+  const covered = currentSnapshot().instruments.filter((item) => DETAIL_SYMBOLS.includes(item.symbol) || item.wuxingSeasonality);
   const sectors = [...new Set(covered.map((item) => item.sector))].sort();
   $("#detailSearchInput").value = state.detailQuery;
   $("#detailSectorFilter").innerHTML = `<option value="all">全部板块</option>${sectors.map((sector) => `<option value="${escapeHtml(sector)}" ${state.detailSector === sector ? "selected" : ""}>${escapeHtml(sector)}</option>`).join("")}`;
@@ -255,6 +255,40 @@ function renderDetailFilter() {
     return queryMatch && (state.detailSector === "all" || item.sector === state.detailSector);
   });
   $("#detailFilterResults").innerHTML = matches.length ? matches.map((item) => `<button class="detail-filter-option ${item.symbol === state.activeSymbol ? "is-active" : ""}" data-open-symbol="${escapeHtml(item.symbol)}"><strong>${escapeHtml(item.variety)}</strong><small>${escapeHtml(item.symbol)} · ${escapeHtml(item.sector)}</small></button>`).join("") : `<span class="detail-filter-empty">当前筛选条件下没有已接入品种。</span>`;
+}
+
+function percentage(value, digits = 1) {
+  return `${(numeric(value) * 100).toFixed(digits)}%`;
+}
+
+function wuxingSeasonalityPanel(item) {
+  const data = item.wuxingSeasonality;
+  if (!data || data.status !== "OK") return "";
+  const current = data.currentMonth || {};
+  const resonance = data.resonance || {};
+  const qualified = Boolean(data.qualified);
+  const stateClass = data.judgement === "历史正向共振" ? "bullish" : data.judgement === "历史负向共振" ? "bearish" : "neutral";
+  const probabilityRows = [
+    ["上涨", resonance.upProbability, "bullish"],
+    ["震荡", resonance.flatProbability, "neutral"],
+    ["下跌", resonance.downProbability, "bearish"],
+  ];
+  return `<section id="detail-wuxing" class="detail-surface detail-wide-section wuxing-section">
+    <div class="detail-section-head"><div><small>SEASONALITY BACKTEST</small><h3>五行月份回测</h3></div><span class="detail-stamp ${stateClass}">${qualified ? escapeHtml(data.judgement) : "未通过统计门槛"}</span></div>
+    <div class="wuxing-summary">
+      <article><small>品种属性</small><strong>${escapeHtml(data.attributeElement)}</strong><p>先验分类标签</p></article>
+      <article><small>当前月份</small><strong>${current.month || "-"}月 · ${escapeHtml(current.branch || "-")}月 · ${escapeHtml(current.element || "-")}</strong><p>${current.resonates ? "与品种属性同元素" : "本月不是同元素月"}</p></article>
+      <article><small>点二列相关</small><strong>${numeric(data.correlation).toFixed(3)}</strong><p>FDR q=${numeric(data.fdrQValue).toFixed(3)}</p></article>
+      <article><small>收益效应差</small><strong class="${signClass(data.effect)}">${percentage(data.effect, 2)}</strong><p>同元素月均值减其他月份</p></article>
+      <article><small>样本</small><strong>${resonance.sampleCount || 0} / ${data.totalMonths || 0}</strong><p>同元素月 / 全部月度</p></article>
+    </div>
+    <div class="wuxing-probability">
+      <div class="wuxing-probability-bars">${probabilityRows.map(([label, value, className]) => `<div><span>${label}</span><i><b class="${className}" style="width:${Math.max(0, Math.min(100, numeric(value) * 100))}%"></b></i><strong>${percentage(value)}</strong></div>`).join("")}</div>
+      <div class="wuxing-month-strip">${(data.monthCalendar || []).map((entry) => `<span class="${entry.element === data.attributeElement ? "is-resonant" : ""} ${entry.month === current.month ? "is-current" : ""}"><b>${entry.month}月</b><em>${escapeHtml(entry.branch)}·${escapeHtml(entry.element)}</em></span>`).join("")}</div>
+    </div>
+    <p class="wuxing-readout">${qualified && current.resonates ? `本月处于同元素月；历史样本上涨 ${percentage(resonance.upProbability)}、震荡 ${percentage(resonance.flatProbability)}、下跌 ${percentage(resonance.downProbability)}。` : current.resonates ? "本月属性相同，但历史相关性未通过门槛，不形成方向信号。" : "本月不是该品种的同元素月；历史统计仅作研究背景。"}</p>
+    <p class="detail-panel-note">来源：${escapeHtml(data.source)}，样本截至 ${escapeHtml(data.dataEndDate || "无数据")}。月收益按月末主力连续收盘计算；上涨/下跌阈值为 ±1%。五行属性是待检验分类，不是因果机制，也不构成投资建议。</p>
+  </section>`;
 }
 
 function groupBars(item) {
@@ -475,6 +509,7 @@ function renderDetailWorkspace() {
   const series = seriesFor(item.symbol);
   const quote = item.quote;
   const trend = item.trend;
+  const wuxingPanel = wuxingSeasonalityPanel(item);
   const technical = item.technical?.status === "OK" ? item.technical : null;
   const groupRows = [["内资机构", item.groups.domestic], ["外资机构", item.groups.foreign], ["家人原始", item.groups.family]];
   const stockScale = maxAbs(groupRows, ([, group]) => group.netPosition);
@@ -505,7 +540,7 @@ function renderDetailWorkspace() {
       <article><span>04</span><small>席位结构</small><strong>${escapeHtml(seatBias)}</strong><p>净多 ${item.brokerRanking.netLong.length}/5 · 净空 ${item.brokerRanking.netShort.length}/5</p></article>
       <article class="decision"><span>结论</span><small>研究状态</small><strong>${escapeHtml(researchState)}</strong><p>${escapeHtml(item.resonance.label || item.direction)}</p></article>
     </section>
-    <nav class="detail-subnav" aria-label="品种详情导航"><button class="is-active" data-detail-anchor="detail-overview">总览</button><button data-detail-anchor="detail-positioning">资金与席位</button><button data-detail-anchor="detail-technical">技术面</button><button data-detail-anchor="detail-trend">趋势</button><button data-detail-anchor="detail-fundamental">基本面</button><button data-detail-anchor="detail-events">历史事件</button></nav>
+    <nav class="detail-subnav" aria-label="品种详情导航"><button class="is-active" data-detail-anchor="detail-overview">总览</button><button data-detail-anchor="detail-positioning">资金与席位</button><button data-detail-anchor="detail-technical">技术面</button><button data-detail-anchor="detail-trend">趋势</button>${wuxingPanel ? `<button data-detail-anchor="detail-wuxing">五行季节性</button>` : ""}<button data-detail-anchor="detail-fundamental">基本面</button><button data-detail-anchor="detail-events">历史事件</button></nav>
     <section id="detail-overview" class="detail-dashboard-grid">
       <article class="detail-surface chart-surface"><div class="detail-section-head"><div><small>PRICE & FLOW</small><h3>价格与三方资金</h3></div><div class="detail-legend"><i></i>收盘价 <b></b>资金净变动</div></div><div class="combo-chart-wrap">${priceFlowChart(series, item.variety)}</div><div class="detail-chart-foot"><span>历史快照 <b>${series.length} 日</b></span><span>今日手数 <b class="${signClass(item.handsSignal)}">${formatHands(item.handsSignal)}</b></span><span>边际结构 <b>${escapeHtml(item.marginalStructure)}</b></span></div></article>
       <aside class="detail-surface executive-surface"><div class="detail-section-head"><div><small>EXECUTIVE READ</small><h3>今日研究读数</h3></div></div><dl><div><dt>接口事实</dt><dd>${trend ? `趋势温度“${escapeHtml(trend.temperature)}”，强度 ${formatSigned(trend.strength, 1)}，${trend.rightSide ? "处于右侧" : "未处于右侧"}。` : "趋势数据暂无。"} 三方资金 ${formatAmount(item.amountSignal)}。</dd></div><div><dt>策略判断</dt><dd>${escapeHtml(relationship)}；席位信号为“${escapeHtml(item.resonance.label || item.direction)}”。这是规则化解读，不是接口原文。</dd></div><div><dt>基本面验证</dt><dd>${escapeHtml(fundamentalRead)}</dd></div></dl><button class="detail-action" data-view="history">查看完整历史路径</button></aside>
@@ -535,6 +570,7 @@ function renderDetailWorkspace() {
       <article id="detail-trend" class="detail-surface"><div class="detail-section-head"><div><small>TREND REGIME</small><h3>趋势与周期</h3></div><span class="detail-stamp">API事实</span></div><div class="temperature-scale">${tempOrder.map((name) => `<span class="${trend?.temperature === name ? "is-active" : ""}">${name}</span>`).join("")}</div><div class="trend-fact-row"><span>趋势强度</span><strong>${trend ? formatSigned(trend.strength, 1) : "暂无"}</strong></div><div class="trend-fact-row"><span>右侧状态</span><strong>${trend ? (trend.rightSide ? "是" : "否") : "暂无"}</strong></div><div class="trend-fact-row"><span>进入天数</span><strong>${trend?.daysSinceEntry == null ? "暂无" : `${trend.daysSinceEntry} 天`}</strong></div><p class="detail-panel-note">趋势动物直接事实与本页资金判断分列。温度为“平”或数据非当日时，不把它写成右侧趋势确认。</p></article>
       <article id="detail-fundamental" class="detail-surface fundamental-surface"><div class="detail-section-head"><div><small>FUNDAMENTALS</small><h3>基本面证据板</h3></div><span class="detail-stamp neutral">事实与缺口分列</span></div>${fundamentalEvidence(item)}<p class="detail-panel-note">基差口径为现货价减主力期货价；仓单使用东方财富期货库存数据。供需、现金成本与产业库存未接入前不作推断。</p></article>
     </section>
+    ${wuxingPanel}
     <section id="detail-events" class="detail-surface detail-wide-section"><div class="detail-section-head"><div><small>EVENT PATH</small><h3>历史事件</h3></div><p>快照事实按披露日追溯</p></div><div class="event-timeline">${recentEvents.map((entry) => `<div><time>${formatDate(entry.date)}</time><b class="${signClass(entry.amount)}">${formatAmount(entry.amount)}</b><p>${escapeHtml(entry.structure)} · ${formatHands(entry.hands)} 手${entry.close == null ? "" : ` · 收盘 ${formatPrice(entry.close)}`}</p></div>`).join("")}</div></section>`;
 }
 
