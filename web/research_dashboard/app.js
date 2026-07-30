@@ -74,22 +74,22 @@ function renderSummary() {
 
 function renderFocus() {
   const triples = [...currentSnapshot().tripleResonance];
-  const bullish = triples.filter((item) => numeric(item.handsSignal) > 0).sort((a, b) => numeric(b.handsSignal) - numeric(a.handsSignal)).slice(0, 5);
-  const bearish = triples.filter((item) => numeric(item.handsSignal) < 0).sort((a, b) => numeric(a.handsSignal) - numeric(b.handsSignal)).slice(0, 5);
+  const bullish = triples.filter((item) => numeric(item.amountSignal) > 0).sort((a, b) => numeric(b.amountSignal) - numeric(a.amountSignal)).slice(0, 5);
+  const bearish = triples.filter((item) => numeric(item.amountSignal) < 0).sort((a, b) => numeric(a.amountSignal) - numeric(b.amountSignal)).slice(0, 5);
   const items = [...bullish, ...bearish];
   if (!items.length) {
     $("#resonanceFocus").innerHTML = `<div class="detail-empty">今天没有满足三方强共振条件的商品品种。</div>`;
     return;
   }
-  const scale = maxAbs(items, (item) => item.handsSignal);
+  const scale = maxAbs(items, (item) => item.amountSignal);
   $("#resonanceFocus").innerHTML = items.map((item) => {
-    const tone = dirClass(item.handsSignal);
-    const width = Math.max(6, Math.abs(item.handsSignal) / scale * 100);
+    const tone = dirClass(item.amountSignal);
+    const width = Math.max(6, Math.abs(item.amountSignal) / scale * 100);
     const quote = item.quote;
     return `<button class="focus-card ${tone}" data-open-symbol="${escapeHtml(item.symbol)}">
       <div class="focus-head"><span class="focus-name">${escapeHtml(item.variety)}</span><span class="focus-code">${escapeHtml(item.symbol)}</span></div>
-      <div class="focus-amount ${signClass(item.handsSignal)}">${formatHands(item.handsSignal)} 手</div>
-      <div class="focus-sub">三方资金 ${formatAmount(item.amountSignal)} · ${escapeHtml(item.marginalStructure || "边际待判")}</div>
+      <div class="focus-amount ${signClass(item.amountSignal)}">${formatAmount(item.amountSignal)}</div>
+      <div class="focus-sub">三方手数 ${formatHands(item.handsSignal)} 手 · ${escapeHtml(item.marginalStructure || "边际待判")}</div>
       <div class="signal-track"><span class="signal-fill ${tone}" style="width:${width}%"></span></div>
       <div class="focus-tags"><span class="tag ${tone}">${escapeHtml(item.resonance.label || item.direction)}</span>${quote ? `<span class="tag ${dirClass(quote.changePct)}">${formatSigned(quote.changePct, 2)}%</span>` : ""}${item.trend ? `<span class="tag">趋势 ${escapeHtml(item.trend.temperature || "-")}${item.trend.fresh ? "" : "（旧）"}</span>` : ""}</div>
     </button>`;

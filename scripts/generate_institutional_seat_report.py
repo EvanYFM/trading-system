@@ -119,10 +119,15 @@ def sector_direction_text(df: pd.DataFrame, score_col: str, limit: int = 8) -> s
 def fetch_rows() -> tuple[pd.DataFrame, pd.DataFrame]:
     rows: list[dict] = []
     status: list[dict] = []
+    requested_date = f"{RUN_DATE[:4]}-{RUN_DATE[4:6]}-{RUN_DATE[6:]}"
     for group, brokers in GROUPS.items():
         for broker in brokers:
             try:
-                date, url, broker_rows = BASE.fetch_broker(broker)
+                date, url, broker_rows = BASE.fetch_broker(broker, requested_date)
+                if date and date > requested_date:
+                    raise RuntimeError(
+                        f"席位披露日期 {date} 晚于报告日 {requested_date}"
+                    )
                 status.append({"group": group, "broker": broker, "date": date, "rows": len(broker_rows), "url": url, "note": "OK"})
                 for row in broker_rows:
                     item = dict(row)

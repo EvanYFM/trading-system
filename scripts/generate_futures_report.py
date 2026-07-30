@@ -264,8 +264,10 @@ def fetch_url(url: str) -> str:
     raise RuntimeError(error_text or str(last_error))
 
 
-def fetch_broker(broker: str) -> tuple[str | None, str, list[dict]]:
+def fetch_broker(broker: str, requested_date: str | None = None) -> tuple[str | None, str, list[dict]]:
     url = "https://x.qhkch.com/broker/position?broker=" + quote(broker)
+    if requested_date:
+        url += "&date=" + quote(requested_date)
     text = fetch_url(url)
     title = re.search(r'<th colspan="6"[^>]*>\s*(\d{4}-\d{2}-\d{2})\s+(.+?)\s*持仓列表', text, re.S)
     date = title.group(1) if title else None
