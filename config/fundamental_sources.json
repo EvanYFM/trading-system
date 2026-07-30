@@ -1,0 +1,77 @@
+{
+  "auditedAt": "2026-07-30",
+  "profiles": {
+    "precious": {
+      "supply": {"source": "上海有色网 / 主流矿企财报", "metric": "矿产量与再生供应", "frequency": "月度/季度", "access": "LICENSE_REQUIRED", "url": "https://www.smm.cn/services/publicationcenter"},
+      "demand": {"source": "上海有色网 / 行业协会", "metric": "工业、首饰与投资需求", "frequency": "月度/季度", "access": "LICENSE_REQUIRED", "url": "https://www.smm.cn/services/publicationcenter"},
+      "cost": {"source": "主流矿企定期报告", "metric": "AISC与现金成本", "frequency": "季度", "access": "MANUAL_PUBLIC", "url": "https://www.sse.com.cn/disclosure/listedinfo/regular/"},
+      "inventory": {"source": "东方财富期货 / 交易所", "metric": "交易所仓单与库存", "frequency": "交易日", "access": "AUTO_PUBLIC", "url": "https://qhweb.eastmoney.com/videos/3/3809186.html"}
+    },
+    "smm_metals": {
+      "supply": {"source": "上海有色网", "metric": "产量、开工率与进口", "frequency": "周度/月度", "access": "LICENSE_REQUIRED", "url": "https://www.smm.cn/services/publicationcenter"},
+      "demand": {"source": "上海有色网", "metric": "下游开工与表观消费", "frequency": "周度/月度", "access": "LICENSE_REQUIRED", "url": "https://www.smm.cn/services/publicationcenter"},
+      "cost": {"source": "上海有色网", "metric": "主流冶炼现金成本与加工费", "frequency": "周度/月度", "access": "LICENSE_REQUIRED", "url": "https://www.smm.cn/services/publicationcenter"},
+      "inventory": {"source": "上海有色网", "metric": "社会库存、厂库与原料库存", "frequency": "周度", "access": "LICENSE_REQUIRED", "url": "https://www.smm.cn/services/publicationcenter"}
+    },
+    "mysteel_black": {
+      "supply": {"source": "我的钢铁网", "metric": "产量、开工率与产能利用率", "frequency": "周度", "access": "PUBLIC_SUMMARY", "url": "https://www.mysteel.com/"},
+      "demand": {"source": "我的钢铁网", "metric": "表观消费、铁水与终端成交", "frequency": "周度", "access": "PUBLIC_SUMMARY", "url": "https://www.mysteel.com/"},
+      "cost": {"source": "我的钢铁网", "metric": "钢厂、焦化与矿山现金成本", "frequency": "周度/月度", "access": "LICENSE_REQUIRED", "url": "https://www.mysteel.com/"},
+      "inventory": {"source": "我的钢铁网", "metric": "厂库、社库、港口库存与可用天数", "frequency": "周度", "access": "PUBLIC_SUMMARY", "url": "https://www.mysteel.com/"}
+    },
+    "oilchem": {
+      "supply": {"source": "隆众资讯", "metric": "产量、装置开工与检修", "frequency": "周度", "access": "PUBLIC_SUMMARY", "url": "https://www.oilchem.net/"},
+      "demand": {"source": "隆众资讯", "metric": "下游开工、表观消费与进出口", "frequency": "周度/月度", "access": "PUBLIC_SUMMARY", "url": "https://www.oilchem.net/"},
+      "cost": {"source": "隆众资讯", "metric": "主流工艺现金成本与加工利润", "frequency": "周度", "access": "LICENSE_REQUIRED", "url": "https://www.oilchem.net/"},
+      "inventory": {"source": "隆众资讯", "metric": "生产企业、社会与港口库存", "frequency": "周度", "access": "PUBLIC_SUMMARY", "url": "https://www.oilchem.net/"}
+    },
+    "rubber": {
+      "supply": {"source": "隆众资讯 / 卓创资讯", "metric": "国内外产量、开割率与进口", "frequency": "周度/月度", "access": "PUBLIC_SUMMARY", "url": "https://www.oilchem.net/"},
+      "demand": {"source": "隆众资讯 / 卓创资讯", "metric": "轮胎开工与终端消费", "frequency": "周度", "access": "PUBLIC_SUMMARY", "url": "https://www.oilchem.net/"},
+      "cost": {"source": "卓创资讯", "metric": "胶水、杯胶与加工现金成本", "frequency": "周度", "access": "LICENSE_REQUIRED", "url": "https://www.chem99.com/about/report.aspx"},
+      "inventory": {"source": "隆众资讯", "metric": "青岛库存、社会库存与仓单", "frequency": "周度/交易日", "access": "PUBLIC_SUMMARY", "url": "https://www.oilchem.net/"}
+    },
+    "mysteel_agri": {
+      "supply": {"source": "我的钢铁网农产品", "metric": "到港、压榨、产量与开机率", "frequency": "周度", "access": "PUBLIC_SUMMARY", "url": "https://ncp.mysteel.com/"},
+      "demand": {"source": "我的钢铁网农产品", "metric": "成交、提货与表观消费", "frequency": "周度", "access": "PUBLIC_SUMMARY", "url": "https://ncp.mysteel.com/"},
+      "cost": {"source": "我的钢铁网农产品", "metric": "进口成本、压榨利润与加工成本", "frequency": "周度", "access": "LICENSE_REQUIRED", "url": "https://ncp.mysteel.com/"},
+      "inventory": {"source": "我的钢铁网农产品", "metric": "油厂、商业与港口库存", "frequency": "周度", "access": "PUBLIC_SUMMARY", "url": "https://ncp.mysteel.com/"}
+    },
+    "sci_agri": {
+      "supply": {"source": "卓创资讯", "metric": "产量、开工、种植与上市进度", "frequency": "周度/月度", "access": "LICENSE_REQUIRED", "url": "https://www.chem99.com/about/report.aspx"},
+      "demand": {"source": "卓创资讯", "metric": "加工、消费与终端订单", "frequency": "周度/月度", "access": "LICENSE_REQUIRED", "url": "https://www.chem99.com/about/report.aspx"},
+      "cost": {"source": "卓创资讯", "metric": "主产区种养殖或加工现金成本", "frequency": "周度/月度", "access": "LICENSE_REQUIRED", "url": "https://www.chem99.com/about/report.aspx"},
+      "inventory": {"source": "卓创资讯", "metric": "产区、销区与企业库存", "frequency": "周度", "access": "LICENSE_REQUIRED", "url": "https://www.chem99.com/about/report.aspx"}
+    },
+    "yongyi_pig": {
+      "supply": {"source": "涌益咨询", "metric": "能繁母猪、出栏计划与出栏体重", "frequency": "周度/月度", "access": "LICENSE_REQUIRED", "url": "https://m.yongyizixun888.com/"},
+      "demand": {"source": "涌益咨询", "metric": "屠宰量、冻品入库与鲜销率", "frequency": "周度", "access": "LICENSE_REQUIRED", "url": "https://m.yongyizixun888.com/"},
+      "cost": {"source": "涌益咨询 / 卓创资讯", "metric": "自繁自养与外购仔猪现金成本", "frequency": "周度", "access": "LICENSE_REQUIRED", "url": "https://m.yongyizixun888.com/"},
+      "inventory": {"source": "涌益咨询", "metric": "栏舍利用率、冻品库容率与压栏", "frequency": "周度", "access": "LICENSE_REQUIRED", "url": "https://m.yongyizixun888.com/"}
+    },
+    "sci_paper": {
+      "supply": {"source": "卓创资讯", "metric": "产量、开工率与检修", "frequency": "周度", "access": "LICENSE_REQUIRED", "url": "https://www.chem99.com/about/report.aspx"},
+      "demand": {"source": "卓创资讯", "metric": "下游开工、订单与消费", "frequency": "周度", "access": "LICENSE_REQUIRED", "url": "https://www.chem99.com/about/report.aspx"},
+      "cost": {"source": "卓创资讯", "metric": "浆、能源与主流企业现金成本", "frequency": "周度", "access": "LICENSE_REQUIRED", "url": "https://www.chem99.com/about/report.aspx"},
+      "inventory": {"source": "卓创资讯", "metric": "港口、企业与社会库存", "frequency": "周度", "access": "LICENSE_REQUIRED", "url": "https://www.chem99.com/about/report.aspx"}
+    },
+    "grain": {
+      "supply": {"source": "国家粮油信息中心 / 我的钢铁网农产品", "metric": "产量、到港、拍卖与上市进度", "frequency": "周度/月度", "access": "PUBLIC_SUMMARY", "url": "https://www.grain.gov.cn/"},
+      "demand": {"source": "我的钢铁网农产品", "metric": "深加工、饲用消费与成交", "frequency": "周度", "access": "PUBLIC_SUMMARY", "url": "https://ncp.mysteel.com/"},
+      "cost": {"source": "国家发改委成本调查 / 卓创资讯", "metric": "种植与主产区现金成本", "frequency": "年度/季度", "access": "MANUAL_PUBLIC", "url": "https://www.ndrc.gov.cn/"},
+      "inventory": {"source": "国家粮油信息中心 / 我的钢铁网农产品", "metric": "港口、企业与政策性库存", "frequency": "周度/月度", "access": "PUBLIC_SUMMARY", "url": "https://www.grain.gov.cn/"}
+    }
+  },
+  "symbols": {
+    "AU": "precious", "AG": "precious",
+    "CU": "smm_metals", "AL": "smm_metals", "ZN": "smm_metals", "PB": "smm_metals", "NI": "smm_metals", "SN": "smm_metals", "SS": "smm_metals", "AO": "smm_metals", "LC": "smm_metals", "SI": "smm_metals", "PS": "smm_metals", "AD": "smm_metals", "SF": "smm_metals", "SM": "smm_metals",
+    "I": "mysteel_black", "JM": "mysteel_black", "J": "mysteel_black", "RB": "mysteel_black", "HC": "mysteel_black",
+    "FU": "oilchem", "LU": "oilchem", "BU": "oilchem", "PG": "oilchem", "MA": "oilchem", "EB": "oilchem", "BZ": "oilchem", "PX": "oilchem", "TA": "oilchem", "EG": "oilchem", "PP": "oilchem", "L": "oilchem", "V": "oilchem", "BR": "oilchem", "PF": "oilchem", "PR": "oilchem", "PL": "oilchem", "UR": "oilchem", "FG": "oilchem", "SA": "oilchem", "SH": "oilchem",
+    "RU": "rubber", "NR": "rubber",
+    "M": "mysteel_agri", "RM": "mysteel_agri", "Y": "mysteel_agri", "OI": "mysteel_agri", "P": "mysteel_agri", "PK": "mysteel_agri",
+    "CF": "sci_agri", "CY": "sci_agri", "SR": "sci_agri", "AP": "sci_agri", "CJ": "sci_agri", "JD": "sci_agri",
+    "LH": "yongyi_pig",
+    "SP": "sci_paper", "OP": "sci_paper",
+    "A": "grain", "B": "grain", "C": "grain", "RR": "grain"
+  }
+}

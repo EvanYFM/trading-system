@@ -27,8 +27,26 @@ EASTMONEY_INVENTORY_PAGE = "https://data.eastmoney.com/ifdata/kcsj.html"
 EASTMONEY_QUOTE_PAGE = "https://quote.eastmoney.com/"
 TENCENT_QUOTE_URL = "https://qt.gtimg.cn/q={symbols}"
 BASIS_PAGE = "https://www.100ppi.com/sf/day-{date}.html"
-CORE_SYMBOLS = {"AU", "AG", "SN", "LC", "FU", "JM", "FG", "SA", "AO", "SH", "M", "JD", "LH"}
 BASIS_NAMES = {
+    "PTA": "TA",
+    "PX": "PX",
+    "丁二烯橡胶": "BR",
+    "不锈钢": "SS",
+    "丙烯": "PL",
+    "乙二醇": "EG",
+    "多晶硅": "PS",
+    "天然橡胶": "RU",
+    "尿素": "UR",
+    "工业硅": "SI",
+    "棉纱": "CY",
+    "棉花": "CF",
+    "棕榈油": "P",
+    "涤纶短纤": "PF",
+    "液化石油气": "PG",
+    "热轧卷板": "HC",
+    "焦炭": "J",
+    "玉米": "C",
+    "瓶片": "PR",
     "黄金": "AU",
     "白银": "AG",
     "锡": "SN",
@@ -42,21 +60,93 @@ BASIS_NAMES = {
     "豆粕": "M",
     "鸡蛋": "JD",
     "生猪": "LH",
+    "甲醇MA": "MA",
+    "白糖": "SR",
+    "石油沥青": "BU",
+    "硅铁": "SF",
+    "纯苯": "BZ",
+    "纸浆": "SP",
+    "聚丙烯": "PP",
+    "聚乙烯": "L",
+    "聚氯乙烯": "V",
+    "苯乙烯": "EB",
+    "菜籽油OI": "OI",
+    "菜籽粕": "RM",
+    "螺纹钢": "RB",
+    "豆一": "A",
+    "豆油": "Y",
+    "铁矿石": "I",
+    "铅": "PB",
+    "铜": "CU",
+    "铝": "AL",
+    "锌": "ZN",
+    "锰硅": "SM",
+    "镍": "NI",
 }
 INVENTORY_CODES = {
+    "A": "A",
+    "AD": "AD",
+    "AL": "AL",
+    "AO": "AO",
+    "AP": "AP",
     "AU": "AU",
     "AG": "AG",
-    "SN": "SN",
-    "LC": "lc",
-    "FU": "FU",
-    "JM": "JM",
+    "B": "B",
+    "BR": "BR",
+    "BU": "BU",
+    "BZ": "BZ",
+    "C": "C",
+    "CF": "CF",
+    "CJ": "CJ",
+    "CU": "CU",
+    "CY": "CY",
+    "EB": "EB",
+    "EG": "EG",
     "FG": "FG",
-    "SA": "SA",
-    "AO": "AO",
-    "SH": "SH",
-    "M": "M",
+    "FU": "FU",
+    "HC": "HC",
+    "I": "I",
+    "J": "J",
     "JD": "JD",
+    "JM": "JM",
+    "L": "L",
+    "LC": "lc",
     "LH": "LH",
+    "LU": "lu",
+    "M": "M",
+    "MA": "MA",
+    "NI": "NI",
+    "NR": "nr",
+    "OI": "OI",
+    "OP": "OP",
+    "P": "P",
+    "PB": "PB",
+    "PF": "PF",
+    "PG": "PG",
+    "PK": "PK",
+    "PL": "PL",
+    "PP": "PP",
+    "PR": "PR",
+    "PS": "ps",
+    "PX": "PX",
+    "RB": "RB",
+    "RM": "RM",
+    "RR": "RR",
+    "RU": "RU",
+    "SA": "SA",
+    "SF": "SF",
+    "SH": "SH",
+    "SI": "si",
+    "SM": "SM",
+    "SN": "SN",
+    "SP": "SP",
+    "SR": "SR",
+    "SS": "SS",
+    "TA": "TA",
+    "UR": "UR",
+    "V": "V",
+    "Y": "Y",
+    "ZN": "ZN",
 }
 INDEX_DEFINITIONS = {
     "IH": ("上证50", "1.000016"),
@@ -275,7 +365,14 @@ def main() -> None:
     if not dates:
         dates = [report_date]
     start_date = f"{dates[0][:4]}-{dates[0][4:6]}-{dates[0][6:]}"
-    statuses: dict[str, object] = {"report_date": report_date, "basis_failed_dates": [], "inventory_failed_symbols": [], "index_failed_symbols": []}
+    statuses: dict[str, object] = {
+        "report_date": report_date,
+        "basis_failed_dates": [],
+        "basis_uncovered_symbols": [],
+        "inventory_failed_symbols": [],
+        "inventory_uncovered_symbols": [],
+        "index_failed_symbols": [],
+    }
 
     basis_rows: list[dict[str, object]] = []
     for date in dates:
@@ -287,9 +384,14 @@ def main() -> None:
     inventory_rows: list[dict[str, object]] = []
     for symbol, product_code in INVENTORY_CODES.items():
         try:
-            inventory_rows.extend(fetch_inventory(symbol, product_code, start_date, report_date))
+            rows = fetch_inventory(symbol, product_code, start_date, report_date)
+            inventory_rows.extend(rows)
+            if not rows:
+                statuses["inventory_uncovered_symbols"].append(symbol)
         except Exception as exc:
             statuses["inventory_failed_symbols"].append({"symbol": symbol, "error": type(exc).__name__})
+    basis_covered = {str(row["symbol"]) for row in basis_rows}
+    statuses["basis_uncovered_symbols"] = sorted(set(INVENTORY_CODES) - basis_covered)
 
     index_rows: list[dict[str, object]] = []
     for symbol, (name, secid) in INDEX_DEFINITIONS.items():

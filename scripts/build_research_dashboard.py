@@ -14,6 +14,7 @@ OUTPUT_ROOT = ROOT / "output"
 SOURCE_DIR = ROOT / "web" / "research_dashboard"
 TARGET_DIR = OUTPUT_ROOT / "research_dashboard"
 SNAPSHOT_DIR = TARGET_DIR / "data" / "snapshots"
+FUNDAMENTAL_SOURCE_CONFIG = ROOT / "config" / "fundamental_sources.json"
 DATE_RE = re.compile(r"(\d{8})$")
 EXCLUDED_SYMBOLS = {"IC", "IF", "IH", "IM", "T", "TF", "TL", "TS", "CS"}
 SECTOR_OVERRIDES = {"LU": "油化工", "PR": "油化工", "NR": "农副软商"}
@@ -35,6 +36,19 @@ def read_json(path: Path) -> dict[str, object]:
         return json.loads(path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return {}
+
+
+def fundamental_source_plans() -> dict[str, dict[str, object]]:
+    payload = read_json(FUNDAMENTAL_SOURCE_CONFIG)
+    profiles = payload.get("profiles", {}) if isinstance(payload, dict) else {}
+    symbols = payload.get("symbols", {}) if isinstance(payload, dict) else {}
+    if not isinstance(profiles, dict) or not isinstance(symbols, dict):
+        return {}
+    return {
+        str(symbol).upper(): dict(profiles.get(profile_name, {}))
+        for symbol, profile_name in symbols.items()
+        if isinstance(profiles.get(profile_name), dict)
+    }
 
 
 def latest_dated_file(pattern: str, report_date: str) -> Path | None:
@@ -267,6 +281,7 @@ def build_instrument(
     technical: dict[str, object] | None,
     basis_history: list[dict[str, object]] | None,
     warehouse_history: list[dict[str, object]] | None,
+    source_plan: dict[str, object] | None,
     wuxing_seasonality: dict[str, object] | None,
 ) -> dict[str, object]:
     domestic = group_values(amount_row, "domestic")
@@ -318,6 +333,7 @@ def build_instrument(
         "fundamentals": {
             "basis": basis_history or [],
             "warehouseReceipt": warehouse_history or [],
+            "sourcePlan": source_plan or {},
         },
         "wuxingSeasonality": wuxing_seasonality,
     }
@@ -508,6 +524,7 @@ def build_snapshot(report_date: str) -> dict[str, object]:
     index_quotes = index_quote_history(read_csv(index_quote_file) if index_quote_file else [], report_date)
     contract_rows = read_csv(institutional_dir / "contract_rows.csv")
     broker_rankings = build_broker_rankings(contract_rows)
+    source_plans = fundamental_source_plans()
 
     instruments = []
     for amount_row in amount_rows:
@@ -524,6 +541,7 @@ def build_snapshot(report_date: str) -> dict[str, object]:
                 technicals.get(symbol),
                 basis_by_symbol.get(symbol),
                 warehouse_by_symbol.get(symbol),
+                source_plans.get(symbol),
                 (
                     {
                         **wuxing_results[symbol],
@@ -597,6 +615,7 @@ def build_snapshot(report_date: str) -> dict[str, object]:
             "wuxingSourceFile": wuxing_file.name if wuxing_file else "",
             "basisCoveredCount": sum(1 for item in instruments if item["fundamentals"]["basis"]),
             "warehouseCoveredCount": sum(1 for item in instruments if item["fundamentals"]["warehouseReceipt"]),
+            "fundamentalSourcePlanCount": sum(1 for item in instruments if item["fundamentals"]["sourcePlan"]),
         },
         "sectorSummary": sector_summary,
         "tripleResonance": triples,

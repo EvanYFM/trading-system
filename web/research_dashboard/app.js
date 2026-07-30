@@ -3,6 +3,7 @@ const state = {
   date: null,
   view: "overview",
   query: "",
+  symbol: "all",
   sector: "all",
   direction: "all",
   detailQuery: "",
@@ -28,7 +29,6 @@ const sourceFileDate = (name) => {
 };
 const formatAxisAmount = (value) => numeric(value) === 0 ? "0" : `${formatSigned(numeric(value) / 1e8, 1)}亿`;
 const currentSnapshot = () => state.data.snapshots[state.date];
-const DETAIL_SYMBOLS = ["AG", "JM", "FU", "LH", "LC", "JD"];
 const DETAIL_SEARCH_ALIASES = { FU: "燃油", AG: "白银", JM: "焦煤", LH: "生猪", LC: "碳酸锂", JD: "鸡蛋" };
 const CORE_GROUPS = [
   ["贵金属", ["AU", "AG"]],
@@ -73,28 +73,23 @@ function renderSummary() {
 }
 
 function renderFocus() {
-  const items = [...currentSnapshot().tripleResonance]
-    .sort((a, b) => {
-      const aBull = numeric(a.amountSignal) >= 0;
-      const bBull = numeric(b.amountSignal) >= 0;
-      if (aBull !== bBull) return aBull ? -1 : 1;
-      return aBull
-        ? numeric(b.amountSignal) - numeric(a.amountSignal)
-        : numeric(a.amountSignal) - numeric(b.amountSignal);
-    });
+  const triples = [...currentSnapshot().tripleResonance];
+  const bullish = triples.filter((item) => numeric(item.handsSignal) > 0).sort((a, b) => numeric(b.handsSignal) - numeric(a.handsSignal)).slice(0, 5);
+  const bearish = triples.filter((item) => numeric(item.handsSignal) < 0).sort((a, b) => numeric(a.handsSignal) - numeric(b.handsSignal)).slice(0, 5);
+  const items = [...bullish, ...bearish];
   if (!items.length) {
     $("#resonanceFocus").innerHTML = `<div class="detail-empty">今天没有满足三方强共振条件的商品品种。</div>`;
     return;
   }
-  const scale = maxAbs(items, (item) => item.amountSignal);
+  const scale = maxAbs(items, (item) => item.handsSignal);
   $("#resonanceFocus").innerHTML = items.map((item) => {
-    const tone = dirClass(item.amountSignal);
-    const width = Math.max(6, Math.abs(item.amountSignal) / scale * 100);
+    const tone = dirClass(item.handsSignal);
+    const width = Math.max(6, Math.abs(item.handsSignal) / scale * 100);
     const quote = item.quote;
     return `<button class="focus-card ${tone}" data-open-symbol="${escapeHtml(item.symbol)}">
       <div class="focus-head"><span class="focus-name">${escapeHtml(item.variety)}</span><span class="focus-code">${escapeHtml(item.symbol)}</span></div>
-      <div class="focus-amount ${signClass(item.amountSignal)}">${formatAmount(item.amountSignal)}</div>
-      <div class="focus-sub">三方手数 ${formatHands(item.handsSignal)} · ${escapeHtml(item.marginalStructure || "边际待判")}</div>
+      <div class="focus-amount ${signClass(item.handsSignal)}">${formatHands(item.handsSignal)} 手</div>
+      <div class="focus-sub">三方资金 ${formatAmount(item.amountSignal)} · ${escapeHtml(item.marginalStructure || "边际待判")}</div>
       <div class="signal-track"><span class="signal-fill ${tone}" style="width:${width}%"></span></div>
       <div class="focus-tags"><span class="tag ${tone}">${escapeHtml(item.resonance.label || item.direction)}</span>${quote ? `<span class="tag ${dirClass(quote.changePct)}">${formatSigned(quote.changePct, 2)}%</span>` : ""}${item.trend ? `<span class="tag">趋势 ${escapeHtml(item.trend.temperature || "-")}${item.trend.fresh ? "" : "（旧）"}</span>` : ""}</div>
     </button>`;
@@ -112,22 +107,6 @@ function renderTide() {
     </button>`).join("");
     return `<article class="tide-block ${tone}"><header><span>${escapeHtml(bucket.label)}</span><strong>${bucket.count}</strong></header><div>${rows || `<p class="empty-side">该象限暂无品种</p>`}</div></article>`;
   }).join("");
-}
-
-function renderTrendResonance() {
-  const rows = (currentSnapshot().trendResonance || []).slice(0, 12);
-  if (!rows.length) {
-    $("#trendResonance").innerHTML = `<div class="detail-empty">该快照没有可用的非“平”趋势温度数据。</div>`;
-    return;
-  }
-  const scale = maxAbs(rows, (item) => item.amount);
-  $("#trendResonance").innerHTML = `<div class="trend-table-head"><span>品种</span><span>趋势事实</span><span>三方资金</span><span>关系</span><span>来源</span></div>${rows.map((item) => `<button class="trend-row" data-open-symbol="${escapeHtml(item.symbol)}">
-    <span class="trend-name"><strong>${escapeHtml(item.variety)}</strong><small>${escapeHtml(item.symbol)} · ${escapeHtml(item.sector)}</small></span>
-    <span>${trendChip({temperature:item.temperature, strength:item.strength, fresh:item.fresh})}<small class="trend-stage">${escapeHtml(item.stage || (item.rightSide ? "右侧" : "左侧"))}</small></span>
-    <span class="trend-money"><span class="sector-meter"><span class="sector-meter-fill ${dirClass(item.amount)}" style="width:${Math.max(4, Math.abs(item.amount) / scale * 100)}%"></span></span><strong class="${signClass(item.amount)}">${formatAmount(item.amount)}</strong></span>
-    <span><span class="tag ${item.relation === "资金顺势" ? dirClass(item.amount) : ""}">${escapeHtml(item.relation)}</span></span>
-    <span class="source-date ${item.fresh ? "" : "is-stale"}">${escapeHtml(item.sourceDate || "未披露")}${item.fresh ? "" : " · 非当日"}</span>
-  </button>`).join("")}`;
 }
 
 function sectorSide(items, side) {
@@ -164,7 +143,7 @@ function renderCorePanorama() {
     $("#corePanorama").innerHTML = `<div class="detail-empty">该快照没有可用重点品种。</div>`;
     return;
   }
-  $("#corePanorama").innerHTML = groups.map((group) => `<section class="panorama-group"><header>${escapeHtml(group.sector)}</header><div class="panorama-head"><span>品种 / 行情</span><span>三方净变动</span><span>内资 / 外资 / 家人反向</span><span>趋势与信号</span></div>${group.items.map((item) => {
+  $("#corePanorama").innerHTML = `<div class="panorama-head"><span>板块</span><span>品种 / 行情</span><span>三方净变动</span><span>内资 / 外资 / 家人反向</span><span>趋势与信号</span></div>${groups.map((group) => `<section class="panorama-group"><header>${escapeHtml(group.sector)}</header><div class="panorama-group-rows">${group.items.map((item) => {
     const quote = item.quote;
     return `<button class="panorama-row" data-open-symbol="${escapeHtml(item.symbol)}">
       <span class="panorama-name"><strong>${escapeHtml(item.variety)} ${escapeHtml(item.symbol)}</strong><small>${escapeHtml(item.sector)} · ${escapeHtml(quote?.contract || item.margin.contract || "主力待披露")}</small>${quote ? `<em>${numeric(quote.close).toLocaleString("zh-CN", {maximumFractionDigits:4})} <b class="${signClass(quote.changePct)}">${formatSigned(quote.changePct, 2)}%</b></em>` : `<em>行情暂无</em>`}</span>
@@ -172,7 +151,7 @@ function renderCorePanorama() {
       <span>${groupBars(item)}</span>
       <span class="panorama-tags">${trendChip(item.trend)}<span class="tag ${dirClass(item.amountSignal)}">${escapeHtml(item.resonance.label || item.direction)}</span></span>
     </button>`;
-  }).join("")}</section>`).join("");
+  }).join("")}</div></section>`).join("")}`;
 }
 
 function brokerSide(items, side) {
@@ -232,19 +211,23 @@ function filteredInstruments() {
   const query = state.query.trim().toLowerCase();
   return currentSnapshot().instruments.filter((item) => {
     const queryMatch = !query || item.variety.toLowerCase().includes(query) || item.symbol.toLowerCase().includes(query);
+    const symbolMatch = state.symbol === "all" || item.symbol === state.symbol;
     const sectorMatch = state.sector === "all" || item.sector === state.sector;
     const directionMatch = state.direction === "all" || (state.direction === "bullish" ? item.amountSignal > 0 : item.amountSignal < 0);
-    return queryMatch && sectorMatch && directionMatch;
+    return queryMatch && symbolMatch && sectorMatch && directionMatch;
   });
 }
 
 function renderSectorFilter() {
+  const instruments = [...currentSnapshot().instruments].sort((a, b) => a.sector.localeCompare(b.sector, "zh-CN") || a.variety.localeCompare(b.variety, "zh-CN"));
+  if (state.symbol !== "all" && !instruments.some((item) => item.symbol === state.symbol)) state.symbol = "all";
+  $("#symbolFilter").innerHTML = `<option value="all">全部品种</option>${instruments.map((item) => `<option value="${escapeHtml(item.symbol)}" ${state.symbol === item.symbol ? "selected" : ""}>${escapeHtml(item.variety)} ${escapeHtml(item.symbol)}</option>`).join("")}`;
   const sectors = [...new Set(currentSnapshot().instruments.map((item) => item.sector))].sort();
   $("#sectorFilter").innerHTML = `<option value="all">全部板块</option>${sectors.map((sector) => `<option value="${escapeHtml(sector)}" ${state.sector === sector ? "selected" : ""}>${escapeHtml(sector)}</option>`).join("")}`;
 }
 
 function renderDetailFilter() {
-  const covered = currentSnapshot().instruments.filter((item) => DETAIL_SYMBOLS.includes(item.symbol) || item.wuxingSeasonality);
+  const covered = [...currentSnapshot().instruments].sort((a, b) => a.sector.localeCompare(b.sector, "zh-CN") || a.variety.localeCompare(b.variety, "zh-CN"));
   const sectors = [...new Set(covered.map((item) => item.sector))].sort();
   $("#detailSearchInput").value = state.detailQuery;
   $("#detailSectorFilter").innerHTML = `<option value="all">全部板块</option>${sectors.map((sector) => `<option value="${escapeHtml(sector)}" ${state.detailSector === sector ? "selected" : ""}>${escapeHtml(sector)}</option>`).join("")}`;
@@ -254,7 +237,10 @@ function renderDetailFilter() {
     const queryMatch = !query || item.variety.toLowerCase().includes(query) || item.symbol.toLowerCase().includes(query) || aliases.toLowerCase().includes(query);
     return queryMatch && (state.detailSector === "all" || item.sector === state.detailSector);
   });
-  $("#detailFilterResults").innerHTML = matches.length ? matches.map((item) => `<button class="detail-filter-option ${item.symbol === state.activeSymbol ? "is-active" : ""}" data-open-symbol="${escapeHtml(item.symbol)}"><strong>${escapeHtml(item.variety)}</strong><small>${escapeHtml(item.symbol)} · ${escapeHtml(item.sector)}</small></button>`).join("") : `<span class="detail-filter-empty">当前筛选条件下没有已接入品种。</span>`;
+  if (matches.length && !matches.some((item) => item.symbol === state.activeSymbol)) state.activeSymbol = matches[0].symbol;
+  $("#detailSymbolFilter").innerHTML = matches.length
+    ? matches.map((item) => `<option value="${escapeHtml(item.symbol)}" ${item.symbol === state.activeSymbol ? "selected" : ""}>${escapeHtml(item.variety)} ${escapeHtml(item.symbol)} · ${escapeHtml(item.sector)}</option>`).join("")
+    : `<option value="">当前条件下没有品种</option>`;
 }
 
 function percentage(value, digits = 1) {
@@ -441,14 +427,26 @@ function factLineChart(rows, field, label) {
 function fundamentalEvidence(item) {
   const basis = item.fundamentals?.basis || [];
   const warehouse = item.fundamentals?.warehouseReceipt || [];
+  const sourcePlan = item.fundamentals?.sourcePlan || {};
   const latestBasis = basis.at(-1);
   const latestWarehouse = warehouse.at(-1);
-  const pending = (label, note) => `<article class="fundamental-fact is-pending"><small>${label}</small><strong>待接入</strong><p>${note}</p></article>`;
+  const pending = (key, label, fallback) => {
+    const plan = sourcePlan[key];
+    if (!plan) return `<article class="fundamental-fact is-pending"><small>${label}</small><strong>来源缺失</strong><p>${fallback}</p></article>`;
+    const accessLabels = {
+      AUTO_PUBLIC: "自动来源",
+      PUBLIC_SUMMARY: "来源已定位",
+      MANUAL_PUBLIC: "来源已定位",
+      LICENSE_REQUIRED: "待授权",
+    };
+    const access = accessLabels[plan.access] || "待接入";
+    return `<article class="fundamental-fact is-pending"><small>${label}</small><strong>${access}</strong><p>${escapeHtml(plan.metric)} · ${escapeHtml(plan.frequency)}</p><a href="${escapeHtml(plan.url)}" target="_blank" rel="noreferrer">${escapeHtml(plan.source)}</a></article>`;
+  };
   return `<div class="fundamental-evidence-grid">
-    ${pending("供给", "产量、开工率与进口等品种专属数据尚未接入。")}
-    ${pending("需求", "表观消费、下游开工与终端需求尚未接入。")}
-    ${pending("成本", "主流企业现金成本尚未形成稳定公开日频口径。")}
-    ${pending("库存", "社会库存与产业库存尚未统一接入。")}
+    ${pending("supply", "供给", "产量、开工率与进口等品种专属数据尚未定位。")}
+    ${pending("demand", "需求", "表观消费、下游开工与终端需求尚未定位。")}
+    ${pending("cost", "成本", "主流企业现金成本尚未定位稳定口径。")}
+    ${pending("inventory", "库存", "社会库存与产业库存尚未定位稳定口径。")}
     <article class="fundamental-fact chart-fact"><small>仓单</small><strong>${latestWarehouse ? technicalValue(latestWarehouse.warehouse_receipt, 0) : "暂无"}</strong><p>${latestWarehouse ? `${escapeHtml(latestWarehouse.sourceDate)} · 当日变化 ${formatSigned(latestWarehouse.change, 0)}` : "东方财富库存数据未覆盖该品种"}</p>${factLineChart(warehouse, "warehouse_receipt", `${item.variety}仓单`)}</article>
     <article class="fundamental-fact chart-fact"><small>期现基差</small><strong class="${latestBasis ? signClass(latestBasis.basis) : ""}">${latestBasis ? technicalValue(latestBasis.basis, 2) : "暂无"}</strong><p>${latestBasis ? `${escapeHtml(latestBasis.sourceDate)} · 现货价减主力期货价` : "公开期现表未覆盖该品种"}</p>${factLineChart(basis, "basis", `${item.variety}期现基差`)}</article>
   </div>`;
@@ -623,7 +621,6 @@ function renderAll() {
   renderFocus();
   renderTide();
   renderSectors();
-  renderTrendResonance();
   renderCorePanorama();
   renderBrokerHighlights();
   renderStockIndices();
@@ -644,6 +641,7 @@ function switchView(view) {
 
 function setDate(date) {
   state.date = date;
+  state.symbol = "all";
   state.sector = "all";
   state.detailSector = "all";
   state.detailQuery = "";
@@ -681,10 +679,12 @@ function bindEvents() {
     }
   });
   $("#dateSelect").addEventListener("change", (event) => setDate(event.target.value));
+  $("#symbolFilter").addEventListener("change", (event) => { state.symbol = event.target.value; renderInstrumentTable(); });
   $("#searchInput").addEventListener("input", (event) => { state.query = event.target.value; renderInstrumentTable(); });
   $("#sectorFilter").addEventListener("change", (event) => { state.sector = event.target.value; renderInstrumentTable(); });
-  $("#detailSearchInput").addEventListener("input", (event) => { state.detailQuery = event.target.value; renderDetailFilter(); });
-  $("#detailSectorFilter").addEventListener("change", (event) => { state.detailSector = event.target.value; renderDetailFilter(); });
+  $("#detailSymbolFilter").addEventListener("change", (event) => { if (event.target.value) { state.activeSymbol = event.target.value; renderDetailWorkspace(); } });
+  $("#detailSearchInput").addEventListener("input", (event) => { state.detailQuery = event.target.value; renderDetailWorkspace(); });
+  $("#detailSectorFilter").addEventListener("change", (event) => { state.detailSector = event.target.value; renderDetailWorkspace(); });
   $("#historyControls").addEventListener("change", (event) => { if (event.target.id === "historySymbolSelect") { state.historySymbol = event.target.value; renderHistory(); } });
 }
 
