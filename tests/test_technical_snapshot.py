@@ -11,9 +11,11 @@ from fetch_eastmoney_technical_snapshot import (  # noqa: E402
     build_strokes,
     build_key_levels,
     classify_chan,
-    classify_daily_ma,
+    classify_ema_stack,
     classify_position_price,
-    combine_technical_bias,
+    combine_timeframe_observation,
+    ema,
+    momentum_pct,
     parse_sina_daily_payload,
     recent_central_zone,
     session_activity,
@@ -34,10 +36,15 @@ class TechnicalSnapshotTests(unittest.TestCase):
         self.assertEqual(len(rows), 2)
         self.assertAlmostEqual(rows[-1]["change_pct"], 1.960784, places=5)
 
-    def test_daily_ma_states(self):
-        self.assertEqual(classify_daily_ma(120, 115, 110, 100), "偏多")
-        self.assertEqual(classify_daily_ma(80, 85, 90, 100), "偏空")
-        self.assertEqual(classify_daily_ma(105, 100, 110, 90), "中枢震荡")
+    def test_ema_and_stack_states(self):
+        self.assertAlmostEqual(ema([1, 2, 3, 4, 5], 3), 4.0625)
+        self.assertEqual(classify_ema_stack(120, 115, 110, 100), "偏多")
+        self.assertEqual(classify_ema_stack(80, 85, 90, 100), "偏空")
+        self.assertEqual(classify_ema_stack(105, 100, 110, 90), "中枢震荡")
+
+    def test_momentum_uses_lookback_return(self):
+        self.assertAlmostEqual(momentum_pct([100, 101, 102, 103, 110], 4), 10.0)
+        self.assertIsNone(momentum_pct([100, 101], 5))
 
     def test_chan_direction_states(self):
         bullish = [point(1, "bottom", 90), point(5, "top", 100), point(9, "bottom", 95), point(13, "top", 110)]
@@ -62,18 +69,18 @@ class TechnicalSnapshotTests(unittest.TestCase):
     def test_key_levels_use_ma_and_central_zones(self):
         levels = build_key_levels(
             100,
-            {"MA5": 98, "MA20": 103, "MA60": 95},
-            [{"period": 15, "centralZone": {"lower": 99, "upper": 102}}],
+            {"EMA5": 98, "EMA20": 103, "EMA60": 95},
+            [{"label": "60分钟", "centralZone": {"lower": 99, "upper": 102}}],
         )
-        self.assertEqual(levels["supports"][0]["label"], "15分钟中枢下沿")
-        self.assertEqual(levels["resistances"][0]["label"], "15分钟中枢上沿")
+        self.assertEqual(levels["supports"][0]["label"], "60分钟中枢下沿")
+        self.assertEqual(levels["resistances"][0]["label"], "60分钟中枢上沿")
 
-    def test_combined_bias_weights_open_interest_impulse(self):
-        strong_short = combine_technical_bias("偏空", "偏空", "偏空", "空头推动", 1.3)
-        covering_rally = combine_technical_bias("中枢震荡", "偏多", "中枢震荡", "空头回补", 0.7)
-        self.assertEqual(strong_short["bias"], "偏空")
+    def test_timeframe_observation_combines_chan_ema_and_momentum(self):
+        strong_short = combine_timeframe_observation("偏空", "偏空", -2.0, -4.0, "空头推动", 1.3)
+        mixed = combine_timeframe_observation("偏多", "偏空", 1.0, -1.0, "空头回补", 0.7)
+        self.assertEqual(strong_short["state"], "偏空")
         self.assertEqual(strong_short["strength"], "强")
-        self.assertEqual(covering_rally["bias"], "中枢震荡")
+        self.assertEqual(mixed["state"], "中枢震荡")
 
     def test_session_activity_includes_previous_night_and_excludes_next_night(self):
         bars = [

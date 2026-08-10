@@ -1,4 +1,4 @@
-"""Build daily moving-average and intraday Chan-structure snapshots."""
+"""Build daily and 60-minute trend evidence snapshots."""
 
 from __future__ import annotations
 
@@ -6,7 +6,6 @@ import csv
 import json
 import os
 import re
-import statistics
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -41,8 +40,20 @@ def value(text: object) -> float:
         return 0.0
 
 
-def mean(values: list[float], period: int) -> float | None:
-    return statistics.fmean(values[-period:]) if len(values) >= period else None
+def ema(values: list[float], period: int) -> float | None:
+    if not values or len(values) < period:
+        return None
+    multiplier = 2 / (period + 1)
+    result = values[0]
+    for item in values[1:]:
+        result = item * multiplier + result * (1 - multiplier)
+    return result
+
+
+def momentum_pct(values: list[float], lookback: int) -> float | None:
+    if len(values) <= lookback or not values[-lookback - 1]:
+        return None
+    return (values[-1] / values[-lookback - 1] - 1) * 100
 
 
 def parse_klines(klines: list[object]) -> list[dict[str, float | str]]:
@@ -286,23 +297,25 @@ def session_activity(bars: list[dict[str, object]], report_date: str) -> dict[st
     }
 
 
-def build_chan_snapshot(contract: str, period: int, report_date: str) -> dict[str, object]:
-    try:
-        bars, source_url = fetch_minute_bars(contract, period, report_date)
-    except (OSError, ValueError, KeyError, json.JSONDecodeError) as error:
-        return {"period": period, "status": "FETCH_FAILED", "state": "无法确认", "error": type(error).__name__}
-    lookback = 160 if period == 15 else 120
+def summarize_chan_bars(
+    bars: list[dict[str, object]],
+    label: str,
+    lookback: int,
+) -> dict[str, object]:
     sample = bars[-lookback:]
     if len(sample) < 20:
-        return {"period": period, "status": "INSUFFICIENT_BARS", "state": "无法确认", "barCount": len(sample), "sourceUrl": source_url}
+        return {"label": label, "status": "INSUFFICIENT_BARS", "state": "无法确认", "barCount": len(sample)}
     cleaned = remove_inclusion(sample)
     strokes = build_strokes(find_fractals(cleaned))
     tops = [point for point in strokes if point["kind"] == "top"]
     bottoms = [point for point in strokes if point["kind"] == "bottom"]
+    closes = [float(bar["close"]) for bar in sample]
     state = classify_chan(strokes)
-    activity = session_activity(bars, report_date)
+    ema5 = ema(closes, 5)
+    ema20 = ema(closes, 20)
+    ema60 = ema(closes, 60)
     return {
-        "period": period,
+        "label": label,
         "status": "OK" if state != "无法确认" else "INSUFFICIENT_STRUCTURE",
         "state": state,
         "barCount": len(sample),
@@ -314,18 +327,36 @@ def build_chan_snapshot(contract: str, period: int, report_date: str) -> dict[st
         "recentTops": serialize_points(tops),
         "recentBottoms": serialize_points(bottoms),
         "centralZone": recent_central_zone(strokes),
+        "ema5": ema5,
+        "ema20": ema20,
+        "ema60": ema60,
+        "emaState": classify_ema_stack(closes[-1], ema5, ema20, ema60),
+        "momentum5Pct": momentum_pct(closes, 5),
+        "momentum20Pct": momentum_pct(closes, 20),
+    }
+
+
+def build_chan_snapshot(contract: str, period: int, report_date: str) -> dict[str, object]:
+    try:
+        bars, source_url = fetch_minute_bars(contract, period, report_date)
+    except (OSError, ValueError, KeyError, json.JSONDecodeError) as error:
+        return {"period": period, "status": "FETCH_FAILED", "state": "无法确认", "error": type(error).__name__}
+    snapshot = summarize_chan_bars(bars, f"{period}分钟", 120)
+    activity = session_activity(bars, report_date)
+    return snapshot | {
+        "period": period,
         "activity": activity,
         "source": "新浪财经主力合约分钟K线",
         "sourceUrl": source_url,
     }
 
 
-def classify_daily_ma(close: float, ma5: float | None, ma20: float | None, ma60: float | None) -> str:
-    if None in (ma5, ma20, ma60):
+def classify_ema_stack(close: float, ema5: float | None, ema20: float | None, ema60: float | None) -> str:
+    if None in (ema5, ema20, ema60):
         return "无法确认"
-    if close > float(ma5) > float(ma20) > float(ma60):
+    if close > float(ema5) > float(ema20) > float(ema60):
         return "偏多"
-    if close < float(ma5) < float(ma20) < float(ma60):
+    if close < float(ema5) < float(ema20) < float(ema60):
         return "偏空"
     return "中枢震荡"
 
@@ -358,11 +389,11 @@ def build_key_levels(close: float, ma_values: dict[str, float | None], chan_snap
         zone = snapshot.get("centralZone")
         if not isinstance(zone, dict):
             continue
-        period = snapshot.get("period")
+        label = snapshot.get("label") or f"{snapshot.get('period')}分钟"
         candidates.extend(
             [
-                {"label": f"{period}分钟中枢下沿", "value": zone["lower"], "source": "中枢"},
-                {"label": f"{period}分钟中枢上沿", "value": zone["upper"], "source": "中枢"},
+                {"label": f"{label}中枢下沿", "value": zone["lower"], "source": "中枢"},
+                {"label": f"{label}中枢上沿", "value": zone["upper"], "source": "中枢"},
             ]
         )
     supports = sorted((item for item in candidates if float(item["value"]) <= close), key=lambda item: close - float(item["value"]))
@@ -370,22 +401,25 @@ def build_key_levels(close: float, ma_values: dict[str, float | None], chan_snap
     return {"supports": supports[:2], "resistances": resistances[:2]}
 
 
-def combine_technical_bias(
-    daily_state: str,
-    chan15_state: str,
-    chan60_state: str,
+def combine_timeframe_observation(
+    chan_state: str,
+    ema_state: str,
+    momentum5: float | None,
+    momentum20: float | None,
     impulse: str,
     volume_ratio: float | None,
 ) -> dict[str, object]:
     direction = {"偏多": 1.0, "偏空": -1.0, "中枢震荡": 0.0, "无法确认": 0.0}
-    score = direction.get(daily_state, 0.0) + direction.get(chan15_state, 0.0) + direction.get(chan60_state, 0.0) * 2
-    impulse_score = {"多头推动": 1.5, "空头推动": -1.5, "空头回补": 0.5, "多头撤退": -0.5}.get(impulse, 0.0)
+    score = direction.get(chan_state, 0.0) * 2 + direction.get(ema_state, 0.0) * 1.5
+    for momentum in (momentum5, momentum20):
+        score += 0.75 if momentum is not None and momentum > 0 else -0.75 if momentum is not None and momentum < 0 else 0
+    impulse_score = {"多头推动": 1.0, "空头推动": -1.0, "空头回补": 0.35, "多头撤退": -0.35}.get(impulse, 0.0)
     if volume_ratio is not None:
         impulse_score *= 1.25 if volume_ratio >= 1.2 else 0.75 if volume_ratio <= 0.8 else 1.0
     score += impulse_score
-    bias = "偏多" if score >= 2 else "偏空" if score <= -2 else "中枢震荡"
+    state = "偏多" if score >= 2 else "偏空" if score <= -2 else "中枢震荡"
     strength = "强" if abs(score) >= 4.5 else "中" if abs(score) >= 2 else "弱"
-    return {"bias": bias, "score": score, "strength": strength}
+    return {"state": state, "score": score, "strength": strength}
 
 
 def read_cached_history(symbol: str, report_date: str) -> list[dict[str, float | str]]:
@@ -443,6 +477,23 @@ def reconcile_latest_quote(rows: list[dict[str, float | str]], symbol: str, repo
     return True
 
 
+def build_daily_chan_snapshot(rows: list[dict[str, float | str]]) -> dict[str, object]:
+    bars = [
+        {
+            "timestamp": datetime.strptime(str(row["date"]), "%Y-%m-%d"),
+            "open": row["open"],
+            "high": row["high"],
+            "low": row["low"],
+            "close": row["close"],
+            "volume": row["volume"],
+            "openInterest": 0.0,
+        }
+        for row in rows
+    ]
+    snapshot = summarize_chan_bars(bars, "日线", 120)
+    return snapshot | {"source": "主力合约日线"}
+
+
 def build_snapshot(contract: dict[str, object], report_date: str) -> tuple[dict[str, object], list[dict[str, float | str]]]:
     end_date = datetime.strptime(report_date, "%Y%m%d")
     begin_date = (end_date - timedelta(days=300)).strftime("%Y%m%d")
@@ -485,22 +536,39 @@ def build_snapshot(contract: dict[str, object], report_date: str) -> tuple[dict[
         }, rows
 
     closes = [float(row["close"]) for row in rows]
-    ma5 = mean(closes, 5)
-    ma20 = mean(closes, 20)
-    ma60 = mean(closes, 60)
-    daily_state = classify_daily_ma(closes[-1], ma5, ma20, ma60)
-    chan15 = build_chan_snapshot(str(contract["contract"]), 15, report_date)
+    daily_chan = build_daily_chan_snapshot(rows)
+    ema5 = daily_chan.get("ema5")
+    ema20 = daily_chan.get("ema20")
+    ema60 = daily_chan.get("ema60")
     chan60 = build_chan_snapshot(str(contract["contract"]), 60, report_date)
-    activity = chan15.get("activity", {}) if isinstance(chan15.get("activity"), dict) else {}
-    volume_now = float(rows[-1]["volume"])
-    volume_previous = float(rows[-2]["volume"]) if len(rows) >= 2 else None
+    activity = chan60.get("activity", {}) if isinstance(chan60.get("activity"), dict) else {}
+    volume_now = float(activity["volume"]) if activity.get("volume") is not None else float(rows[-1]["volume"])
+    volume_previous = float(activity["previousVolume"]) if activity.get("previousVolume") is not None else float(rows[-2]["volume"]) if len(rows) >= 2 else None
     volume_ratio = volume_now / volume_previous if volume_previous else None
     position_price = classify_position_price(float(rows[-1]["change_pct"]), activity.get("openInterestChange"))
-    combined = combine_technical_bias(daily_state, str(chan15["state"]), str(chan60["state"]), position_price["impulse"], volume_ratio)
+    daily_observation = combine_timeframe_observation(
+        str(daily_chan["state"]),
+        str(daily_chan["emaState"]),
+        daily_chan.get("momentum5Pct"),
+        daily_chan.get("momentum20Pct"),
+        position_price["impulse"],
+        volume_ratio,
+    )
+    hour_observation = combine_timeframe_observation(
+        str(chan60["state"]),
+        str(chan60.get("emaState", "无法确认")),
+        chan60.get("momentum5Pct"),
+        chan60.get("momentum20Pct"),
+        position_price["impulse"],
+        volume_ratio,
+    )
+    observations = [daily_observation["state"], hour_observation["state"]]
+    bias = observations[0] if observations[0] == observations[1] else "中枢震荡"
+    signal_strength = "强" if bias != "中枢震荡" and all(item["strength"] == "强" for item in (daily_observation, hour_observation)) else "中" if bias != "中枢震荡" else "弱"
     key_levels = build_key_levels(
         closes[-1],
-        {"MA5": ma5, "MA20": ma20, "MA60": ma60},
-        [chan15, chan60],
+        {"EMA5": ema5, "EMA20": ema20, "EMA60": ema60},
+        [daily_chan, chan60],
     )
 
     latest = rows[-1]
@@ -518,12 +586,14 @@ def build_snapshot(contract: dict[str, object], report_date: str) -> tuple[dict[
         "endDate": rows[-1]["date"],
         "close": closes[-1],
         "changePct": float(latest["change_pct"]),
-        "ma5": ma5,
-        "ma20": ma20,
-        "ma60": ma60,
-        "dailyState": daily_state,
-        "chan15": chan15,
+        "ema5": ema5,
+        "ema20": ema20,
+        "ema60": ema60,
+        "dailyState": daily_observation["state"],
+        "dailyChan": daily_chan,
         "chan60": chan60,
+        "dailyObservation": daily_observation,
+        "hourObservation": hour_observation,
         "marketActivity": {
             "volume": volume_now,
             "previousVolume": volume_previous,
@@ -533,11 +603,11 @@ def build_snapshot(contract: dict[str, object], report_date: str) -> tuple[dict[
             **position_price,
         },
         "keyLevels": key_levels,
-        "bias": combined["bias"],
-        "score": combined["score"],
-        "signalStrength": combined["strength"],
-        "method": "日线 MA5/20/60、成交量与持仓量、15/60 分钟简化缠论结构三层验证",
-        "limitations": "日线为当前主力合约自身历史，不是复权连续合约；分钟结构先处理包含关系，再以三根K线分型和最少4根处理后K线构成简化笔，不等同于严格缠论背驰或一、二、三类买卖点。",
+        "bias": bias,
+        "score": float(daily_observation["score"]) + float(hour_observation["score"]),
+        "signalStrength": signal_strength,
+        "method": "日线与60分钟简化缠论、动量、EMA5/20/60及成交量持仓量验证",
+        "limitations": "日线为当前主力合约自身历史，不是复权连续合约；日线和60分钟结构先处理包含关系，再以三根K线分型和最少4根处理后K线构成简化笔，不等同于严格缠论背驰或一、二、三类买卖点。",
         "fetchedAt": datetime.now().astimezone().isoformat(timespec="seconds"),
     }, rows
 

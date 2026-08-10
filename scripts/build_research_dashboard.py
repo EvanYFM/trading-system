@@ -51,6 +51,52 @@ def fundamental_source_plans() -> dict[str, dict[str, object]]:
     }
 
 
+def fundamental_fact_index(
+    rows: list[dict[str, str]], report_date: str
+) -> dict[str, list[dict[str, object]]]:
+    allowed_dimensions = {"supply", "demand", "cost", "inventory"}
+    report_iso = f"{report_date[:4]}-{report_date[4:6]}-{report_date[6:]}"
+    latest: dict[tuple[str, str, str], dict[str, object]] = {}
+    for row in rows:
+        symbol = row.get("symbol", "").strip().upper()
+        dimension = row.get("dimension", "").strip().lower()
+        metric = row.get("metric", "").strip()
+        source_date = row.get("source_date", "").strip()
+        if (
+            not symbol
+            or dimension not in allowed_dimensions
+            or not metric
+            or row.get("status", "").strip().upper() != "OK"
+            or not source_date
+            or source_date > report_iso
+        ):
+            continue
+        try:
+            value = float(row.get("value", ""))
+        except (TypeError, ValueError):
+            continue
+        fact = {
+            "dimension": dimension,
+            "metric": metric,
+            "value": value,
+            "unit": row.get("unit", "").strip(),
+            "sourceDate": source_date,
+            "frequency": row.get("frequency", "").strip(),
+            "source": row.get("source", "Mysteel").strip() or "Mysteel",
+            "sourceUrl": row.get("source_url", "").strip(),
+        }
+        key = (symbol, dimension, metric)
+        previous = latest.get(key)
+        if previous is None or str(previous["sourceDate"]) < source_date:
+            latest[key] = fact
+    grouped: dict[str, list[dict[str, object]]] = defaultdict(list)
+    for (symbol, _, _), fact in latest.items():
+        grouped[symbol].append(fact)
+    for facts in grouped.values():
+        facts.sort(key=lambda item: (str(item["dimension"]), str(item["metric"])))
+    return dict(grouped)
+
+
 def latest_dated_file(pattern: str, report_date: str) -> Path | None:
     candidates: list[tuple[str, Path]] = []
     for path in (ROOT / "data").glob(pattern):
@@ -282,6 +328,7 @@ def build_instrument(
     basis_history: list[dict[str, object]] | None,
     warehouse_history: list[dict[str, object]] | None,
     source_plan: dict[str, object] | None,
+    fundamental_facts: list[dict[str, object]] | None,
     wuxing_seasonality: dict[str, object] | None,
 ) -> dict[str, object]:
     domestic = group_values(amount_row, "domestic")
@@ -334,6 +381,7 @@ def build_instrument(
             "basis": basis_history or [],
             "warehouseReceipt": warehouse_history or [],
             "sourcePlan": source_plan or {},
+            "facts": fundamental_facts or [],
         },
         "wuxingSeasonality": wuxing_seasonality,
     }
@@ -519,12 +567,14 @@ def build_snapshot(report_date: str) -> dict[str, object]:
     basis_file = latest_dated_file("futures_basis_history_*.csv", report_date)
     warehouse_file = latest_dated_file("eastmoney_warehouse_receipts_*.csv", report_date)
     index_quote_file = latest_dated_file("eastmoney_index_quotes_*.csv", report_date)
+    mysteel_fact_file = latest_dated_file("mysteel_fundamental_facts_*.csv", report_date)
     basis_by_symbol = market_history(read_csv(basis_file) if basis_file else [], report_date, ("spot_price", "main_price", "basis", "basis_pct"))
     warehouse_by_symbol = market_history(read_csv(warehouse_file) if warehouse_file else [], report_date, ("warehouse_receipt", "change"))
     index_quotes = index_quote_history(read_csv(index_quote_file) if index_quote_file else [], report_date)
     contract_rows = read_csv(institutional_dir / "contract_rows.csv")
     broker_rankings = build_broker_rankings(contract_rows)
     source_plans = fundamental_source_plans()
+    mysteel_facts = fundamental_fact_index(read_csv(mysteel_fact_file) if mysteel_fact_file else [], report_date)
 
     instruments = []
     for amount_row in amount_rows:
@@ -542,6 +592,7 @@ def build_snapshot(report_date: str) -> dict[str, object]:
                 basis_by_symbol.get(symbol),
                 warehouse_by_symbol.get(symbol),
                 source_plans.get(symbol),
+                mysteel_facts.get(symbol),
                 (
                     {
                         **wuxing_results[symbol],
@@ -612,10 +663,12 @@ def build_snapshot(report_date: str) -> dict[str, object]:
             "quoteSourceFile": quote_file.name if quote_file else "",
             "basisSourceFile": basis_file.name if basis_file else "",
             "warehouseSourceFile": warehouse_file.name if warehouse_file else "",
+            "mysteelFundamentalSourceFile": mysteel_fact_file.name if mysteel_fact_file else "",
             "wuxingSourceFile": wuxing_file.name if wuxing_file else "",
             "basisCoveredCount": sum(1 for item in instruments if item["fundamentals"]["basis"]),
             "warehouseCoveredCount": sum(1 for item in instruments if item["fundamentals"]["warehouseReceipt"]),
             "fundamentalSourcePlanCount": sum(1 for item in instruments if item["fundamentals"]["sourcePlan"]),
+            "mysteelFundamentalCoveredCount": sum(1 for item in instruments if item["fundamentals"]["facts"]),
         },
         "sectorSummary": sector_summary,
         "tripleResonance": triples,

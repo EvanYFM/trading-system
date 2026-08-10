@@ -5,6 +5,7 @@ from unittest import mock
 
 from scripts import fetch_research_dashboard_market_context as market_context
 from scripts import generate_futures_report as futures_report
+from scripts import build_research_dashboard as dashboard
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -79,6 +80,52 @@ class ResearchDashboardFundamentalTests(unittest.TestCase):
     def test_basis_mapping_keeps_corn_and_bottle_flakes(self):
         self.assertEqual("C", market_context.BASIS_NAMES["玉米"])
         self.assertEqual("PR", market_context.BASIS_NAMES["瓶片"])
+
+    def test_mysteel_facts_require_numeric_ok_rows_and_respect_report_date(self):
+        rows = [
+            {
+                "symbol": "JM",
+                "dimension": "inventory",
+                "metric": "样本矿山精煤库存",
+                "value": "195.84",
+                "unit": "万吨",
+                "source_date": "2026-08-07",
+                "frequency": "周度",
+                "status": "OK",
+                "source": "Mysteel",
+                "source_url": "https://www.mysteel.com/example",
+            },
+            {
+                "symbol": "JM",
+                "dimension": "cost",
+                "metric": "现金成本",
+                "value": "",
+                "unit": "元/吨",
+                "source_date": "2026-08-07",
+                "frequency": "月度",
+                "status": "NO_ACCESS",
+                "source": "Mysteel",
+                "source_url": "https://www.mysteel.com/example",
+            },
+            {
+                "symbol": "JM",
+                "dimension": "inventory",
+                "metric": "样本矿山精煤库存",
+                "value": "999",
+                "unit": "万吨",
+                "source_date": "2026-08-08",
+                "frequency": "周度",
+                "status": "OK",
+                "source": "Mysteel",
+                "source_url": "https://www.mysteel.com/example",
+            },
+        ]
+
+        result = dashboard.fundamental_fact_index(rows, "20260807")
+
+        self.assertEqual(1, len(result["JM"]))
+        self.assertEqual(195.84, result["JM"][0]["value"])
+        self.assertEqual("inventory", result["JM"][0]["dimension"])
 
 
 if __name__ == "__main__":
