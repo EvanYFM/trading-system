@@ -107,6 +107,13 @@ h1 { margin: 6px 0 0; font-size: 30px; line-height: 1.15; letter-spacing: 0; }
 .tide-row { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 58px 72px; gap: 8px; align-items: center; padding: 10px 13px; border: 0; border-top: 1px solid #edf0f2; background: transparent; color: var(--ink); text-align: left; }
 .tide-row:first-child { border-top: 0; }
 .tide-row:hover { background: var(--surface-subtle); }
+.key-event-list { margin-top: 14px; border: 1px solid var(--line); background: var(--surface); }
+.key-event-row { width: 100%; display: grid; grid-template-columns: 110px minmax(240px, 1fr) 80px 80px 100px; gap: 12px; align-items: center; padding: 11px 13px; border: 0; border-top: 1px solid var(--line); background: transparent; color: var(--ink); text-align: left; }
+.key-event-row:first-child { border-top: 0; }
+.key-event-row:hover { background: var(--surface-subtle); }
+.key-event-row small, .key-event-name small { display: block; color: var(--muted); font-size: 9px; }
+.key-event-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.key-event-tags span { padding: 3px 6px; border: 1px solid var(--line); background: var(--surface-subtle); font-size: 9px; }
 .tide-row span:first-child { min-width: 0; }
 .tide-row strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
 .tide-row small { display: block; margin-top: 3px; overflow: hidden; color: var(--muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
@@ -291,7 +298,7 @@ h1 { margin: 6px 0 0; font-size: 30px; line-height: 1.15; letter-spacing: 0; }
 .seat-rank-row:first-of-type { border-top: 0; }
 .seat-rank-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .seat-rank-name small { display: block; margin-top: 2px; color: var(--muted); font-size: 8px; }
-.seat-flow { min-width: 70px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.seat-flow { display: flex; min-width: 155px; justify-content: flex-end; gap: 8px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .spark-wrap { height: 92px; padding: 8px; background: var(--surface-subtle); border: 1px solid var(--line); }
 .spark-wrap svg { width: 100%; height: 100%; overflow: visible; }
 .spark-axis { stroke: #cfd6dd; stroke-width: 1; stroke-dasharray: 3 3; }
@@ -572,6 +579,8 @@ h1 { margin: 6px 0 0; font-size: 30px; line-height: 1.15; letter-spacing: 0; }
   .section-heading { align-items: flex-start; }
   .section-heading p { display: none; }
   .focus-grid, .tide-grid, .sector-grid, .overview-split, .history-panel, .status-panel { grid-template-columns: 1fr; }
+  .key-event-row { grid-template-columns: 90px minmax(0, 1fr) 62px 62px; }
+  .key-event-row > span:last-child { display: none; }
   .sector-sides { grid-template-columns: 1fr; }
   .sector-side + .sector-side { border-top: 1px solid var(--line); border-left: 0; }
   .trend-table-head, .panorama-head { display: none; }

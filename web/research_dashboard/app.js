@@ -59,15 +59,11 @@ function brokerGroupLabel(entry) {
   return entry.displayGroup || ({内资: "机构", 外资: "外资", 家人: "家人"}[entry.group] || entry.group);
 }
 
-function seatAction(entry) {
-  const actions = [["addLong", "加多", "bull-text", 1], ["reduceLong", "减多", "bull-text", -1], ["addShort", "加空", "bear-text", 1], ["reduceShort", "减空", "bear-text", -1]];
-  return actions.map(([key, label, tone, sign]) => ({key, label, tone, sign, value: numeric(entry[key])})).sort((a, b) => b.value - a.value)[0];
-}
-
-function seatPositionEffect(entry, action) {
-  const netLong = numeric(entry.netPosition) >= 0;
-  const expands = netLong ? ["addLong", "reduceShort"].includes(action.key) : ["addShort", "reduceLong"].includes(action.key);
-  return `净${netLong ? "多" : "空"}${expands ? "扩大" : "收窄"}`;
+function seatChanges(entry) {
+  const longChange = entry.longChange == null ? numeric(entry.addLong) - numeric(entry.reduceLong) : numeric(entry.longChange);
+  const shortChange = entry.shortChange == null ? numeric(entry.addShort) - numeric(entry.reduceShort) : numeric(entry.shortChange);
+  const item = (value, addLabel, reduceLabel, tone) => `<span class="${tone}">${value >= 0 ? addLabel : reduceLabel} ${formatSigned(value)}</span>`;
+  return `${item(longChange, "加多", "减多", "bull-text")}${item(shortChange, "加空", "减空", "bear-text")}`;
 }
 
 function rankingDominance(items) {
@@ -146,6 +142,17 @@ function renderTide() {
     </button>`).join("");
     return `<article class="tide-block ${tone}"><header><span>${escapeHtml(bucket.label)}</span><strong>${bucket.count}</strong></header><div>${rows || `<p class="empty-side">该象限暂无品种</p>`}</div></article>`;
   }).join("");
+}
+
+function renderKeyEvents() {
+  const events = currentSnapshot().keyEvents || [];
+  $("#keyEventList").innerHTML = events.length ? events.map((item) => `<button class="key-event-row" data-open-symbol="${escapeHtml(item.symbol)}">
+    <span class="key-event-name"><strong>${escapeHtml(item.variety)}</strong><small>${escapeHtml(item.symbol)} · ${escapeHtml(item.sector)}</small></span>
+    <span class="key-event-tags">${(item.events || []).map((label) => `<span>${escapeHtml(label)}</span>`).join("")}</span>
+    <span class="${signClass(item.priceChangePct)}"><small>涨跌</small><strong>${formatSigned(item.priceChangePct, 2)}%</strong></span>
+    <span class="${signClass(item.openInterestChangePct)}"><small>持仓</small><strong>${formatSigned(item.openInterestChangePct, 2)}%</strong></span>
+    <span><small>成交额</small><strong>${(numeric(item.turnover) / 1e8).toLocaleString("zh-CN", {maximumFractionDigits: 2})} 亿</strong></span>
+  </button>`).join("") : `<div class="detail-empty">该日期没有可验证的关键商品事件。</div>`;
 }
 
 function sectorSide(items, side) {
@@ -238,7 +245,7 @@ function renderOverviewStatus() {
   const latestDisclosure = snapshot.disclosureDates.at(-1) || "未披露";
   $("#overviewStatus").innerHTML = [
     ["席位披露", latestDisclosure, `${summary.instrumentCount} 个商品品种`],
-    ["收盘行情", sourceFileDate(summary.quoteSourceFile), `${summary.quoteFreshCount}/${summary.instrumentCount} 与报告日同日 · 东方财富`],
+    ["收盘行情", sourceFileDate(summary.quoteSourceFile), `${summary.quoteFreshCount}/${summary.instrumentCount} 与报告日同日 · ${summary.quoteSource || "来源未披露"}`],
     ["趋势快照", sourceFileDate(summary.trendSourceFile), `${summary.trendFreshCount}/${summary.instrumentCount} 与报告日同日 · 趋势动物`],
     ["保证金", `${(summary.marginCoverage * 100).toFixed(0)}% 覆盖`, summary.marginSourceUpdate || "更新时间未披露"],
     ["期现基差", `${summary.basisCoveredCount || 0} 个`, sourceFileDate(summary.basisSourceFile)],
@@ -403,9 +410,7 @@ function positionVisual(value, scale) {
 
 function rankRows(items, tone, emptyText) {
   return items.length ? items.map((entry) => {
-    const action = seatAction(entry);
-    const actionText = action.value ? `${action.label} ${action.sign > 0 ? "+" : "-"}${Math.abs(action.value).toLocaleString("zh-CN")} · ${seatPositionEffect(entry, action)}` : numeric(entry.flowScore) ? `净变 ${formatHands(entry.flowScore)}` : "未变";
-    return `<div class="seat-rank-row"><span class="seat-rank-name">${escapeHtml(entry.broker)}（${escapeHtml(brokerGroupLabel(entry))}）</span><strong class="${tone}">${formatHands(entry.netPosition)}</strong><span class="seat-flow ${action.value ? action.tone : "neutral-text"}">今日 ${actionText}</span></div>`;
+    return `<div class="seat-rank-row"><span class="seat-rank-name">${escapeHtml(entry.broker)}（${escapeHtml(brokerGroupLabel(entry))}）</span><strong class="${tone}">${formatHands(entry.netPosition)}</strong><span class="seat-flow">${seatChanges(entry)}</span></div>`;
   }).join("") : `<div class="seat-rank-row"><span class="detail-empty">${emptyText}</span></div>`;
 }
 
@@ -594,7 +599,7 @@ function renderDetailWorkspace() {
     </header>
     <div class="detail-source-notice"><strong>真实快照</strong> 席位披露 ${escapeHtml(disclosure)}；行情 ${escapeHtml(quote?.sourceDate || "无数据")}；趋势 ${escapeHtml(trend?.sourceDate || "无数据")}。来源日期不同则分开标记，不视为同日事实。</div>
     <section class="evidence-rail" aria-label="证据链摘要">
-      <article><span>01</span><small>行情结构</small><strong class="${quote?.changePct == null ? "" : signClass(quote.changePct)}">${quote?.changePct == null ? "暂无行情" : quote.changePct > 0 ? "当日上涨" : quote.changePct < 0 ? "当日下跌" : "当日持平"}</strong><p>${quote ? `${formatPrice(quote.low)}–${formatPrice(quote.high)} · 东方财富` : "未取得主力行情"}</p></article>
+      <article><span>01</span><small>行情结构</small><strong class="${quote?.changePct == null ? "" : signClass(quote.changePct)}">${quote?.changePct == null ? "暂无行情" : quote.changePct > 0 ? "当日上涨" : quote.changePct < 0 ? "当日下跌" : "当日持平"}</strong><p>${quote ? `${quote.low == null || quote.high == null ? "日内高低未提供" : `${formatPrice(quote.low)}–${formatPrice(quote.high)}`} · ${escapeHtml(quote.source || "来源未披露")}` : "未取得主力行情"}</p></article>
       <article><span>02</span><small>趋势温度</small><strong>${escapeHtml(trendState)}</strong><p>${trend ? `强度 ${formatSigned(trend.strength, 1)}${trend.fresh ? "" : " · 非当日"}` : "趋势动物未匹配"}</p></article>
       <article><span>03</span><small>三方资金</small><strong class="${signClass(item.amountSignal)}">${formatAmount(item.amountSignal)}</strong><p>${formatHands(item.handsSignal)} 手 · ${escapeHtml(item.marginalStructure)}</p></article>
       <article><span>04</span><small>席位结构</small><strong>${escapeHtml(seatBias)}</strong><p>净多 ${item.brokerRanking.netLong.length}/5 · 净空 ${item.brokerRanking.netShort.length}/5</p></article>
@@ -744,6 +749,7 @@ function renderAll() {
   renderSummary();
   renderFocus();
   renderTide();
+  renderKeyEvents();
   renderSectors();
   renderCorePanorama();
   renderBrokerHighlights();

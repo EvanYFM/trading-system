@@ -38,30 +38,32 @@ class EastmoneyQuoteFetchTests(unittest.TestCase):
             self.assertEqual(merged[0]["status"], "OK")
             self.assertEqual(merged[0]["close"], "14381")
 
-    def test_main_list_quote_uses_report_date_and_visible_fields(self):
-        row = quotes.quote_from_main_list(
-            {
-                "symbol": "AG",
-                "contract": "AG2610",
-                "main_list_close": 14420,
-                "main_list_change_pct": 4.9,
-            },
-            "20260730",
-        )
+    def test_qhkch_report_date_quote_is_not_replaced_by_night_session_realtime(self):
+        page = '''
+        <div id="variety-key-events"><tr><td>焦煤</td><td><span>价涨仓增</span></td><td>+5.50%</td><td>+5.90%</td><td>948.21亿</td><td>煤炭</td></tr></div>
+        <div id="variety-sector-temperature"></div>
+        <script>let varietyMarketRows = [{"variety":"焦煤","symbol":"jm","close_price":1343.5,"previous_close_price":1273.5,"price_change_rate":5.4967,"open_interest_change_rate":5.8958,"turnover":94820910300,"data_date":"2026-08-11","data_complete":true}];</script>
+        '''
+        market, events = quotes.parse_qhkch_overview(page, "20260811")
+        row = quotes.quote_from_qhkch({"symbol": "JM", "contract": "jm2609"}, market["JM"])
 
-        self.assertEqual(row["status"], "OK")
-        self.assertEqual(row["source_date"], "2026-07-30")
-        self.assertEqual(row["close"], 14420)
-        self.assertEqual(row["change_pct"], 4.9)
+        self.assertEqual(1343.5, row["close"])
+        self.assertEqual(5.4967, row["change_pct"])
+        self.assertEqual("2026-08-11", row["source_date"])
+        self.assertEqual("JM", events[0]["symbol"])
 
-    def test_main_list_dash_is_not_a_valid_quote(self):
-        row = quotes.quote_from_main_list(
-            {"symbol": "AG", "contract": "ag2610", "main_list_close": "-", "main_list_change_pct": "-"},
-            "20260811",
-        )
+    def test_qhkch_position_page_combines_long_and_short_tables(self):
+        page = '''
+        <option value="jm2609" selected>焦煤2609</option>
+        <tr id="variety_position_buy_tr_0"><td class="sort-broker"><a href="?broker=%E5%9B%BD%E6%B3%B0%E5%90%9B%E5%AE%89&x=1">国泰君安</a></td><td class="sort-buy">43,877</td><td class="sort-buy_chge">+2,385</td><td class="sort-net_position">多 15,803</td></tr>
+        <tr id="variety_position_ss_tr_0"><td class="sort-broker"><a href="?broker=%E5%9B%BD%E6%B3%B0%E5%90%9B%E5%AE%89&x=1">国泰君安</a></td><td class="sort-ss">28,074</td><td class="sort-ss_chge">-96</td><td class="sort-net_position">多 15,803</td></tr>
+        '''
+        row = quotes.parse_qhkch_position_page(page, "JM")[0]
 
-        self.assertEqual(row["status"], "NO_MAIN_LIST_QUOTE")
-        self.assertFalse(quotes.valid_quote_row(row))
+        self.assertEqual("jm2609", row["contract"])
+        self.assertEqual(15803, row["net_pos"])
+        self.assertEqual(2385, row["long_chg"])
+        self.assertEqual(-96, row["short_chg"])
 
 
 if __name__ == "__main__":

@@ -246,7 +246,9 @@ def index_quote_history(rows: list[dict[str, str]], report_date: str) -> dict[st
     return result
 
 
-def build_broker_rankings(rows: list[dict[str, str]]) -> dict[str, dict[str, list[dict[str, object]]]]:
+def build_broker_rankings(
+    rows: list[dict[str, str]], main_contracts: dict[str, str] | None = None
+) -> dict[str, dict[str, list[dict[str, object]]]]:
     aggregated: dict[tuple[str, str, str], dict[str, object]] = {}
     for row in rows:
         symbol = row.get("symbol", "").upper()
@@ -254,15 +256,19 @@ def build_broker_rankings(rows: list[dict[str, str]]) -> dict[str, dict[str, lis
         group = row.get("group", "")
         if not symbol or not broker:
             continue
+        if main_contracts is not None and row.get("contract", "").lower() != main_contracts.get(symbol, "").lower():
+            continue
         key = (symbol, group, broker)
         item = aggregated.setdefault(
             key,
-            {"symbol": symbol, "group": group, "displayGroup": broker_display_group(broker, group), "broker": broker, "longPosition": 0.0, "shortPosition": 0.0, "netPosition": 0.0, "flowScore": 0.0, "addLong": 0.0, "reduceLong": 0.0, "addShort": 0.0, "reduceShort": 0.0},
+            {"symbol": symbol, "group": group, "displayGroup": broker_display_group(broker, group), "broker": broker, "longPosition": 0.0, "shortPosition": 0.0, "netPosition": 0.0, "flowScore": 0.0, "longChange": 0.0, "shortChange": 0.0, "addLong": 0.0, "reduceLong": 0.0, "addShort": 0.0, "reduceShort": 0.0},
         )
         item["longPosition"] += number(row.get("long_pos"))
         item["shortPosition"] += number(row.get("short_pos"))
         item["netPosition"] += number(row.get("net_pos"))
         item["flowScore"] += number(row.get("flow_score"))
+        item["longChange"] += number(row.get("long_chg"))
+        item["shortChange"] += number(row.get("short_chg"))
         item["addLong"] += number(row.get("add_long"))
         item["reduceLong"] += number(row.get("reduce_long"))
         item["addShort"] += number(row.get("add_short"))
@@ -597,9 +603,17 @@ def build_snapshot(report_date: str) -> dict[str, object]:
     warehouse_by_symbol = market_history(read_csv(warehouse_file) if warehouse_file else [], report_date, ("warehouse_receipt", "change"))
     index_quotes = index_quote_history(read_csv(index_quote_file) if index_quote_file else [], report_date)
     contract_rows = read_csv(institutional_dir / "contract_rows.csv")
-    broker_rankings = build_broker_rankings(contract_rows)
+    broker_groups = {row.get("broker", ""): row.get("group", "") for row in contract_rows if row.get("broker")}
+    full_position_rows = read_csv(ROOT / "data" / f"qhkch_main_position_rows_{report_date}.csv")
+    for row in full_position_rows:
+        row["group"] = broker_groups.get(row.get("broker", ""), "内资")
+    broker_rankings = build_broker_rankings(
+        full_position_rows or contract_rows,
+        {symbol: str(quote.get("contract", "")) for symbol, quote in quotes.items()},
+    )
     source_plans = fundamental_source_plans()
     mysteel_facts = fundamental_fact_index(read_csv(mysteel_fact_file) if mysteel_fact_file else [], report_date)
+    qhkch_overview = read_json(ROOT / "data" / f"qhkch_variety_overview_{report_date}.json")
 
     instruments = []
     for amount_row in amount_rows:
@@ -686,6 +700,7 @@ def build_snapshot(report_date: str) -> dict[str, object]:
             "marginCacheNote": margin_source.get("note", ""),
             "trendSourceFile": trend_file.name if trend_file else "",
             "quoteSourceFile": quote_file.name if quote_file else "",
+            "quoteSource": next((str(item["quote"].get("source", "")) for item in instruments if item.get("quote")), ""),
             "basisSourceFile": basis_file.name if basis_file else "",
             "warehouseSourceFile": warehouse_file.name if warehouse_file else "",
             "mysteelFundamentalSourceFile": mysteel_fact_file.name if mysteel_fact_file else "",
@@ -698,6 +713,7 @@ def build_snapshot(report_date: str) -> dict[str, object]:
         "sectorSummary": sector_summary,
         "tripleResonance": triples,
         "tide": build_tide(instruments),
+        "keyEvents": qhkch_overview.get("events", []) if isinstance(qhkch_overview, dict) else [],
         "trendResonance": build_trend_resonance(instruments),
         "brokerHighlights": build_broker_highlights(contract_rows, margin_by_symbol),
         "instruments": instruments,

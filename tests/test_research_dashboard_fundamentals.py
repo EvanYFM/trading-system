@@ -169,18 +169,25 @@ class ResearchDashboardFundamentalTests(unittest.TestCase):
         self.assertTrue({"I", "P", "RU"} <= dashboard.WATCHLIST_SYMBOLS)
         self.assertIn('id="decisionSectorFilter"', html)
         self.assertIn('id="decisionSymbolFilter"', html)
-        self.assertIn('["addShort", "加空", "bear-text", 1]', app)
-        self.assertIn('["reduceLong", "减多", "bull-text", -1]', app)
+        self.assertIn('item(shortChange, "加空", "减空", "bear-text")', app)
+        self.assertIn('item(longChange, "加多", "减多", "bull-text")', app)
         self.assertIn("function rankingDominance(items)", app)
-        self.assertIn("今日手数净变动", app)
+        self.assertIn("function seatChanges(entry)", app)
 
     def test_broker_rankings_keep_action_components(self):
         rankings = dashboard.build_broker_rankings([{
-            "symbol": "I", "broker": "国泰君安", "group": "内资",
-            "long_pos": "10", "short_pos": "30", "net_pos": "-20", "flow_score": "-12",
+            "symbol": "I", "contract": "i2609", "broker": "国泰君安", "group": "内资",
+            "long_pos": "10", "long_chg": "-2", "short_pos": "30", "short_chg": "12", "net_pos": "-20", "flow_score": "-14",
             "add_long": "0", "reduce_long": "2", "add_short": "12", "reduce_short": "0",
-        }])
+        }, {
+            "symbol": "I", "contract": "i2701", "broker": "国泰君安", "group": "内资",
+            "long_pos": "100", "long_chg": "20", "short_pos": "0", "short_chg": "0", "net_pos": "100", "flow_score": "20",
+            "add_long": "20", "reduce_long": "0", "add_short": "0", "reduce_short": "0",
+        }], {"I": "i2609"})
         entry = rankings["I"]["netShort"][0]
+        self.assertEqual(-20, entry["netPosition"])
+        self.assertEqual(-2, entry["longChange"])
+        self.assertEqual(12, entry["shortChange"])
         self.assertEqual(12, entry["addShort"])
         self.assertEqual(2, entry["reduceLong"])
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import html as html_lib
 import http.client
 import json
 import os
@@ -13,13 +14,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import unquote_plus, urlencode, urljoin
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_PAGE = "https://qhweb.eastmoney.com/quote/zhuli"
+QHKCH_OVERVIEW_URL = "https://x.qhkch.com/variety"
 MAIN_LIST_URL = "https://futsseapi.eastmoney.com/list/trans/block/risk/mk0830"
 KLINE_URL = "https://push2his.eastmoney.com/api/qt/stock/kline/get"
 USER_AGENT = "Mozilla/5.0"
@@ -61,6 +63,19 @@ def get_json(url: str, params: dict[str, object]) -> dict:
                 raise
             time.sleep((0.6 * (2 ** attempt)) + random.uniform(0.0, 0.25))
     raise RuntimeError("Eastmoney request retry loop ended unexpectedly.")
+
+
+def get_text(url: str) -> str:
+    for attempt in range(MAX_ATTEMPTS):
+        request = Request(url, headers={"User-Agent": USER_AGENT})
+        try:
+            with urlopen(request, timeout=30) as response:
+                return response.read().decode("utf-8")
+        except (HTTPError, URLError, TimeoutError, http.client.RemoteDisconnected):
+            if attempt + 1 == MAX_ATTEMPTS:
+                raise
+            time.sleep((0.6 * (2 ** attempt)) + random.uniform(0.0, 0.25))
+    raise RuntimeError("HTML request retry loop ended unexpectedly.")
 
 
 def symbol_from_contract(contract: str) -> str:
@@ -159,18 +174,130 @@ def merge_existing_ok_rows(csv_path: Path, rows: list[dict[str, object]]) -> lis
     ]
 
 
-def quote_from_main_list(contract: dict[str, object], report_date: str) -> dict[str, object]:
-    close = contract.get("main_list_close")
-    change_pct = contract.get("main_list_change_pct")
+def parse_qhkch_overview(page: str, report_date: str) -> tuple[dict[str, dict[str, object]], list[dict[str, object]]]:
+    report_iso = datetime.strptime(report_date, "%Y%m%d").strftime("%Y-%m-%d")
+    market_match = re.search(r"let varietyMarketRows\s*=\s*(\[.*?\]);", page, re.S)
+    if not market_match:
+        return {}, []
+    market_rows = json.loads(market_match.group(1))
+    market = {
+        str(row.get("symbol", "")).upper(): row
+        for row in market_rows
+        if row.get("data_date") == report_iso and row.get("data_complete")
+    }
+    by_variety = {str(row.get("variety", "")): row for row in market.values()}
+    event_match = re.search(r'id="variety-key-events"(.*?)id="variety-sector-temperature"', page, re.S)
+    events: list[dict[str, object]] = []
+    if event_match:
+        for row_html in re.findall(r"<tr[^>]*>(.*?)</tr>", event_match.group(1), re.S):
+            cells = re.findall(r"<td[^>]*>(.*?)</td>", row_html, re.S)
+            if len(cells) < 6:
+                continue
+            plain = lambda value: " ".join(html_lib.unescape(re.sub(r"<[^>]+>", " ", value)).split())
+            variety = plain(cells[0])
+            market_row = by_variety.get(variety, {})
+            symbol = str(market_row.get("symbol", "")).upper()
+            if not symbol or symbol in {"IC", "IF", "IH", "IM", "T", "TF", "TL", "TS", "CS"}:
+                continue
+            events.append({
+                "variety": variety,
+                "symbol": symbol,
+                "events": [plain(value) for value in re.findall(r"<span[^>]*>(.*?)</span>", cells[1], re.S)],
+                "priceChangePct": market_row.get("price_change_rate"),
+                "openInterestChangePct": market_row.get("open_interest_change_rate"),
+                "turnover": market_row.get("turnover"),
+                "sector": plain(cells[5]),
+                "sourceDate": report_iso,
+                "source": "奇货可查商品概览",
+                "sourceUrl": QHKCH_OVERVIEW_URL,
+            })
+    return market, events
+
+
+def quote_from_qhkch(contract: dict[str, object], market_row: dict[str, object]) -> dict[str, object]:
+    close = market_row.get("close_price")
+    change_pct = market_row.get("price_change_rate")
     if not valid_quote_value(close) or not valid_quote_value(change_pct):
-        return {**contract, "status": "NO_MAIN_LIST_QUOTE", "source_date": ""}
+        return {**contract, "status": "NO_QHKCH_REPORT_DATE_QUOTE", "source_date": ""}
+    previous_close = market_row.get("previous_close_price")
     return {
         **contract,
-        "source_date": datetime.strptime(report_date, "%Y%m%d").strftime("%Y-%m-%d"),
+        "variety": market_row.get("variety") or contract.get("variety", ""),
+        "source_date": market_row.get("data_date", ""),
         "close": close,
         "change_pct": change_pct,
+        "change_amount": float(close) - float(previous_close) if valid_quote_value(previous_close) else "",
+        "turnover": market_row.get("turnover", ""),
+        "source": "奇货可查商品主连",
+        "source_url": QHKCH_OVERVIEW_URL,
         "status": "OK",
     }
+
+
+def parse_qhkch_position_page(page: str, symbol: str) -> list[dict[str, object]]:
+    contract_match = re.search(r'<option value="([^"]+)"\s+selected>', page, re.S)
+    contract = contract_match.group(1) if contract_match else ""
+    brokers: dict[str, dict[str, object]] = {}
+
+    def integer(value: str) -> int:
+        cleaned = re.sub(r"[^0-9+-]", "", value)
+        return int(cleaned) if cleaned not in {"", "+", "-"} else 0
+
+    def plain(value: str) -> str:
+        return " ".join(html_lib.unescape(re.sub(r"<[^>]+>", " ", value)).split())
+
+    for side, row_html in re.findall(r'<tr id="variety_position_(buy|ss)_tr_\d+"[^>]*>(.*?)</tr>', page, re.S):
+        cells = re.findall(r'<td class="([^"]*)"[^>]*>(.*?)</td>', row_html, re.S)
+        broker_cell = next((body for classes, body in cells if "sort-broker" in classes.split()), "")
+        broker_match = re.search(r"broker=([^&'\"]+)", broker_cell)
+        broker = unquote_plus(broker_match.group(1)) if broker_match else plain(broker_cell)
+        if not broker:
+            continue
+        item = brokers.setdefault(broker, {"symbol": symbol, "contract": contract, "broker": broker, "long_pos": 0, "long_chg": 0, "short_pos": 0, "short_chg": 0})
+        values = {name: integer(plain(body)) for classes, body in cells for name in classes.split() if name.startswith("sort-")}
+        if side == "buy":
+            item["long_pos"] = values.get("sort-buy", 0)
+            item["long_chg"] = values.get("sort-buy_chge", 0)
+        else:
+            item["short_pos"] = values.get("sort-ss", 0)
+            item["short_chg"] = values.get("sort-ss_chge", 0)
+
+    result = []
+    for item in brokers.values():
+        long_pos = int(item["long_pos"])
+        short_pos = int(item["short_pos"])
+        long_chg = int(item["long_chg"])
+        short_chg = int(item["short_chg"])
+        result.append({
+            **item,
+            "net_pos": long_pos - short_pos,
+            "flow_score": long_chg - short_chg,
+            "add_long": max(long_chg, 0),
+            "reduce_long": max(-long_chg, 0),
+            "add_short": max(short_chg, 0),
+            "reduce_short": max(-short_chg, 0),
+        })
+    return result
+
+
+def fetch_qhkch_position_rows(market: dict[str, dict[str, object]]) -> list[dict[str, object]]:
+    targets = {
+        symbol: row for symbol, row in market.items()
+        if symbol not in {"IC", "IF", "IH", "IM", "T", "TF", "TL", "TS", "CS"} and row.get("url")
+    }
+    rows: list[dict[str, object]] = []
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futures = {
+            executor.submit(get_text, urljoin(QHKCH_OVERVIEW_URL, str(row["url"]))): symbol
+            for symbol, row in targets.items()
+        }
+        for future in as_completed(futures):
+            symbol = futures[future]
+            try:
+                rows.extend(parse_qhkch_position_page(future.result(), symbol))
+            except (HTTPError, URLError, TimeoutError, http.client.RemoteDisconnected, UnicodeDecodeError):
+                continue
+    return rows
 
 
 def main() -> None:
@@ -180,8 +307,16 @@ def main() -> None:
 
     contracts = fetch_main_contracts()
     beijing_today = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y%m%d")
+    events: list[dict[str, object]] = []
+    position_rows: list[dict[str, object]] = []
     if report_date == beijing_today:
-        rows = [quote_from_main_list(contract, report_date) for contract in contracts]
+        try:
+            market, events = parse_qhkch_overview(get_text(QHKCH_OVERVIEW_URL), report_date)
+        except (HTTPError, URLError, TimeoutError, http.client.RemoteDisconnected, UnicodeDecodeError, json.JSONDecodeError):
+            market = {}
+        if market:
+            position_rows = fetch_qhkch_position_rows(market)
+        rows = [quote_from_qhkch(contract, market.get(str(contract["symbol"]), {})) for contract in contracts]
         missing = [row for row in rows if not valid_quote_row(row)]
         if missing:
             replacements: dict[str, dict[str, object]] = {}
@@ -208,8 +343,11 @@ def main() -> None:
     data_dir = ROOT / "data"
     data_dir.mkdir(parents=True, exist_ok=True)
     csv_path = data_dir / f"eastmoney_main_quotes_{report_date}.csv"
-    rows = merge_existing_ok_rows(csv_path, rows)
+    if report_date != beijing_today:
+        rows = merge_existing_ok_rows(csv_path, rows)
     rows.sort(key=lambda row: str(row.get("symbol", "")))
+    contracts_by_symbol = {str(row.get("symbol", "")): str(row.get("contract", "")) for row in position_rows if row.get("contract")}
+    rows = [{**row, "contract": contracts_by_symbol.get(str(row.get("symbol", "")), row.get("contract", ""))} for row in rows]
     fetched_at = datetime.now().astimezone().isoformat(timespec="seconds")
     fieldnames = [
         "report_date", "source_date", "symbol", "variety", "contract", "market", "open", "close", "high", "low",
@@ -223,8 +361,8 @@ def main() -> None:
                 {
                     **row,
                     "report_date": report_date,
-                    "source": "东方财富期货主力日线",
-                    "source_url": SOURCE_PAGE,
+                    "source": row.get("source", "东方财富期货主力日线"),
+                    "source_url": row.get("source_url", SOURCE_PAGE),
                     "fetched_at": fetched_at,
                 }
             )
@@ -241,6 +379,14 @@ def main() -> None:
     }
     status_path = data_dir / f"eastmoney_main_quotes_status_{report_date}.json"
     status_path.write_text(json.dumps(status, ensure_ascii=False, indent=2), encoding="utf-8")
+    overview_path = data_dir / f"qhkch_variety_overview_{report_date}.json"
+    overview_path.write_text(json.dumps({"reportDate": report_date, "events": events}, ensure_ascii=False, indent=2), encoding="utf-8")
+    position_path = data_dir / f"qhkch_main_position_rows_{report_date}.csv"
+    position_fields = ["symbol", "contract", "broker", "long_pos", "long_chg", "short_pos", "short_chg", "net_pos", "flow_score", "add_long", "reduce_long", "add_short", "reduce_short"]
+    with position_path.open("w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=position_fields, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(position_rows)
     print(f"Eastmoney main quotes: {csv_path}")
     print(f"Matched report-date klines: {len(ok_rows)}/{len(contracts)}")
 
