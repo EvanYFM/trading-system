@@ -30,6 +30,25 @@ MAX_WORKERS = 2
 MAX_ATTEMPTS = 4
 
 
+def valid_quote_value(value: object) -> bool:
+    if value in (None, "", "-", "--"):
+        return False
+    try:
+        float(value)
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
+def valid_quote_row(row: dict[str, object]) -> bool:
+    return (
+        row.get("status") == "OK"
+        and bool(row.get("source_date"))
+        and valid_quote_value(row.get("close"))
+        and valid_quote_value(row.get("change_pct"))
+    )
+
+
 def get_json(url: str, params: dict[str, object]) -> dict:
     request_url = f"{url}?{urlencode(params)}"
     for attempt in range(MAX_ATTEMPTS):
@@ -132,7 +151,7 @@ def merge_existing_ok_rows(csv_path: Path, rows: list[dict[str, object]]) -> lis
         existing = {
             row.get("symbol", ""): row
             for row in csv.DictReader(handle)
-            if row.get("status") == "OK"
+            if valid_quote_row(row)
         }
     return [
         existing.get(str(row.get("symbol", "")), row) if row.get("status") != "OK" else row
@@ -143,7 +162,7 @@ def merge_existing_ok_rows(csv_path: Path, rows: list[dict[str, object]]) -> lis
 def quote_from_main_list(contract: dict[str, object], report_date: str) -> dict[str, object]:
     close = contract.get("main_list_close")
     change_pct = contract.get("main_list_change_pct")
-    if close in ("", None) or change_pct in ("", None):
+    if not valid_quote_value(close) or not valid_quote_value(change_pct):
         return {**contract, "status": "NO_MAIN_LIST_QUOTE", "source_date": ""}
     return {
         **contract,
@@ -163,6 +182,18 @@ def main() -> None:
     beijing_today = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y%m%d")
     if report_date == beijing_today:
         rows = [quote_from_main_list(contract, report_date) for contract in contracts]
+        missing = [row for row in rows if not valid_quote_row(row)]
+        if missing:
+            replacements: dict[str, dict[str, object]] = {}
+            with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+                futures = {executor.submit(fetch_daily_quote, row, report_date): row for row in missing}
+                for future in as_completed(futures):
+                    row = futures[future]
+                    try:
+                        replacements[str(row["symbol"])] = future.result()
+                    except Exception as exc:
+                        replacements[str(row["symbol"])] = {**row, "status": f"ERROR:{type(exc).__name__}", "source_date": ""}
+            rows = [replacements.get(str(row["symbol"]), row) for row in rows]
     else:
         rows = []
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
@@ -198,7 +229,7 @@ def main() -> None:
                 }
             )
 
-    ok_rows = [row for row in rows if row.get("status") == "OK"]
+    ok_rows = [row for row in rows if valid_quote_row(row)]
     status = {
         "report_date": report_date,
         "source": "东方财富期货主力日线",
@@ -206,7 +237,7 @@ def main() -> None:
         "fetched_at": fetched_at,
         "main_contracts": len(contracts),
         "matched_report_date": len(ok_rows),
-        "missing": [row.get("symbol") for row in rows if row.get("status") != "OK"],
+        "missing": [row.get("symbol") for row in rows if not valid_quote_row(row)],
     }
     status_path = data_dir / f"eastmoney_main_quotes_status_{report_date}.json"
     status_path.write_text(json.dumps(status, ensure_ascii=False, indent=2), encoding="utf-8")

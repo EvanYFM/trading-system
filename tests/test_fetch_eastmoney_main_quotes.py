@@ -28,9 +28,9 @@ class EastmoneyQuoteFetchTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "quotes.csv"
             with path.open("w", encoding="utf-8-sig", newline="") as handle:
-                writer = csv.DictWriter(handle, fieldnames=["symbol", "status", "close", "source_date"])
+                writer = csv.DictWriter(handle, fieldnames=["symbol", "status", "close", "change_pct", "source_date"])
                 writer.writeheader()
-                writer.writerow({"symbol": "AG", "status": "OK", "close": "14381", "source_date": "2026-07-30"})
+                writer.writerow({"symbol": "AG", "status": "OK", "close": "14381", "change_pct": "4.8", "source_date": "2026-07-30"})
 
             rows = [{"symbol": "AG", "status": "ERROR:RemoteDisconnected", "source_date": ""}]
             merged = quotes.merge_existing_ok_rows(path, rows)
@@ -53,6 +53,15 @@ class EastmoneyQuoteFetchTests(unittest.TestCase):
         self.assertEqual(row["source_date"], "2026-07-30")
         self.assertEqual(row["close"], 14420)
         self.assertEqual(row["change_pct"], 4.9)
+
+    def test_main_list_dash_is_not_a_valid_quote(self):
+        row = quotes.quote_from_main_list(
+            {"symbol": "AG", "contract": "ag2610", "main_list_close": "-", "main_list_change_pct": "-"},
+            "20260811",
+        )
+
+        self.assertEqual(row["status"], "NO_MAIN_LIST_QUOTE")
+        self.assertFalse(quotes.valid_quote_row(row))
 
 
 if __name__ == "__main__":

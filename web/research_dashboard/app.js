@@ -60,8 +60,22 @@ function brokerGroupLabel(entry) {
 }
 
 function seatAction(entry) {
-  const actions = [["addLong", "加多", "bull-text"], ["reduceLong", "减多", "bull-text"], ["addShort", "加空", "bear-text"], ["reduceShort", "减空", "bear-text"]];
-  return actions.map(([key, label, tone]) => ({label, tone, value: numeric(entry[key])})).sort((a, b) => b.value - a.value)[0];
+  const actions = [["addLong", "加多", "bull-text", 1], ["reduceLong", "减多", "bull-text", -1], ["addShort", "加空", "bear-text", 1], ["reduceShort", "减空", "bear-text", -1]];
+  return actions.map(([key, label, tone, sign]) => ({key, label, tone, sign, value: numeric(entry[key])})).sort((a, b) => b.value - a.value)[0];
+}
+
+function seatPositionEffect(entry, action) {
+  const netLong = numeric(entry.netPosition) >= 0;
+  const expands = netLong ? ["addLong", "reduceShort"].includes(action.key) : ["addShort", "reduceLong"].includes(action.key);
+  return `净${netLong ? "多" : "空"}${expands ? "扩大" : "收窄"}`;
+}
+
+function rankingDominance(items) {
+  const totals = items.reduce((sum, entry) => {
+    sum[entry.group === "家人" ? "family" : "institution"] += Math.abs(numeric(entry.netPosition));
+    return sum;
+  }, {institution: 0, family: 0});
+  return totals.family > totals.institution ? "家人为主" : "机构为主";
 }
 
 function maxAbs(items, getter) {
@@ -390,7 +404,7 @@ function positionVisual(value, scale) {
 function rankRows(items, tone, emptyText) {
   return items.length ? items.map((entry) => {
     const action = seatAction(entry);
-    const actionText = action.value ? `${action.label} ${formatHands(action.value)}` : numeric(entry.flowScore) ? `净变 ${formatHands(entry.flowScore)}` : "未变";
+    const actionText = action.value ? `${action.label} ${action.sign > 0 ? "+" : "-"}${Math.abs(action.value).toLocaleString("zh-CN")} · ${seatPositionEffect(entry, action)}` : numeric(entry.flowScore) ? `净变 ${formatHands(entry.flowScore)}` : "未变";
     return `<div class="seat-rank-row"><span class="seat-rank-name">${escapeHtml(entry.broker)}（${escapeHtml(brokerGroupLabel(entry))}）</span><strong class="${tone}">${formatHands(entry.netPosition)}</strong><span class="seat-flow ${action.value ? action.tone : "neutral-text"}">今日 ${actionText}</span></div>`;
   }).join("") : `<div class="seat-rank-row"><span class="detail-empty">${emptyText}</span></div>`;
 }
@@ -591,7 +605,7 @@ function renderDetailWorkspace() {
       <article class="detail-surface chart-surface"><div class="detail-section-head"><div><small>PRICE & FLOW</small><h3>价格与三方资金</h3></div><div class="detail-legend"><i></i>收盘价 <b></b>资金净变动</div></div><div class="combo-chart-wrap">${priceFlowChart(series, item.variety)}</div><div class="detail-chart-foot"><span>历史快照 <b>${series.length} 日</b></span><span>今日手数 <b class="${signClass(item.handsSignal)}">${formatHands(item.handsSignal)}</b></span><span>边际结构 <b>${escapeHtml(item.marginalStructure)}</b></span></div></article>
       <aside class="detail-surface executive-surface"><div class="detail-section-head"><div><small>EXECUTIVE READ</small><h3>今日研究读数</h3></div></div><dl><div><dt>接口事实</dt><dd>${trend ? `趋势温度“${escapeHtml(trend.temperature)}”，强度 ${formatSigned(trend.strength, 1)}，${trend.rightSide ? "处于右侧" : "未处于右侧"}。` : "趋势数据暂无。"} 三方资金 ${formatAmount(item.amountSignal)}。</dd></div><div><dt>策略判断</dt><dd>${escapeHtml(relationship)}；席位信号为“${escapeHtml(item.resonance.label || item.direction)}”。这是规则化解读，不是接口原文。</dd></div><div><dt>基本面验证</dt><dd>${escapeHtml(fundamentalRead)}</dd></div></dl><button class="detail-action" data-create-decision="${escapeHtml(item.symbol)}">转入人工决策</button><button class="detail-action secondary" data-view="history">查看完整历史路径</button></aside>
     </section>
-    <section id="detail-positioning" class="detail-surface detail-wide-section"><div class="detail-section-head"><div><small>POSITIONING</small><h3>资金与席位结构</h3></div><p>存量净持仓与今日边际分列；家人按原始方向展示</p></div><div class="position-matrix"><div class="position-matrix-head"><span>资金群体</span><span>存量净持仓</span><span>今日净金额</span><span>边际动作</span></div>${groupRows.map(([label, group]) => `<div class="position-matrix-row"><b>${label}</b>${positionVisual(group.netPosition, stockScale)}<strong class="${signClass(group.amount)}">${formatAmount(group.amount)}</strong><span>${escapeHtml(flowAction(group))}</span></div>`).join("")}</div><div class="seat-rank-grid detail-ranks"><div class="seat-rank-list"><div class="seat-rank-title bull-text">净多席位 ${item.brokerRanking.netLong.length}/5</div>${rankRows(item.brokerRanking.netLong, "bull-text", "暂无净多席位")}</div><div class="seat-rank-list"><div class="seat-rank-title bear-text">净空席位 ${item.brokerRanking.netShort.length}/5</div>${rankRows(item.brokerRanking.netShort, "bear-text", "暂无净空席位")}</div></div></section>
+    <section id="detail-positioning" class="detail-surface detail-wide-section"><div class="detail-section-head"><div><small>POSITIONING</small><h3>资金与席位结构</h3></div><p>存量净持仓与今日边际分列；家人按原始方向展示</p></div><div class="position-matrix"><div class="position-matrix-head"><span>资金群体</span><span>存量净持仓</span><span>今日手数净变动</span><span>今日净金额</span><span>边际动作</span></div>${groupRows.map(([label, group]) => `<div class="position-matrix-row"><b>${label}</b>${positionVisual(group.netPosition, stockScale)}<strong class="${signClass(group.hands)}">${formatHands(group.hands)}</strong><strong class="${signClass(group.amount)}">${formatAmount(group.amount)}</strong><span>${escapeHtml(flowAction(group))}</span></div>`).join("")}</div><div class="seat-rank-grid detail-ranks"><div class="seat-rank-list"><div class="seat-rank-title bull-text">净多席位 ${item.brokerRanking.netLong.length}/5 <span>${rankingDominance(item.brokerRanking.netLong)}</span></div>${rankRows(item.brokerRanking.netLong, "bull-text", "暂无净多席位")}</div><div class="seat-rank-list"><div class="seat-rank-title bear-text">净空席位 ${item.brokerRanking.netShort.length}/5 <span>${rankingDominance(item.brokerRanking.netShort)}</span></div>${rankRows(item.brokerRanking.netShort, "bear-text", "暂无净空席位")}</div></div></section>
     <section class="detail-split">
       <article id="detail-trend" class="detail-surface"><div class="detail-section-head"><div><small>TREND REGIME</small><h3>趋势与周期</h3></div><span class="detail-stamp">API事实</span></div><div class="temperature-scale">${tempOrder.map((name) => `<span class="${trend?.temperature === name ? "is-active" : ""}">${name}</span>`).join("")}</div><div class="trend-fact-row"><span>趋势强度</span><strong>${trend ? formatSigned(trend.strength, 1) : "暂无"}</strong></div><div class="trend-fact-row"><span>右侧状态</span><strong>${trend ? (trend.rightSide ? "是" : "否") : "暂无"}</strong></div><div class="trend-fact-row"><span>进入天数</span><strong>${trend?.daysSinceEntry == null ? "暂无" : `${trend.daysSinceEntry} 天`}</strong></div><p class="detail-panel-note">趋势动物直接事实与本页资金判断分列。温度为“平”或数据非当日时，不把它写成右侧趋势确认。</p></article>
       <article id="detail-technical" class="detail-surface technical-section compact-technical"><div class="detail-section-head"><div><small>TECHNICAL EXECUTION</small><h3>双周期技术验证</h3></div><span class="detail-stamp ${technical?.bias === "偏多" ? "bullish" : technical?.bias === "偏空" ? "bearish" : "neutral"}">${technical ? escapeHtml(technical.bias) : "未接入"}</span></div>
@@ -623,7 +637,7 @@ function renderDetail() {
       <div class="detail-metric"><span>一手保证金</span><strong>${numeric(item.margin.perLot).toLocaleString("zh-CN", {maximumFractionDigits:0})}</strong></div>
     </div>
     <div class="detail-section"><h4>三组存量与今日边际</h4><div class="stock-delta-head"><span></span><span>净持仓</span><span>今日边际</span></div>${groupRows.map(([label, group]) => `<div class="stock-delta"><span>${label}</span>${positionVisual(group.netPosition, stockScale)}<strong class="${signClass(group.amount)}">${formatAmount(group.amount)}</strong></div>`).join("")}</div>
-    <div class="detail-section"><h4>样本席位净持仓前五</h4><div class="seat-rank-grid"><div class="seat-rank-list"><div class="seat-rank-title bull-text">净多席位 ${item.brokerRanking.netLong.length}/5</div>${rankRows(item.brokerRanking.netLong, "bull-text", "暂无净多席位")}</div><div class="seat-rank-list"><div class="seat-rank-title bear-text">净空席位 ${item.brokerRanking.netShort.length}/5</div>${rankRows(item.brokerRanking.netShort, "bear-text", "暂无净空席位")}</div></div></div>`;
+    <div class="detail-section"><h4>样本席位净持仓前五</h4><div class="seat-rank-grid"><div class="seat-rank-list"><div class="seat-rank-title bull-text">净多席位 ${item.brokerRanking.netLong.length}/5 <span>${rankingDominance(item.brokerRanking.netLong)}</span></div>${rankRows(item.brokerRanking.netLong, "bull-text", "暂无净多席位")}</div><div class="seat-rank-list"><div class="seat-rank-title bear-text">净空席位 ${item.brokerRanking.netShort.length}/5 <span>${rankingDominance(item.brokerRanking.netShort)}</span></div>${rankRows(item.brokerRanking.netShort, "bear-text", "暂无净空席位")}</div></div></div>`;
 }
 
 function renderHistory() {
@@ -707,7 +721,7 @@ function renderDecisionView() {
   const option = (value, label, current) => `<option value="${value}" ${current === value ? "selected" : ""}>${label}</option>`;
   $("#decisionEditor").innerHTML = `<form id="decisionForm"><header><div><small>${formatDate(record.reportDate)} · ${escapeHtml(record.runId)}</small><h3>${escapeHtml(record.variety)} ${escapeHtml(record.symbol)}</h3></div><div class="decision-market-facts"><strong class="${signClass(record.amountSignal)}">${formatAmount(record.amountSignal)}</strong><strong class="${record.changePct == null ? "" : signClass(record.changePct)}">${record.changePct == null ? "涨跌 暂无" : `${formatSigned(record.changePct, 2)}%`}</strong></div></header>
     <div class="decision-facts"><span>手数 ${formatHands(record.handsSignal)}</span><span>收盘 ${formatPrice(record.close)}</span><span>趋势 ${escapeHtml(record.trend || "暂无")}</span></div>
-    <div class="seat-rank-grid decision-ranks"><div class="seat-rank-list"><div class="seat-rank-title bull-text">净多席位 ${ranking.netLong.length}/5</div>${rankRows(ranking.netLong, "bull-text", "暂无净多席位")}</div><div class="seat-rank-list"><div class="seat-rank-title bear-text">净空席位 ${ranking.netShort.length}/5</div>${rankRows(ranking.netShort, "bear-text", "暂无净空席位")}</div></div>
+    <div class="seat-rank-grid decision-ranks"><div class="seat-rank-list"><div class="seat-rank-title bull-text">净多席位 ${ranking.netLong.length}/5 <span>${rankingDominance(ranking.netLong)}</span></div>${rankRows(ranking.netLong, "bull-text", "暂无净多席位")}</div><div class="seat-rank-list"><div class="seat-rank-title bear-text">净空席位 ${ranking.netShort.length}/5 <span>${rankingDominance(ranking.netShort)}</span></div>${rankRows(ranking.netShort, "bear-text", "暂无净空席位")}</div></div>
     <div class="decision-form-grid">
       <label>人工确认<select name="choice">${option("accept","接受",record.choice)}${option("reject","拒绝",record.choice)}${option("observe","观察",record.choice)}</select></label>
       <label>交易状态<select name="tradeStatus">${option("no_trade","未交易",record.tradeStatus)}${option("open","持仓中",record.tradeStatus)}${option("closed","已退出",record.tradeStatus)}</select></label>

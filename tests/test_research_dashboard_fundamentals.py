@@ -47,6 +47,16 @@ class ResearchDashboardFundamentalTests(unittest.TestCase):
         self.assertIn('id="detailSectorFilter"', html)
         self.assertNotIn('id="detailFilterResults"', html)
 
+    def test_quote_index_rejects_placeholder_prices(self):
+        rows = [{
+            "symbol": "JM",
+            "status": "OK",
+            "source_date": "2026-08-11",
+            "close": "-",
+            "change_pct": "-",
+        }]
+        self.assertEqual({}, dashboard.quote_index(rows, "20260811"))
+
     def test_resonance_focus_uses_margin_amount_as_primary_metric(self):
         html = (ROOT / "web" / "research_dashboard" / "index.html").read_text(
             encoding="utf-8"
@@ -159,8 +169,10 @@ class ResearchDashboardFundamentalTests(unittest.TestCase):
         self.assertTrue({"I", "P", "RU"} <= dashboard.WATCHLIST_SYMBOLS)
         self.assertIn('id="decisionSectorFilter"', html)
         self.assertIn('id="decisionSymbolFilter"', html)
-        self.assertIn('["addShort", "加空", "bear-text"]', app)
-        self.assertIn('["reduceLong", "减多", "bull-text"]', app)
+        self.assertIn('["addShort", "加空", "bear-text", 1]', app)
+        self.assertIn('["reduceLong", "减多", "bull-text", -1]', app)
+        self.assertIn("function rankingDominance(items)", app)
+        self.assertIn("今日手数净变动", app)
 
     def test_broker_rankings_keep_action_components(self):
         rankings = dashboard.build_broker_rankings([{

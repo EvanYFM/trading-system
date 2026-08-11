@@ -121,6 +121,15 @@ def number(value: object) -> float:
         return 0.0
 
 
+def optional_number(value: object) -> float | None:
+    if value in (None, "", "-", "--"):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def flag(value: object) -> bool:
     return str(value).strip().lower() in {"true", "1", "yes"}
 
@@ -174,13 +183,17 @@ def quote_index(rows: list[dict[str, str]], report_date: str) -> dict[str, dict[
         if not symbol or row.get("status") != "OK":
             continue
         source_date = row.get("source_date", "")
+        close = optional_number(row.get("close"))
+        change_pct = optional_number(row.get("change_pct"))
+        if close is None or change_pct is None:
+            continue
         indexed[symbol] = {
-            "close": number(row.get("close")),
-            "changePct": number(row.get("change_pct")),
-            "changeAmount": number(row.get("change_amount")),
-            "open": number(row.get("open")),
-            "high": number(row.get("high")),
-            "low": number(row.get("low")),
+            "close": close,
+            "changePct": change_pct,
+            "changeAmount": optional_number(row.get("change_amount")),
+            "open": optional_number(row.get("open")),
+            "high": optional_number(row.get("high")),
+            "low": optional_number(row.get("low")),
             "contract": row.get("contract", ""),
             "source": row.get("source", "东方财富期货主力日线"),
             "sourceDate": source_date,
@@ -210,8 +223,7 @@ def market_history(rows: list[dict[str, str]], report_date: str, value_fields: t
             continue
         item: dict[str, object] = {"sourceDate": source_date}
         for field in value_fields:
-            raw = row.get(field)
-            item[field] = number(raw) if raw not in (None, "") else None
+            item[field] = optional_number(row.get(field))
         indexed[symbol].append(item)
     for items in indexed.values():
         items.sort(key=lambda item: str(item["sourceDate"]))
