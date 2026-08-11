@@ -1,3 +1,4 @@
+import ast
 import json
 import pathlib
 import unittest
@@ -126,6 +127,31 @@ class ResearchDashboardFundamentalTests(unittest.TestCase):
         self.assertEqual(1, len(result["JM"]))
         self.assertEqual(195.84, result["JM"][0]["value"])
         self.assertEqual("inventory", result["JM"][0]["dimension"])
+
+    def test_special_brokers_are_family_and_labeled_for_display(self):
+        for name in ("generate_institutional_seat_report.py", "generate_margin_weighted_seat_report.py"):
+            tree = ast.parse((ROOT / "scripts" / name).read_text(encoding="utf-8"))
+            values = {
+                node.targets[0].id: ast.literal_eval(node.value)
+                for node in tree.body
+                if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name) and node.targets[0].id in {"DOMESTIC_BROKERS", "FAMILY_BROKERS"}
+            }
+            self.assertNotIn("中信期货", values["DOMESTIC_BROKERS"])
+            self.assertNotIn("光大期货", values["DOMESTIC_BROKERS"])
+            self.assertTrue({"中信期货", "光大期货", "招商期货"} <= set(values["FAMILY_BROKERS"]))
+        self.assertEqual("亏损机构（特殊）", dashboard.broker_display_group("中信期货", "家人"))
+        self.assertEqual("家人", dashboard.broker_display_group("光大期货", "家人"))
+
+    def test_decision_workflow_and_manifest_are_wired(self):
+        html = (ROOT / "web" / "research_dashboard" / "index.html").read_text(encoding="utf-8")
+        app = (ROOT / "web" / "research_dashboard" / "app.js").read_text(encoding="utf-8")
+        build = (ROOT / "scripts" / "build_research_dashboard.py").read_text(encoding="utf-8")
+        self.assertIn('id="view-decisions"', html)
+        self.assertIn("futuresResearchDecisions.v1", app)
+        self.assertIn("数据问题", app)
+        self.assertIn("判断问题", app)
+        self.assertIn("执行问题", app)
+        self.assertIn('TARGET_DIR / "run-manifest.json"', build)
 
 
 if __name__ == "__main__":

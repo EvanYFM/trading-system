@@ -20,8 +20,9 @@
         <button class="nav-item" data-view="detail">品种详情</button>
         <button class="nav-item" data-view="instruments">品种全景</button>
         <button class="nav-item" data-view="history">历史回看</button>
+        <button class="nav-item" data-view="decisions">决策与交易</button>
       </nav>
-      <div class="rail-footer">只读研究台 · 非投资建议</div>
+      <div class="rail-footer">本地研究与决策台 · 非投资建议</div>
     </aside>
 
     <main class="workspace">
@@ -136,9 +137,21 @@
         </div>
         <div id="statusPanel" class="status-panel"></div>
       </section>
+
+      <section id="view-decisions" class="view" aria-labelledby="decision-title">
+        <div class="section-heading top-heading">
+          <div><span class="section-index">11</span><h2 id="decision-title">决策与交易</h2></div>
+          <p>工作站快照 → 人工确认 → 交易日志 → 退出结果 → 五日归因</p>
+        </div>
+        <div id="decisionSignals" class="decision-signals"></div>
+        <div class="decision-layout">
+          <section class="decision-list-shell"><h3>决策记录</h3><div id="decisionList"></div></section>
+          <section id="decisionEditor" class="decision-editor"></section>
+        </div>
+      </section>
     </main>
   </div>
   <div id="loadingState" class="loading-state">正在装载历史快照…</div>
-  <script src="app.js?v=20260730a" defer></script>
+  <script src="app.js?v=20260811a" defer></script>
 </body>
 </html>

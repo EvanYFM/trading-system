@@ -7,6 +7,7 @@ import shutil
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,6 +21,13 @@ EXCLUDED_SYMBOLS = {"IC", "IF", "IH", "IM", "T", "TF", "TL", "TS", "CS"}
 SECTOR_OVERRIDES = {"LU": "油化工", "PR": "油化工", "NR": "农副软商"}
 WATCHLIST_SYMBOLS = {"AU", "AG", "SN", "LC", "FU", "JM", "FG", "SA", "AO", "SH", "M", "JD", "LH"}
 ACTIVE_TEMPERATURES = {"温", "热", "沸", "凉", "寒", "冻"}
+BEIJING = ZoneInfo("Asia/Shanghai")
+
+
+def broker_display_group(broker: str, group: str) -> str:
+    if broker == "中信期货":
+        return "亏损机构（特殊）"
+    return {"内资": "机构", "外资": "外资", "家人": "家人"}.get(group, group)
 
 
 def read_csv(path: Path) -> list[dict[str, str]]:
@@ -237,7 +245,7 @@ def build_broker_rankings(rows: list[dict[str, str]]) -> dict[str, dict[str, lis
         key = (symbol, group, broker)
         item = aggregated.setdefault(
             key,
-            {"symbol": symbol, "group": group, "broker": broker, "longPosition": 0.0, "shortPosition": 0.0, "netPosition": 0.0, "flowScore": 0.0},
+            {"symbol": symbol, "group": group, "displayGroup": broker_display_group(broker, group), "broker": broker, "longPosition": 0.0, "shortPosition": 0.0, "netPosition": 0.0, "flowScore": 0.0},
         )
         item["longPosition"] += number(row.get("long_pos"))
         item["shortPosition"] += number(row.get("short_pos"))
@@ -272,6 +280,7 @@ def build_broker_highlights(
             key,
             {
                 "group": group,
+                "displayGroup": broker_display_group(broker, group),
                 "broker": broker,
                 "symbol": symbol,
                 "variety": row.get("variety", ""),
@@ -706,8 +715,9 @@ def main() -> None:
         date: persisted_snapshots[date]
         for date in sorted(persisted_snapshots, reverse=True)[:30]
     }
+    generated_at = datetime.now(BEIJING)
     payload = {
-        "generatedAt": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "generatedAt": generated_at.isoformat(timespec="seconds"),
         "dates": list(snapshots),
         "latestDate": next(iter(snapshots)),
         "snapshots": snapshots,
@@ -726,6 +736,28 @@ def main() -> None:
     data_dir.mkdir(exist_ok=True)
     with (data_dir / "dashboard.json").open("w", encoding="utf-8") as handle:
         json.dump(payload, handle, ensure_ascii=False, separators=(",", ":"))
+    latest_summary = snapshots[payload["latestDate"]]["summary"]
+    manifest = {
+        "schemaVersion": 1,
+        "runId": f"{payload['latestDate']}-{generated_at.strftime('%Y%m%dT%H%M%S%z')}",
+        "generatedAt": payload["generatedAt"],
+        "latestDate": payload["latestDate"],
+        "snapshotCount": len(snapshots),
+        "snapshotDates": list(snapshots),
+        "sourceFiles": {
+            key: latest_summary.get(key, "")
+            for key in (
+                "trendSourceFile",
+                "quoteSourceFile",
+                "basisSourceFile",
+                "warehouseSourceFile",
+                "mysteelFundamentalSourceFile",
+            )
+        },
+        "outputs": ["index.html", "styles.css", "app.js", "data/dashboard.json"],
+    }
+    with (TARGET_DIR / "run-manifest.json").open("w", encoding="utf-8") as handle:
+        json.dump(manifest, handle, ensure_ascii=False, indent=2)
     print(f"Built {TARGET_DIR / 'index.html'} with {len(snapshots)} snapshots.")
 
 
