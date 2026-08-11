@@ -16,6 +16,7 @@ const state = {
   activeDecisionId: null,
   decisionSector: "all",
   decisionSymbol: "all",
+  decisionPage: 1,
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -294,40 +295,6 @@ function renderDetailFilter() {
     : `<option value="">当前条件下没有品种</option>`;
 }
 
-function percentage(value, digits = 1) {
-  return `${(numeric(value) * 100).toFixed(digits)}%`;
-}
-
-function wuxingSeasonalityPanel(item) {
-  const data = item.wuxingSeasonality;
-  if (!data || data.status !== "OK") return "";
-  const current = data.currentMonth || {};
-  const resonance = data.resonance || {};
-  const qualified = Boolean(data.qualified);
-  const stateClass = data.judgement === "历史正向共振" ? "bullish" : data.judgement === "历史负向共振" ? "bearish" : "neutral";
-  const probabilityRows = [
-    ["上涨", resonance.upProbability, "bullish"],
-    ["震荡", resonance.flatProbability, "neutral"],
-    ["下跌", resonance.downProbability, "bearish"],
-  ];
-  return `<section id="detail-wuxing" class="detail-surface detail-wide-section wuxing-section">
-    <div class="detail-section-head"><div><small>SEASONALITY BACKTEST</small><h3>五行月份回测</h3></div><span class="detail-stamp ${stateClass}">${qualified ? escapeHtml(data.judgement) : "未通过统计门槛"}</span></div>
-    <div class="wuxing-summary">
-      <article><small>品种属性</small><strong>${escapeHtml(data.attributeElement)}</strong><p>先验分类标签</p></article>
-      <article><small>当前月份</small><strong>${current.month || "-"}月 · ${escapeHtml(current.branch || "-")}月 · ${escapeHtml(current.element || "-")}</strong><p>${current.resonates ? "与品种属性同元素" : "本月不是同元素月"}</p></article>
-      <article><small>点二列相关</small><strong>${numeric(data.correlation).toFixed(3)}</strong><p>FDR q=${numeric(data.fdrQValue).toFixed(3)}</p></article>
-      <article><small>收益效应差</small><strong class="${signClass(data.effect)}">${percentage(data.effect, 2)}</strong><p>同元素月均值减其他月份</p></article>
-      <article><small>样本</small><strong>${resonance.sampleCount || 0} / ${data.totalMonths || 0}</strong><p>同元素月 / 全部月度</p></article>
-    </div>
-    <div class="wuxing-probability">
-      <div class="wuxing-probability-bars">${probabilityRows.map(([label, value, className]) => `<div><span>${label}</span><i><b class="${className}" style="width:${Math.max(0, Math.min(100, numeric(value) * 100))}%"></b></i><strong>${percentage(value)}</strong></div>`).join("")}</div>
-      <div class="wuxing-month-strip">${(data.monthCalendar || []).map((entry) => `<span class="${entry.element === data.attributeElement ? "is-resonant" : ""} ${entry.month === current.month ? "is-current" : ""}"><b>${entry.month}月</b><em>${escapeHtml(entry.branch)}·${escapeHtml(entry.element)}</em></span>`).join("")}</div>
-    </div>
-    <p class="wuxing-readout">${qualified && current.resonates ? `本月处于同元素月；历史样本上涨 ${percentage(resonance.upProbability)}、震荡 ${percentage(resonance.flatProbability)}、下跌 ${percentage(resonance.downProbability)}。` : current.resonates ? "本月属性相同，但历史相关性未通过门槛，不形成方向信号。" : "本月不是该品种的同元素月；历史统计仅作研究背景。"}</p>
-    <p class="detail-panel-note">来源：${escapeHtml(data.source)}，样本截至 ${escapeHtml(data.dataEndDate || "无数据")}。月收益按月末主力连续收盘计算；上涨/下跌阈值为 ±1%。五行属性是待检验分类，不是因果机制，也不构成投资建议。</p>
-  </section>`;
-}
-
 function groupBars(item) {
   const values = [item.groups.domestic.amount, item.groups.foreign.amount, item.groups.familyReverse.amount];
   const labels = ["内资", "外资", "家反"];
@@ -348,7 +315,7 @@ function renderInstrumentTable() {
   const rows = filteredInstruments();
   if (!state.activeSymbol || !rows.some((item) => item.symbol === state.activeSymbol)) state.activeSymbol = rows[0]?.symbol || null;
   $("#instrumentRows").innerHTML = rows.map((item) => `<tr class="${item.symbol === state.activeSymbol ? "is-active" : ""}" data-symbol="${escapeHtml(item.symbol)}">
-    <td><div class="instrument-name"><strong>${escapeHtml(item.variety)}</strong><small>${escapeHtml(item.symbol)} · ${escapeHtml(item.sector)}</small></div></td>
+    <td><div class="instrument-name"><button type="button" data-open-detail-symbol="${escapeHtml(item.symbol)}">${escapeHtml(item.variety)}</button><small>${escapeHtml(item.symbol)} · ${escapeHtml(item.sector)}</small></div></td>
     <td class="num ${signClass(item.handsSignal)}">${formatHands(item.handsSignal)}</td>
     <td class="num ${signClass(item.amountSignal)}">${formatAmount(item.amountSignal)}</td>
     <td>${groupBars(item)}</td>
@@ -375,7 +342,7 @@ function seriesFor(symbol) {
   }).filter(Boolean);
 }
 
-function sparkline(values, tone = "bullish", large = false, dates = []) {
+function sparkline(values, tone = "bullish", large = false, dates = [], prices = []) {
   if (!values.length) return "";
   const width = large ? 720 : 280;
   const height = large ? 220 : 72;
@@ -395,7 +362,14 @@ function sparkline(values, tone = "bullish", large = false, dates = []) {
   const grid = ticks.map((tick) => `<g><line class="${tick === 0 ? "spark-zero" : "spark-grid"}" x1="${padding.left}" x2="${width - padding.right}" y1="${yFor(tick)}" y2="${yFor(tick)}"></line><text class="spark-label" x="${padding.left - 9}" y="${yFor(tick) + 4}" text-anchor="end">${formatAxisAmount(tick)}</text></g>`).join("");
   const firstDate = dates[0] ? formatDate(dates[0]) : "";
   const lastDate = dates.at(-1) ? formatDate(dates.at(-1)) : "";
-  return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="历史净变化曲线，纵轴为资金净变动金额">${grid}<line class="spark-y-axis" x1="${padding.left}" x2="${padding.left}" y1="${padding.top}" y2="${height - padding.bottom}"></line><polyline class="spark-line ${tone}" points="${points}"></polyline><text class="spark-label" x="${padding.left}" y="${height - 7}">${firstDate}</text><text class="spark-label" x="${width - padding.right}" y="${height - 7}" text-anchor="end">${lastDate}</text></svg>`;
+  const validPrices = prices.map((value, index) => value == null ? null : [index, numeric(value)]).filter(Boolean);
+  const priceValues = validPrices.map(([, value]) => value);
+  const priceMax = priceValues.length ? Math.max(...priceValues) : 0;
+  const priceMin = priceValues.length ? Math.min(...priceValues) : 0;
+  const priceRange = priceMax - priceMin || 1;
+  const pricePoints = validPrices.map(([index, value]) => `${(padding.left + (values.length === 1 ? 0 : index / (values.length - 1) * (width - padding.left - padding.right))).toFixed(1)},${(padding.top + (priceMax - value) / priceRange * (height - padding.top - padding.bottom)).toFixed(1)}`).join(" ");
+  const priceLayer = priceValues.length ? `<text class="spark-label spark-price-label" x="${width - padding.right + 9}" y="${padding.top + 4}">${formatPrice(priceMax)}</text><text class="spark-label spark-price-label" x="${width - padding.right + 9}" y="${height - padding.bottom + 4}">${formatPrice(priceMin)}</text><polyline class="spark-price-line" points="${pricePoints}"></polyline>` : "";
+  return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="历史资金净变动与收盘价曲线，左轴为资金净变动金额，右轴为收盘价">${grid}<line class="spark-y-axis" x1="${padding.left}" x2="${padding.left}" y1="${padding.top}" y2="${height - padding.bottom}"></line><polyline class="spark-line ${tone}" points="${points}"></polyline>${priceLayer}<text class="spark-label" x="${padding.left}" y="${height - 7}">${firstDate}</text><text class="spark-label" x="${width - padding.right}" y="${height - 7}" text-anchor="end">${lastDate}</text></svg>`;
 }
 
 function formatPrice(value) {
@@ -579,7 +553,6 @@ function renderDetailWorkspace() {
   const series = seriesFor(item.symbol);
   const quote = item.quote;
   const trend = item.trend;
-  const wuxingPanel = wuxingSeasonalityPanel(item);
   const technical = item.technical?.status === "OK" ? item.technical : null;
   const groupRows = [["内资机构", item.groups.domestic], ["外资机构", item.groups.foreign], ["家人原始", item.groups.family]];
   const stockScale = maxAbs(groupRows, ([, group]) => group.netPosition);
@@ -610,19 +583,18 @@ function renderDetailWorkspace() {
       <article><span>04</span><small>席位结构</small><strong>${escapeHtml(seatBias)}</strong><p>净多 ${item.brokerRanking.netLong.length}/5 · 净空 ${item.brokerRanking.netShort.length}/5</p></article>
       <article class="decision"><span>结论</span><small>研究状态</small><strong>${escapeHtml(researchState)}</strong><p>${escapeHtml(item.resonance.label || item.direction)}</p></article>
     </section>
-    <nav class="detail-subnav" aria-label="品种详情导航"><button class="is-active" data-detail-anchor="detail-overview">总览</button><button data-detail-anchor="detail-positioning">资金与席位</button><button data-detail-anchor="detail-technical">技术面</button><button data-detail-anchor="detail-trend">趋势</button>${wuxingPanel ? `<button data-detail-anchor="detail-wuxing">五行季节性</button>` : ""}<button data-detail-anchor="detail-fundamental">基本面</button><button data-detail-anchor="detail-events">历史事件</button></nav>
+    <nav class="detail-subnav" aria-label="品种详情导航"><button class="is-active" data-detail-anchor="detail-overview">总览</button><button data-detail-anchor="detail-positioning">资金与席位</button><button data-detail-anchor="detail-technical">技术面</button><button data-detail-anchor="detail-trend">趋势</button><button data-detail-anchor="detail-fundamental">基本面</button><button data-detail-anchor="detail-events">历史事件</button></nav>
     <section id="detail-overview" class="detail-dashboard-grid">
       <article class="detail-surface chart-surface"><div class="detail-section-head"><div><small>PRICE & FLOW</small><h3>价格与三方资金</h3></div><div class="detail-legend"><i></i>收盘价 <b></b>资金净变动</div></div><div class="combo-chart-wrap">${priceFlowChart(series, item.variety)}</div><div class="detail-chart-foot"><span>历史快照 <b>${series.length} 日</b></span><span>今日手数 <b class="${signClass(item.handsSignal)}">${formatHands(item.handsSignal)}</b></span><span>边际结构 <b>${escapeHtml(item.marginalStructure)}</b></span></div></article>
       <aside class="detail-surface executive-surface"><div class="detail-section-head"><div><small>EXECUTIVE READ</small><h3>今日研究读数</h3></div></div><dl><div><dt>接口事实</dt><dd>${trend ? `趋势温度“${escapeHtml(trend.temperature)}”，强度 ${formatSigned(trend.strength, 1)}，${trend.rightSide ? "处于右侧" : "未处于右侧"}。` : "趋势数据暂无。"} 三方资金 ${formatAmount(item.amountSignal)}。</dd></div><div><dt>策略判断</dt><dd>${escapeHtml(relationship)}；席位信号为“${escapeHtml(item.resonance.label || item.direction)}”。这是规则化解读，不是接口原文。</dd></div><div><dt>基本面验证</dt><dd>${escapeHtml(fundamentalRead)}</dd></div></dl><button class="detail-action" data-create-decision="${escapeHtml(item.symbol)}">转入人工决策</button><button class="detail-action secondary" data-view="history">查看完整历史路径</button></aside>
     </section>
-    <section id="detail-positioning" class="detail-surface detail-wide-section"><div class="detail-section-head"><div><small>POSITIONING</small><h3>资金与席位结构</h3></div><p>存量净持仓与今日边际分列；家人按原始方向展示</p></div><div class="position-matrix"><div class="position-matrix-head"><span>资金群体</span><span>存量净持仓</span><span>今日手数净变动</span><span>今日净金额</span><span>边际动作</span></div>${groupRows.map(([label, group]) => `<div class="position-matrix-row"><b>${label}</b>${positionVisual(group.netPosition, stockScale)}<strong class="${signClass(group.hands)}">${formatHands(group.hands)}</strong><strong class="${signClass(group.amount)}">${formatAmount(group.amount)}</strong><span>${escapeHtml(flowAction(group))}</span></div>`).join("")}</div><div class="seat-rank-grid detail-ranks"><div class="seat-rank-list"><div class="seat-rank-title bull-text">净多席位 ${item.brokerRanking.netLong.length}/5 <span>${rankingDominance(item.brokerRanking.netLong)}</span></div>${rankRows(item.brokerRanking.netLong, "bull-text", "暂无净多席位")}</div><div class="seat-rank-list"><div class="seat-rank-title bear-text">净空席位 ${item.brokerRanking.netShort.length}/5 <span>${rankingDominance(item.brokerRanking.netShort)}</span></div>${rankRows(item.brokerRanking.netShort, "bear-text", "暂无净空席位")}</div></div></section>
+    <section id="detail-positioning" class="detail-surface detail-wide-section"><div class="detail-section-head"><div><small>POSITIONING</small><h3>资金与席位结构</h3></div><p>存量净持仓与今日边际分列；家人按原始方向展示</p></div><div class="position-matrix"><div class="position-matrix-head"><span>资金群体</span><span>存量净持仓</span><span>今日手数净变动</span><span>今日净金额</span><span>边际动作</span></div>${groupRows.map(([label, group]) => `<div class="position-matrix-row"><b>${label}</b>${positionVisual(group.netPosition, stockScale)}<strong class="${signClass(group.hands)}">${formatHands(group.hands)}</strong><strong class="${signClass(group.amount)}">${formatAmount(group.amount)}</strong><span class="${signClass(numeric(group.longChange) - numeric(group.shortChange))}">${escapeHtml(flowAction(group))}</span></div>`).join("")}</div><div class="seat-rank-grid detail-ranks"><div class="seat-rank-list"><div class="seat-rank-title bull-text">净多席位 ${item.brokerRanking.netLong.length}/5 <span>${rankingDominance(item.brokerRanking.netLong)}</span></div>${rankRows(item.brokerRanking.netLong, "bull-text", "暂无净多席位")}</div><div class="seat-rank-list"><div class="seat-rank-title bear-text">净空席位 ${item.brokerRanking.netShort.length}/5 <span>${rankingDominance(item.brokerRanking.netShort)}</span></div>${rankRows(item.brokerRanking.netShort, "bear-text", "暂无净空席位")}</div></div></section>
     <section class="detail-split">
       <article id="detail-trend" class="detail-surface"><div class="detail-section-head"><div><small>TREND REGIME</small><h3>趋势与周期</h3></div><span class="detail-stamp">API事实</span></div><div class="temperature-scale">${tempOrder.map((name) => `<span class="${trend?.temperature === name ? "is-active" : ""}">${name}</span>`).join("")}</div><div class="trend-fact-row"><span>趋势强度</span><strong>${trend ? formatSigned(trend.strength, 1) : "暂无"}</strong></div><div class="trend-fact-row"><span>右侧状态</span><strong>${trend ? (trend.rightSide ? "是" : "否") : "暂无"}</strong></div><div class="trend-fact-row"><span>进入天数</span><strong>${trend?.daysSinceEntry == null ? "暂无" : `${trend.daysSinceEntry} 天`}</strong></div><p class="detail-panel-note">趋势动物直接事实与本页资金判断分列。温度为“平”或数据非当日时，不把它写成右侧趋势确认。</p></article>
       <article id="detail-technical" class="detail-surface technical-section compact-technical"><div class="detail-section-head"><div><small>TECHNICAL EXECUTION</small><h3>双周期技术验证</h3></div><span class="detail-stamp ${technical?.bias === "偏多" ? "bullish" : technical?.bias === "偏空" ? "bearish" : "neutral"}">${technical ? escapeHtml(technical.bias) : "未接入"}</span></div>
         ${technical ? `<div class="technical-period-grid">${timeframeEvidence("日线观察", technical.dailyChan, technical.dailyObservation)}${timeframeEvidence("60分钟观察", technical.chan60, technical.hourObservation)}</div><div class="technical-compact-read"><p><b>量仓：</b>${escapeHtml(technical.marketActivity?.label || "数据不足")} · ${escapeHtml(technical.marketActivity?.impulse || "无法确认")}；成交较前日 ${technical.marketActivity?.volumeRatio == null ? "暂无" : technicalValue((technical.marketActivity.volumeRatio - 1) * 100, 1, "%")}。</p><p><b>位置：</b>支撑 ${levelText(technical.keyLevels?.supports, "暂无")}；压力 ${levelText(technical.keyLevels?.resistances, "暂无")}。</p><p><b>双周期：</b>${escapeHtml(technicalRead)}。</p></div><p class="detail-panel-note">EMA顺序为 5 / 20 / 60；数据日 ${escapeHtml(technical.sourceDate)}，60分钟截至 ${escapeHtml(technical.chan60?.endTime || "无法确认")}。技术观察不替代资金面与基本面。</p>` : `<div class="data-gap"><strong>当前技术面覆盖沪银、焦煤、燃油、生猪、碳酸锂和鸡蛋</strong><p>该品种尚未生成技术快照，不使用其他品种或旧日数据填充。</p></div>`}</article>
     </section>
     <article id="detail-fundamental" class="detail-surface detail-wide-section fundamental-surface"><div class="detail-section-head"><div><small>FUNDAMENTALS</small><h3>基本面证据板</h3></div><span class="detail-stamp neutral">事实与缺口分列</span></div>${fundamentalEvidence(item)}<p class="detail-panel-note">基差口径为现货价减主力期货价；仓单使用东方财富期货库存数据。供需、现金成本与产业库存未接入前不作推断。</p></article>
-    ${wuxingPanel}
     <section id="detail-events" class="detail-surface detail-wide-section"><div class="detail-section-head"><div><small>EVENT PATH</small><h3>历史事件</h3></div><p>快照事实按披露日追溯</p></div><div class="event-timeline">${recentEvents.map((entry) => `<div><time>${formatDate(entry.date)}</time><b class="${signClass(entry.amount)}">${formatAmount(entry.amount)}</b><p>${escapeHtml(entry.structure)} · ${formatHands(entry.hands)} 手${entry.close == null ? "" : ` · 收盘 ${formatPrice(entry.close)}`}</p></div>`).join("")}</div></section>`;
 }
 
@@ -632,22 +604,15 @@ function renderDetail() {
     $("#detailPanel").innerHTML = `<div class="detail-empty">从左侧选择一个品种，查看三组资金拆解与历史路径。</div>`;
     return;
   }
-  const series = seriesFor(item.symbol);
-  const groupRows = [
-    ["内资", item.groups.domestic], ["外资", item.groups.foreign], ["家人原始", item.groups.family], ["家人反向", item.groups.familyReverse]
-  ];
   const closePrice = item.quote?.close;
   const dayReturn = item.quote?.changePct;
-  const stockScale = maxAbs(groupRows, ([, group]) => group.netPosition);
   $("#detailPanel").innerHTML = `<div class="detail-header"><div><h3>${escapeHtml(item.variety)} <small>${escapeHtml(item.symbol)}</small></h3><p>${escapeHtml(item.sector)} · ${escapeHtml(item.quote?.contract || item.margin.contract || "主力合约未披露")} · ${escapeHtml(item.margin.exchange || "")}</p></div><div class="detail-side"><div class="detail-market"><div class="detail-quote"><small>涨跌幅</small><strong class="${dayReturn == null ? "" : signClass(dayReturn)}">${dayReturn == null ? "暂无" : `${formatSigned(dayReturn, 2)}%`}</strong></div><div class="detail-quote"><small>收盘价</small><strong>${closePrice == null ? "暂无" : numeric(closePrice).toLocaleString("zh-CN", {maximumFractionDigits: 4})}</strong></div></div><div class="detail-direction ${signClass(item.amountSignal)}">${escapeHtml(item.direction)}</div></div></div>
     <div class="detail-metrics">
       <div class="detail-metric"><span>三方手数净变动</span><strong class="${signClass(item.handsSignal)}">${formatHands(item.handsSignal)}</strong></div>
       <div class="detail-metric"><span>三方资金净变动</span><strong class="${signClass(item.amountSignal)}">${formatAmount(item.amountSignal)}</strong></div>
       <div class="detail-metric"><span>总持仓边际</span><strong>${formatHands(item.totalPositionChange)}</strong></div>
       <div class="detail-metric"><span>一手保证金</span><strong>${numeric(item.margin.perLot).toLocaleString("zh-CN", {maximumFractionDigits:0})}</strong></div>
-    </div>
-    <div class="detail-section"><h4>三组存量与今日边际</h4><div class="stock-delta-head"><span></span><span>净持仓</span><span>今日边际</span></div>${groupRows.map(([label, group]) => `<div class="stock-delta"><span>${label}</span>${positionVisual(group.netPosition, stockScale)}<strong class="${signClass(group.amount)}">${formatAmount(group.amount)}</strong></div>`).join("")}</div>
-    <div class="detail-section"><h4>样本席位净持仓前五</h4><div class="seat-rank-grid"><div class="seat-rank-list"><div class="seat-rank-title bull-text">净多席位 ${item.brokerRanking.netLong.length}/5 <span>${rankingDominance(item.brokerRanking.netLong)}</span></div>${rankRows(item.brokerRanking.netLong, "bull-text", "暂无净多席位")}</div><div class="seat-rank-list"><div class="seat-rank-title bear-text">净空席位 ${item.brokerRanking.netShort.length}/5 <span>${rankingDominance(item.brokerRanking.netShort)}</span></div>${rankRows(item.brokerRanking.netShort, "bear-text", "暂无净空席位")}</div></div></div>`;
+    </div>`;
 }
 
 function renderHistory() {
@@ -656,7 +621,7 @@ function renderHistory() {
   $("#historyControls").innerHTML = `<label>观察品种 <select id="historySymbolSelect">${symbols.map((item) => `<option value="${escapeHtml(item.symbol)}" ${item.symbol === state.historySymbol ? "selected" : ""}>${escapeHtml(item.variety)} ${escapeHtml(item.symbol)}</option>`).join("")}</select></label>`;
   const series = seriesFor(state.historySymbol);
   const current = currentSnapshot().instruments.find((item) => item.symbol === state.historySymbol);
-  $("#historyPanel").innerHTML = `<section class="history-chart"><h3>${escapeHtml(current?.variety || state.historySymbol)} · 三方资金净变动</h3><div class="large-spark">${sparkline(series.map((entry) => entry.amount), dirClass(series.at(-1)?.amount || 0), true, series.map((entry) => entry.date))}</div></section>
+  $("#historyPanel").innerHTML = `<section class="history-chart"><div class="history-chart-head"><h3>${escapeHtml(current?.variety || state.historySymbol)} · 资金与价格</h3><span><i></i>资金净变动 <b></b>收盘价</span></div><div class="large-spark">${sparkline(series.map((entry) => entry.amount), dirClass(series.at(-1)?.amount || 0), true, series.map((entry) => entry.date), series.map((entry) => entry.close))}</div></section>
     <section class="history-table"><h3>披露日快照</h3><div class="history-rows">${[...series].reverse().map((entry) => `<div class="history-row"><span>${formatDate(entry.date)}</span><strong class="${signClass(entry.hands)}">${formatHands(entry.hands)} 手</strong><strong class="${signClass(entry.amount)}">${formatAmount(entry.amount)}</strong></div>`).join("")}</div></section>`;
 }
 
@@ -677,6 +642,13 @@ function reviewDueDate(reportDate) {
 
 function decisionChoiceLabel(choice) {
   return ({accept: "接受", reject: "拒绝", observe: "观察"})[choice] || "待确认";
+}
+
+function orderDecisionSignals(items) {
+  const bullish = items.filter((item) => numeric(item.amountSignal) > 0).sort((a, b) => numeric(b.amountSignal) - numeric(a.amountSignal));
+  const bearish = items.filter((item) => numeric(item.amountSignal) < 0).sort((a, b) => numeric(a.amountSignal) - numeric(b.amountSignal));
+  const neutral = items.filter((item) => !numeric(item.amountSignal));
+  return [...bullish.slice(0, 5), ...bearish.slice(0, 5), ...[...bullish.slice(5), ...bearish.slice(5), ...neutral].sort((a, b) => Math.abs(numeric(b.amountSignal)) - Math.abs(numeric(a.amountSignal)))];
 }
 
 function upsertDecision(symbol, choice) {
@@ -711,11 +683,14 @@ function renderDecisionView() {
   const sectorItems = instruments.filter((item) => state.decisionSector === "all" || item.sector === state.decisionSector);
   if (state.decisionSymbol !== "all" && !sectorItems.some((item) => item.symbol === state.decisionSymbol)) state.decisionSymbol = "all";
   $("#decisionSymbolFilter").innerHTML = `<option value="all">全部品种</option>${sectorItems.sort((a, b) => a.variety.localeCompare(b.variety, "zh-CN")).map((item) => `<option value="${escapeHtml(item.symbol)}" ${state.decisionSymbol === item.symbol ? "selected" : ""}>${escapeHtml(item.variety)} ${escapeHtml(item.symbol)}</option>`).join("")}`;
-  const signals = sectorItems.filter((item) => state.decisionSymbol === "all" || item.symbol === state.decisionSymbol).sort((a, b) => Math.abs(numeric(b.amountSignal)) - Math.abs(numeric(a.amountSignal)));
-  $("#decisionSignals").innerHTML = signals.length ? signals.map((item) => {
+  const signals = orderDecisionSignals(sectorItems.filter((item) => state.decisionSymbol === "all" || item.symbol === state.decisionSymbol));
+  const pageCount = Math.max(1, Math.ceil(signals.length / 10));
+  state.decisionPage = Math.min(state.decisionPage, pageCount);
+  const pageSignals = signals.slice((state.decisionPage - 1) * 10, state.decisionPage * 10);
+  $("#decisionSignals").innerHTML = signals.length ? pageSignals.map((item) => {
     const record = state.decisions.find((entry) => entry.id === `${state.date}-${item.symbol}`);
     return `<article class="decision-signal ${dirClass(item.amountSignal)}"><div><strong>${escapeHtml(item.variety)} ${escapeHtml(item.symbol)}</strong><small>${formatAmount(item.amountSignal)} · ${formatHands(item.handsSignal)} 手</small></div><div class="decision-choices">${[["accept","接受"],["reject","拒绝"],["observe","观察"]].map(([value, label]) => `<button class="${record?.choice === value ? "is-active" : ""}" data-decision-choice="${value}" data-decision-symbol="${escapeHtml(item.symbol)}">${label}</button>`).join("")}</div></article>`;
-  }).join("") : `<div class="detail-empty">当前筛选条件下没有品种。</div>`;
+  }).join("") + (pageCount > 1 ? `<nav class="decision-pagination" aria-label="决策品种分页">${Array.from({length: pageCount}, (_, index) => `<button class="${state.decisionPage === index + 1 ? "is-active" : ""}" data-decision-page="${index + 1}">${index + 1}</button>`).join("")}</nav>` : "") : `<div class="detail-empty">当前筛选条件下没有品种。</div>`;
 
   const records = [...state.decisions].sort((a, b) => b.reportDate.localeCompare(a.reportDate) || a.symbol.localeCompare(b.symbol));
   $("#decisionList").innerHTML = records.length ? records.map((record) => `<button class="decision-list-item ${record.id === state.activeDecisionId ? "is-active" : ""}" data-edit-decision="${escapeHtml(record.id)}"><span><strong>${escapeHtml(record.variety)} ${escapeHtml(record.symbol)}</strong><small>${formatDate(record.reportDate)} · ${decisionChoiceLabel(record.choice)}</small></span><em>${record.tradeStatus === "closed" ? "已退出" : record.tradeStatus === "open" ? "持仓中" : "未交易"}</em></button>`).join("") : `<div class="detail-empty">尚无人工确认记录。</div>`;
@@ -782,6 +757,7 @@ function setDate(date) {
   state.sector = "all";
   state.detailSector = "all";
   state.detailQuery = "";
+  state.decisionPage = 1;
   renderAll();
 }
 
@@ -801,6 +777,8 @@ function bindEvents() {
     if (dateButton) setDate(dateButton.dataset.date);
     const row = event.target.closest("[data-symbol]");
     if (row) { state.activeSymbol = row.dataset.symbol; renderInstrumentTable(); }
+    const detailName = event.target.closest("[data-open-detail-symbol]");
+    if (detailName) { state.activeSymbol = detailName.dataset.openDetailSymbol; switchView("detail"); window.scrollTo({top: 0, behavior: "smooth"}); }
     const focus = event.target.closest("[data-open-symbol]");
     if (focus) { state.activeSymbol = focus.dataset.openSymbol; switchView("detail"); window.scrollTo({top: 0, behavior: "smooth"}); }
     const detailAnchor = event.target.closest("[data-detail-anchor]");
@@ -816,6 +794,8 @@ function bindEvents() {
     }
     const choice = event.target.closest("[data-decision-choice]");
     if (choice) upsertDecision(choice.dataset.decisionSymbol, choice.dataset.decisionChoice);
+    const decisionPage = event.target.closest("[data-decision-page]");
+    if (decisionPage) { state.decisionPage = numeric(decisionPage.dataset.decisionPage); renderDecisionView(); }
     const editDecision = event.target.closest("[data-edit-decision]");
     if (editDecision) { state.activeDecisionId = editDecision.dataset.editDecision; renderDecisionView(); }
     const createDecision = event.target.closest("[data-create-decision]");
@@ -831,8 +811,8 @@ function bindEvents() {
   $("#detailSearchInput").addEventListener("input", (event) => { state.detailQuery = event.target.value; renderDetailWorkspace(); });
   $("#detailSectorFilter").addEventListener("change", (event) => { state.detailSector = event.target.value; renderDetailWorkspace(); });
   $("#historyControls").addEventListener("change", (event) => { if (event.target.id === "historySymbolSelect") { state.historySymbol = event.target.value; renderHistory(); } });
-  $("#decisionSectorFilter").addEventListener("change", (event) => { state.decisionSector = event.target.value; state.decisionSymbol = "all"; renderDecisionView(); });
-  $("#decisionSymbolFilter").addEventListener("change", (event) => { state.decisionSymbol = event.target.value; renderDecisionView(); });
+  $("#decisionSectorFilter").addEventListener("change", (event) => { state.decisionSector = event.target.value; state.decisionSymbol = "all"; state.decisionPage = 1; renderDecisionView(); });
+  $("#decisionSymbolFilter").addEventListener("change", (event) => { state.decisionSymbol = event.target.value; state.decisionPage = 1; renderDecisionView(); });
   $("#decisionEditor").addEventListener("submit", (event) => {
     if (event.target.id !== "decisionForm") return;
     event.preventDefault();

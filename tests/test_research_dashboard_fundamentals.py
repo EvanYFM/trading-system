@@ -175,6 +175,18 @@ class ResearchDashboardFundamentalTests(unittest.TestCase):
         self.assertIn("function rankingDominance(items)", app)
         self.assertIn("function seatChanges(entry)", app)
 
+    def test_dashboard_review_changes_are_wired(self):
+        app = (ROOT / "web" / "research_dashboard" / "app.js").read_text(encoding="utf-8")
+        self.assertIn("function orderDecisionSignals(items)", app)
+        self.assertIn("data-decision-page", app)
+        self.assertIn("data-open-detail-symbol", app)
+        self.assertIn("历史资金净变动与收盘价曲线", app)
+        self.assertIn("series.map((entry) => entry.close)", app)
+        self.assertIn("signClass(numeric(group.longChange) - numeric(group.shortChange))", app)
+        self.assertNotIn("detail-wuxing", app)
+        self.assertNotIn("三组存量与今日边际", app)
+        self.assertNotIn("样本席位净持仓前五", app)
+
     def test_broker_rankings_keep_action_components(self):
         rankings = dashboard.build_broker_rankings([{
             "symbol": "I", "contract": "i2609", "broker": "国泰君安", "group": "内资",
