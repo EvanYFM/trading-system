@@ -62,8 +62,13 @@ function brokerGroupLabel(entry) {
 function seatChanges(entry) {
   const longChange = entry.longChange == null ? numeric(entry.addLong) - numeric(entry.reduceLong) : numeric(entry.longChange);
   const shortChange = entry.shortChange == null ? numeric(entry.addShort) - numeric(entry.reduceShort) : numeric(entry.shortChange);
-  const item = (value, addLabel, reduceLabel, tone) => `<span class="${tone}">${value >= 0 ? addLabel : reduceLabel} ${formatSigned(value)}</span>`;
-  return `${item(longChange, "加多", "减多", "bull-text")}${item(shortChange, "加空", "减空", "bear-text")}`;
+  const netChange = longChange - shortChange;
+  if (!netChange) return `<span>持平 0</span>`;
+  const actions = netChange > 0
+    ? [["加多", Math.max(longChange, 0)], ["减空", Math.max(-shortChange, 0)]]
+    : [["减多", Math.max(-longChange, 0)], ["加空", Math.max(shortChange, 0)]];
+  const label = actions.sort((left, right) => right[1] - left[1])[0][0];
+  return `<span class="${netChange > 0 ? "bull-text" : "bear-text"}">${label} ${formatSigned(netChange)}</span>`;
 }
 
 function rankingDominance(items) {

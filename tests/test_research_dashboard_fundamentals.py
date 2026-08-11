@@ -169,8 +169,9 @@ class ResearchDashboardFundamentalTests(unittest.TestCase):
         self.assertTrue({"I", "P", "RU"} <= dashboard.WATCHLIST_SYMBOLS)
         self.assertIn('id="decisionSectorFilter"', html)
         self.assertIn('id="decisionSymbolFilter"', html)
-        self.assertIn('item(shortChange, "加空", "减空", "bear-text")', app)
-        self.assertIn('item(longChange, "加多", "减多", "bull-text")', app)
+        self.assertIn("const netChange = longChange - shortChange", app)
+        self.assertIn('[["加多", Math.max(longChange, 0)], ["减空", Math.max(-shortChange, 0)]]', app)
+        self.assertIn('[["减多", Math.max(-longChange, 0)], ["加空", Math.max(shortChange, 0)]]', app)
         self.assertIn("function rankingDominance(items)", app)
         self.assertIn("function seatChanges(entry)", app)
 
