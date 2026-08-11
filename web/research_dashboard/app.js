@@ -14,6 +14,8 @@ const state = {
   manifest: null,
   decisions: [],
   activeDecisionId: null,
+  decisionSector: "all",
+  decisionSymbol: "all",
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -32,14 +34,14 @@ const sourceFileDate = (name) => {
 };
 const formatAxisAmount = (value) => numeric(value) === 0 ? "0" : `${formatSigned(numeric(value) / 1e8, 1)}亿`;
 const currentSnapshot = () => state.data.snapshots[state.date];
-const DETAIL_SEARCH_ALIASES = { FU: "燃油", AG: "白银", JM: "焦煤", LH: "生猪", LC: "碳酸锂", JD: "鸡蛋" };
+const DETAIL_SEARCH_ALIASES = { FU: "燃油", AG: "白银", JM: "焦煤", I: "铁矿石", LH: "生猪", LC: "碳酸锂", JD: "鸡蛋", P: "棕榈油", RU: "天然橡胶" };
 const CORE_GROUPS = [
   ["贵金属", ["AU", "AG"]],
   ["有色金属", ["SN", "LC"]],
   ["能源化工", ["FU"]],
-  ["黑色系", ["JM"]],
+  ["黑色系", ["JM", "I"]],
   ["家人品种", ["FG", "SA", "AO", "SH"]],
-  ["农产品", ["M", "JD", "LH"]],
+  ["农产品", ["M", "JD", "LH", "P", "RU"]],
 ];
 const DECISION_STORAGE_KEY = "futuresResearchDecisions.v1";
 
@@ -57,10 +59,9 @@ function brokerGroupLabel(entry) {
   return entry.displayGroup || ({内资: "机构", 外资: "外资", 家人: "家人"}[entry.group] || entry.group);
 }
 
-function flowRelationClass(entry) {
-  const position = Math.sign(numeric(entry.netPosition));
-  const flow = Math.sign(numeric(entry.flowScore));
-  return !position || !flow ? "neutral-text" : position === flow ? "seat-flow-aligned" : "seat-flow-opposite";
+function seatAction(entry) {
+  const actions = [["addLong", "加多", "bull-text"], ["reduceLong", "减多", "bull-text"], ["addShort", "加空", "bear-text"], ["reduceShort", "减空", "bear-text"]];
+  return actions.map(([key, label, tone]) => ({label, tone, value: numeric(entry[key])})).sort((a, b) => b.value - a.value)[0];
 }
 
 function maxAbs(items, getter) {
@@ -387,7 +388,11 @@ function positionVisual(value, scale) {
 }
 
 function rankRows(items, tone, emptyText) {
-  return items.length ? items.map((entry) => `<div class="seat-rank-row"><span class="seat-rank-name">${escapeHtml(entry.broker)}（${escapeHtml(brokerGroupLabel(entry))}）</span><strong class="${tone}">${formatHands(entry.netPosition)}</strong><span class="seat-flow ${flowRelationClass(entry)}">今日 ${formatHands(entry.flowScore)}</span></div>`).join("") : `<div class="seat-rank-row"><span class="detail-empty">${emptyText}</span></div>`;
+  return items.length ? items.map((entry) => {
+    const action = seatAction(entry);
+    const actionText = action.value ? `${action.label} ${formatHands(action.value)}` : numeric(entry.flowScore) ? `净变 ${formatHands(entry.flowScore)}` : "未变";
+    return `<div class="seat-rank-row"><span class="seat-rank-name">${escapeHtml(entry.broker)}（${escapeHtml(brokerGroupLabel(entry))}）</span><strong class="${tone}">${formatHands(entry.netPosition)}</strong><span class="seat-flow ${action.value ? action.tone : "neutral-text"}">今日 ${actionText}</span></div>`;
+  }).join("") : `<div class="seat-rank-row"><span class="detail-empty">${emptyText}</span></div>`;
 }
 
 function priceFlowChart(series, variety) {
@@ -657,11 +662,12 @@ function upsertDecision(symbol, choice) {
   let record = state.decisions.find((entry) => entry.id === id);
   if (!record) {
     record = {
-      id, reportDate: state.date, symbol, variety: item.variety, choice,
+      id, reportDate: state.date, symbol, variety: item.variety, sector: item.sector, choice,
       runId: state.manifest?.runId || state.date, createdAt: new Date().toISOString(),
       amountSignal: item.amountSignal, handsSignal: item.handsSignal,
       close: item.quote?.close ?? null, changePct: item.quote?.changePct ?? null,
       trend: item.trend?.temperature || "", mainContradiction: "", trigger: "", invalidation: "",
+      brokerRanking: item.brokerRanking,
       tradeStatus: "no_trade", tradeLogRef: "", noTradeReason: "", exitResult: "",
       problemType: "pending", seeRight: "pending", doRight: "pending", doWell: "pending", reviewNote: "",
     };
@@ -675,15 +681,17 @@ function upsertDecision(symbol, choice) {
 }
 
 function renderDecisionView() {
-  const triples = [...currentSnapshot().tripleResonance];
-  const signals = [
-    ...triples.filter((item) => numeric(item.amountSignal) > 0).sort((a, b) => numeric(b.amountSignal) - numeric(a.amountSignal)).slice(0, 5),
-    ...triples.filter((item) => numeric(item.amountSignal) < 0).sort((a, b) => numeric(a.amountSignal) - numeric(b.amountSignal)).slice(0, 5),
-  ];
+  const instruments = [...currentSnapshot().instruments];
+  const sectors = [...new Set(instruments.map((item) => item.sector))].sort();
+  $("#decisionSectorFilter").innerHTML = `<option value="all">全部板块</option>${sectors.map((sector) => `<option value="${escapeHtml(sector)}" ${state.decisionSector === sector ? "selected" : ""}>${escapeHtml(sector)}</option>`).join("")}`;
+  const sectorItems = instruments.filter((item) => state.decisionSector === "all" || item.sector === state.decisionSector);
+  if (state.decisionSymbol !== "all" && !sectorItems.some((item) => item.symbol === state.decisionSymbol)) state.decisionSymbol = "all";
+  $("#decisionSymbolFilter").innerHTML = `<option value="all">全部品种</option>${sectorItems.sort((a, b) => a.variety.localeCompare(b.variety, "zh-CN")).map((item) => `<option value="${escapeHtml(item.symbol)}" ${state.decisionSymbol === item.symbol ? "selected" : ""}>${escapeHtml(item.variety)} ${escapeHtml(item.symbol)}</option>`).join("")}`;
+  const signals = sectorItems.filter((item) => state.decisionSymbol === "all" || item.symbol === state.decisionSymbol).sort((a, b) => Math.abs(numeric(b.amountSignal)) - Math.abs(numeric(a.amountSignal)));
   $("#decisionSignals").innerHTML = signals.length ? signals.map((item) => {
     const record = state.decisions.find((entry) => entry.id === `${state.date}-${item.symbol}`);
     return `<article class="decision-signal ${dirClass(item.amountSignal)}"><div><strong>${escapeHtml(item.variety)} ${escapeHtml(item.symbol)}</strong><small>${formatAmount(item.amountSignal)} · ${formatHands(item.handsSignal)} 手</small></div><div class="decision-choices">${[["accept","接受"],["reject","拒绝"],["observe","观察"]].map(([value, label]) => `<button class="${record?.choice === value ? "is-active" : ""}" data-decision-choice="${value}" data-decision-symbol="${escapeHtml(item.symbol)}">${label}</button>`).join("")}</div></article>`;
-  }).join("") : `<div class="detail-empty">该日没有三方强共振信号。</div>`;
+  }).join("") : `<div class="detail-empty">当前筛选条件下没有品种。</div>`;
 
   const records = [...state.decisions].sort((a, b) => b.reportDate.localeCompare(a.reportDate) || a.symbol.localeCompare(b.symbol));
   $("#decisionList").innerHTML = records.length ? records.map((record) => `<button class="decision-list-item ${record.id === state.activeDecisionId ? "is-active" : ""}" data-edit-decision="${escapeHtml(record.id)}"><span><strong>${escapeHtml(record.variety)} ${escapeHtml(record.symbol)}</strong><small>${formatDate(record.reportDate)} · ${decisionChoiceLabel(record.choice)}</small></span><em>${record.tradeStatus === "closed" ? "已退出" : record.tradeStatus === "open" ? "持仓中" : "未交易"}</em></button>`).join("") : `<div class="detail-empty">尚无人工确认记录。</div>`;
@@ -694,9 +702,12 @@ function renderDecisionView() {
     return;
   }
   const due = reviewDueDate(record.reportDate);
+  const snapshotItem = state.data.snapshots[record.reportDate]?.instruments.find((item) => item.symbol === record.symbol);
+  const ranking = record.brokerRanking || snapshotItem?.brokerRanking || {netLong: [], netShort: []};
   const option = (value, label, current) => `<option value="${value}" ${current === value ? "selected" : ""}>${label}</option>`;
-  $("#decisionEditor").innerHTML = `<form id="decisionForm"><header><div><small>${formatDate(record.reportDate)} · ${escapeHtml(record.runId)}</small><h3>${escapeHtml(record.variety)} ${escapeHtml(record.symbol)}</h3></div><strong class="${signClass(record.amountSignal)}">${formatAmount(record.amountSignal)}</strong></header>
-    <div class="decision-facts"><span>手数 ${formatHands(record.handsSignal)}</span><span>收盘 ${formatPrice(record.close)}</span><span>涨跌 ${record.changePct == null ? "暂无" : `${formatSigned(record.changePct, 2)}%`}</span><span>趋势 ${escapeHtml(record.trend || "暂无")}</span></div>
+  $("#decisionEditor").innerHTML = `<form id="decisionForm"><header><div><small>${formatDate(record.reportDate)} · ${escapeHtml(record.runId)}</small><h3>${escapeHtml(record.variety)} ${escapeHtml(record.symbol)}</h3></div><div class="decision-market-facts"><strong class="${signClass(record.amountSignal)}">${formatAmount(record.amountSignal)}</strong><strong class="${record.changePct == null ? "" : signClass(record.changePct)}">${record.changePct == null ? "涨跌 暂无" : `${formatSigned(record.changePct, 2)}%`}</strong></div></header>
+    <div class="decision-facts"><span>手数 ${formatHands(record.handsSignal)}</span><span>收盘 ${formatPrice(record.close)}</span><span>趋势 ${escapeHtml(record.trend || "暂无")}</span></div>
+    <div class="seat-rank-grid decision-ranks"><div class="seat-rank-list"><div class="seat-rank-title bull-text">净多席位 ${ranking.netLong.length}/5</div>${rankRows(ranking.netLong, "bull-text", "暂无净多席位")}</div><div class="seat-rank-list"><div class="seat-rank-title bear-text">净空席位 ${ranking.netShort.length}/5</div>${rankRows(ranking.netShort, "bear-text", "暂无净空席位")}</div></div>
     <div class="decision-form-grid">
       <label>人工确认<select name="choice">${option("accept","接受",record.choice)}${option("reject","拒绝",record.choice)}${option("observe","观察",record.choice)}</select></label>
       <label>交易状态<select name="tradeStatus">${option("no_trade","未交易",record.tradeStatus)}${option("open","持仓中",record.tradeStatus)}${option("closed","已退出",record.tradeStatus)}</select></label>
@@ -795,6 +806,8 @@ function bindEvents() {
   $("#detailSearchInput").addEventListener("input", (event) => { state.detailQuery = event.target.value; renderDetailWorkspace(); });
   $("#detailSectorFilter").addEventListener("change", (event) => { state.detailSector = event.target.value; renderDetailWorkspace(); });
   $("#historyControls").addEventListener("change", (event) => { if (event.target.id === "historySymbolSelect") { state.historySymbol = event.target.value; renderHistory(); } });
+  $("#decisionSectorFilter").addEventListener("change", (event) => { state.decisionSector = event.target.value; state.decisionSymbol = "all"; renderDecisionView(); });
+  $("#decisionSymbolFilter").addEventListener("change", (event) => { state.decisionSymbol = event.target.value; renderDecisionView(); });
   $("#decisionEditor").addEventListener("submit", (event) => {
     if (event.target.id !== "decisionForm") return;
     event.preventDefault();

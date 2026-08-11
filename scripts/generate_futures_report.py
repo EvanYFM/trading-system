@@ -37,15 +37,18 @@ FOCUS_ITEMS = [
     {"symbol": "LC", "display": "碳酸锂", "structure": "碳酸锂"},
     {"symbol": "M", "display": "豆粕", "structure": "豆粕"},
     {"symbol": "JM", "display": "焦煤", "structure": "焦煤"},
+    {"symbol": "I", "display": "铁矿石", "structure": "铁矿石"},
     {"symbol": "JD", "display": "鸡蛋", "structure": "鸡蛋"},
     {"symbol": "AU", "display": "沪金", "structure": "沪金"},
     {"symbol": "AG", "display": "沪银", "structure": "沪银"},
     {"symbol": "EC", "display": "欧线集运", "structure": "集运欧线"},
     {"symbol": "LH", "display": "生猪", "structure": "生猪"},
+    {"symbol": "P", "display": "棕榈油", "structure": "棕榈油"},
+    {"symbol": "RU", "display": "天然橡胶", "structure": "天然橡胶"},
 ]
 FOCUS_SYMBOLS = {item["symbol"]: item["display"] for item in FOCUS_ITEMS}
 FOCUS_STRUCTURE_DISPLAY = {item["structure"]: item["display"] for item in FOCUS_ITEMS}
-FOCUS_LABEL = "燃油、苯乙烯、碳酸锂、豆粕、鸡蛋、焦煤、沪金、沪银、欧线集运、生猪"
+FOCUS_LABEL = "燃油、苯乙烯、碳酸锂、豆粕、鸡蛋、焦煤、铁矿石、沪金、沪银、欧线集运、生猪、棕榈油、天然橡胶"
 STRUCTURE_TOP_N = 5
 
 OPENVLAB_BASE = "https://www.openvlab.cn/chart/light/"

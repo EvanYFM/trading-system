@@ -153,6 +153,25 @@ class ResearchDashboardFundamentalTests(unittest.TestCase):
         self.assertIn("执行问题", app)
         self.assertIn('TARGET_DIR / "run-manifest.json"', build)
 
+    def test_decision_filters_watchlist_and_seat_actions_are_wired(self):
+        html = (ROOT / "web" / "research_dashboard" / "index.html").read_text(encoding="utf-8")
+        app = (ROOT / "web" / "research_dashboard" / "app.js").read_text(encoding="utf-8")
+        self.assertTrue({"I", "P", "RU"} <= dashboard.WATCHLIST_SYMBOLS)
+        self.assertIn('id="decisionSectorFilter"', html)
+        self.assertIn('id="decisionSymbolFilter"', html)
+        self.assertIn('["addShort", "加空", "bear-text"]', app)
+        self.assertIn('["reduceLong", "减多", "bull-text"]', app)
+
+    def test_broker_rankings_keep_action_components(self):
+        rankings = dashboard.build_broker_rankings([{
+            "symbol": "I", "broker": "国泰君安", "group": "内资",
+            "long_pos": "10", "short_pos": "30", "net_pos": "-20", "flow_score": "-12",
+            "add_long": "0", "reduce_long": "2", "add_short": "12", "reduce_short": "0",
+        }])
+        entry = rankings["I"]["netShort"][0]
+        self.assertEqual(12, entry["addShort"])
+        self.assertEqual(2, entry["reduceLong"])
+
 
 if __name__ == "__main__":
     unittest.main()

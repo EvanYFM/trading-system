@@ -292,8 +292,6 @@ h1 { margin: 6px 0 0; font-size: 30px; line-height: 1.15; letter-spacing: 0; }
 .seat-rank-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .seat-rank-name small { display: block; margin-top: 2px; color: var(--muted); font-size: 8px; }
 .seat-flow { min-width: 70px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
-.seat-flow-aligned { color: var(--bull); }
-.seat-flow-opposite { color: var(--bear); }
 .spark-wrap { height: 92px; padding: 8px; background: var(--surface-subtle); border: 1px solid var(--line); }
 .spark-wrap svg { width: 100%; height: 100%; overflow: visible; }
 .spark-axis { stroke: #cfd6dd; stroke-width: 1; stroke-dasharray: 3 3; }
@@ -496,6 +494,8 @@ h1 { margin: 6px 0 0; font-size: 30px; line-height: 1.15; letter-spacing: 0; }
 .event-timeline p { margin: 0; color: var(--muted); font-size: 9px; line-height: 1.5; }
 
 .decision-signals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 14px; }
+.decision-filter-bar { padding-bottom: 0; }
+.decision-filter-bar select { flex: 0 1 240px; }
 .decision-signal { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 14px; background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--line-strong); }
 .decision-signal.bullish { border-left-color: var(--bull); }
 .decision-signal.bearish { border-left-color: var(--bear); }
@@ -515,7 +515,9 @@ h1 { margin: 6px 0 0; font-size: 30px; line-height: 1.15; letter-spacing: 0; }
 .decision-editor form > header { display: flex; justify-content: space-between; gap: 14px; align-items: end; padding-bottom: 12px; border-bottom: 2px solid var(--line-strong); }
 .decision-editor h3 { margin: 3px 0 0; font-size: 20px; }
 .decision-editor header small { color: var(--muted); font-size: 9px; }
+.decision-market-facts { display: flex; gap: 14px; align-items: baseline; }
 .decision-facts { display: flex; flex-wrap: wrap; gap: 12px; padding: 10px 0; color: var(--muted); font-size: 10px; }
+.decision-ranks { margin: 0 0 12px; }
 .decision-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .decision-form-grid label { display: grid; gap: 5px; color: var(--muted); font-size: 10px; }
 .decision-form-grid label.wide { grid-column: 1 / -1; }
