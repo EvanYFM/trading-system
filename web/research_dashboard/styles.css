@@ -335,7 +335,7 @@ h1 { margin: 6px 0 0; font-size: 30px; line-height: 1.15; letter-spacing: 0; }
 .instrument-detail-title h2 { margin: 0; font-size: 30px; line-height: 1; }
 .instrument-detail-title h2 em { color: var(--muted); font: 15px/1 ui-monospace, monospace; font-style: normal; }
 .contract-pill { align-self: end; padding: 5px 8px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font-size: 10px; white-space: nowrap; }
-.instrument-detail-quote { display: grid; grid-template-columns: repeat(3, auto); border-left: 1px solid var(--line); }
+.instrument-detail-quote { display: grid; grid-template-columns: repeat(4, auto); border-left: 1px solid var(--line); }
 .instrument-detail-quote > div { min-width: 104px; padding: 5px 16px; border-right: 1px solid var(--line); }
 .instrument-detail-quote small, .instrument-detail-quote strong { display: block; }
 .instrument-detail-quote small { margin-bottom: 6px; color: var(--muted); font-size: 9px; }
@@ -586,7 +586,7 @@ h1 { margin: 6px 0 0; font-size: 30px; line-height: 1.15; letter-spacing: 0; }
   .instrument-detail-title { flex-wrap: wrap; }
   .instrument-detail-title h2 { font-size: 25px; }
   .contract-pill { align-self: center; }
-  .instrument-detail-quote { grid-template-columns: repeat(3, 1fr); border-left: 0; border-top: 1px solid var(--line); }
+  .instrument-detail-quote { grid-template-columns: repeat(2, 1fr); border-left: 0; border-top: 1px solid var(--line); }
   .instrument-detail-quote > div { min-width: 0; padding: 10px 9px 0; border-right: 0; }
   .instrument-detail-quote > div + div { border-left: 1px solid var(--line); }
   .instrument-detail-quote strong { font-size: 14px; }

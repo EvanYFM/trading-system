@@ -552,6 +552,7 @@ function renderDetailWorkspace() {
   state.activeSymbol = item.symbol;
   const series = seriesFor(item.symbol);
   const quote = item.quote;
+  const marketFlow = item.marketFlow;
   const trend = item.trend;
   const technical = item.technical?.status === "OK" ? item.technical : null;
   const groupRows = [["内资机构", item.groups.domestic], ["外资机构", item.groups.foreign], ["家人原始", item.groups.family]];
@@ -571,15 +572,18 @@ function renderDetailWorkspace() {
     ? `基差 ${latestBasis ? technicalValue(latestBasis.basis, 2) : "暂无"}；仓单 ${latestWarehouse ? technicalValue(latestWarehouse.warehouse_receipt, 0) : "暂无"}。`
     : "基差与仓单尚无可用公开数据。";
   const tempOrder = ["凉", "寒", "冻", "平", "温", "热", "沸"];
+  const openInterestChange = marketFlow?.openInterestChange;
+  const openInterestLabel = openInterestChange == null ? "日增减仓" : openInterestChange >= 0 ? "日增仓" : "日减仓";
+  const openInterestValue = openInterestChange == null ? "暂无" : `${Math.abs(numeric(openInterestChange)).toLocaleString("zh-CN", {maximumFractionDigits: 0})} 手`;
   $("#detailWorkspace").innerHTML = `<header class="instrument-detail-hero">
       <div class="instrument-detail-title"><span class="instrument-sector-mark"></span><div><p>${escapeHtml(item.sector)} · ${escapeHtml(item.margin.exchange || "交易所未披露")}</p><h2>${escapeHtml(item.variety)} <em>${escapeHtml(item.symbol)}</em></h2></div><span class="contract-pill">主力 ${escapeHtml(quote?.contract || item.margin.contract || "未披露")}</span></div>
-      <div class="instrument-detail-quote"><div><small>涨跌幅</small><strong class="${quote?.changePct == null ? "" : signClass(quote.changePct)}">${quote?.changePct == null ? "暂无" : `${formatSigned(quote.changePct, 2)}%`}</strong></div><div><small>收盘价</small><strong>${formatPrice(quote?.close)}</strong></div><div><small>三方资金</small><strong class="${signClass(item.amountSignal)}">${formatAmount(item.amountSignal)}</strong></div></div>
+      <div class="instrument-detail-quote"><div><small>涨跌幅</small><strong class="${quote?.changePct == null ? "" : signClass(quote.changePct)}">${quote?.changePct == null ? "暂无" : `${formatSigned(quote.changePct, 2)}%`}</strong></div><div><small>收盘价</small><strong>${formatPrice(quote?.close)}</strong></div><div><small>资金流向</small><strong class="${marketFlow?.capitalFlow == null ? "" : signClass(marketFlow.capitalFlow)}">${marketFlow?.capitalFlow == null ? "暂无" : formatAmount(marketFlow.capitalFlow)}</strong></div><div><small>${openInterestLabel}</small><strong class="${openInterestChange == null ? "" : signClass(openInterestChange)}">${openInterestValue}</strong></div></div>
     </header>
-    <div class="detail-source-notice"><strong>真实快照</strong> 席位披露 ${escapeHtml(disclosure)}；行情 ${escapeHtml(quote?.sourceDate || "无数据")}；趋势 ${escapeHtml(trend?.sourceDate || "无数据")}。来源日期不同则分开标记，不视为同日事实。</div>
+    <div class="detail-source-notice"><strong>真实快照</strong> 席位披露 ${escapeHtml(disclosure)}；行情 ${escapeHtml(quote?.sourceDate || "无数据")} ${escapeHtml(quote?.source || "")}${marketFlow ? `；资金流向/增减仓 ${escapeHtml(marketFlow.sourceDate)} ${escapeHtml(marketFlow.source)}` : ""}；趋势 ${escapeHtml(trend?.sourceDate || "无数据")}。来源日期不同则分开标记，不视为同日事实。</div>
     <section class="evidence-rail" aria-label="证据链摘要">
       <article><span>01</span><small>行情结构</small><strong class="${quote?.changePct == null ? "" : signClass(quote.changePct)}">${quote?.changePct == null ? "暂无行情" : quote.changePct > 0 ? "当日上涨" : quote.changePct < 0 ? "当日下跌" : "当日持平"}</strong><p>${quote ? `${quote.low == null || quote.high == null ? "日内高低未提供" : `${formatPrice(quote.low)}–${formatPrice(quote.high)}`} · ${escapeHtml(quote.source || "来源未披露")}` : "未取得主力行情"}</p></article>
       <article><span>02</span><small>趋势温度</small><strong>${escapeHtml(trendState)}</strong><p>${trend ? `强度 ${formatSigned(trend.strength, 1)}${trend.fresh ? "" : " · 非当日"}` : "趋势动物未匹配"}</p></article>
-      <article><span>03</span><small>三方资金</small><strong class="${signClass(item.amountSignal)}">${formatAmount(item.amountSignal)}</strong><p>${formatHands(item.handsSignal)} 手 · ${escapeHtml(item.marginalStructure)}</p></article>
+      <article><span>03</span><small>市场资金</small><strong class="${marketFlow?.capitalFlow == null ? "" : signClass(marketFlow.capitalFlow)}">${marketFlow?.capitalFlow == null ? "暂无" : formatAmount(marketFlow.capitalFlow)}</strong><p>${openInterestLabel} ${openInterestValue}</p></article>
       <article><span>04</span><small>席位结构</small><strong>${escapeHtml(seatBias)}</strong><p>净多 ${item.brokerRanking.netLong.length}/5 · 净空 ${item.brokerRanking.netShort.length}/5</p></article>
       <article class="decision"><span>结论</span><small>研究状态</small><strong>${escapeHtml(researchState)}</strong><p>${escapeHtml(item.resonance.label || item.direction)}</p></article>
     </section>

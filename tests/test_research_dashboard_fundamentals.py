@@ -57,6 +57,33 @@ class ResearchDashboardFundamentalTests(unittest.TestCase):
         }]
         self.assertEqual({}, dashboard.quote_index(rows, "20260811"))
 
+    def test_ths_market_snapshot_requires_exact_main_contract(self):
+        rows = [{
+            "symbol": "JM", "contract": "jm2609", "status": "OK", "source_date": "2026-08-12",
+            "close": "1337.5", "change_pct": "2.06", "capital_flow": "-742000000",
+            "open_interest_change": "-36972",
+        }, {
+            "symbol": "JM", "contract": "jm2701", "status": "OK", "source_date": "2026-08-12",
+            "close": "1476", "change_pct": "2.22", "capital_flow": "254000000",
+            "open_interest_change": "10399",
+        }]
+        markets = dashboard.ths_market_index(rows, "20260812")
+        exact = markets[("JM", dashboard.normalize_contract("jm2609"))]
+        self.assertEqual(1337.5, exact["quote"]["close"])
+        self.assertEqual(-742000000, exact["marketFlow"]["capitalFlow"])
+        self.assertEqual(-36972, exact["marketFlow"]["openInterestChange"])
+        self.assertEqual({}, dashboard.ths_market_index([{**rows[0], "source_date": "2026-08-11"}], "20260812"))
+
+    def test_detail_header_uses_ths_market_flow_not_three_party_money(self):
+        app = (ROOT / "web" / "research_dashboard" / "app.js").read_text(encoding="utf-8")
+        self.assertIn("<small>资金流向</small>", app)
+        self.assertIn('openInterestChange >= 0 ? "日增仓" : "日减仓"', app)
+
+    def test_key_events_accept_exact_ths_market_override(self):
+        build = (ROOT / "scripts" / "build_research_dashboard.py").read_text(encoding="utf-8")
+        self.assertIn('"priceChangePct": quote.get("changePct", event.get("priceChangePct"))', build)
+        self.assertIn('"openInterestChangePct": market_flow.get("openInterestChangePct"', build)
+
     def test_resonance_focus_uses_margin_amount_as_primary_metric(self):
         html = (ROOT / "web" / "research_dashboard" / "index.html").read_text(
             encoding="utf-8"

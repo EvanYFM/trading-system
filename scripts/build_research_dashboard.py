@@ -202,6 +202,45 @@ def quote_index(rows: list[dict[str, str]], report_date: str) -> dict[str, dict[
     return indexed
 
 
+def normalize_contract(value: str) -> str:
+    contract = value.strip().lower()
+    match = re.fullmatch(r"([a-z]+)(\d{3})", contract)
+    return f"{match.group(1)}2{match.group(2)}" if match else contract
+
+
+def ths_market_index(rows: list[dict[str, str]], report_date: str) -> dict[tuple[str, str], dict[str, object]]:
+    indexed: dict[tuple[str, str], dict[str, object]] = {}
+    iso_date = f"{report_date[:4]}-{report_date[4:6]}-{report_date[6:]}"
+    for row in rows:
+        symbol = row.get("symbol", "").upper()
+        contract = normalize_contract(row.get("contract", ""))
+        if not symbol or not contract or row.get("status") != "OK" or row.get("source_date") != iso_date:
+            continue
+        source_date = row.get("source_date", "")
+        indexed[(symbol, contract)] = {
+            "quote": {
+                "close": optional_number(row.get("close")),
+                "changePct": optional_number(row.get("change_pct")),
+                "contract": row.get("contract", ""),
+                "source": row.get("source", "同花顺期货通桌面自选"),
+                "sourceDate": source_date,
+                "fresh": source_date == iso_date,
+            },
+            "marketFlow": {
+                "capitalFlow": optional_number(row.get("capital_flow")),
+                "openInterest": optional_number(row.get("open_interest")),
+                "openInterestChange": optional_number(row.get("open_interest_change")),
+                "openInterestChangePct": optional_number(row.get("open_interest_change_pct")),
+                "turnover": optional_number(row.get("turnover")),
+                "volume": optional_number(row.get("volume")),
+                "source": row.get("source", "同花顺期货通桌面自选"),
+                "sourceDate": source_date,
+                "fresh": source_date == iso_date,
+            },
+        }
+    return indexed
+
+
 def technical_index(payload: dict[str, object]) -> dict[str, dict[str, object]]:
     indexed: dict[str, dict[str, object]] = {}
     for item in payload.get("items", []):
@@ -256,7 +295,7 @@ def build_broker_rankings(
         group = row.get("group", "")
         if not symbol or not broker:
             continue
-        if main_contracts is not None and row.get("contract", "").lower() != main_contracts.get(symbol, "").lower():
+        if main_contracts is not None and normalize_contract(row.get("contract", "")) != normalize_contract(main_contracts.get(symbol, "")):
             continue
         key = (symbol, group, broker)
         item = aggregated.setdefault(
@@ -354,6 +393,7 @@ def build_instrument(
     hands_row: dict[str, str],
     trend: dict[str, object] | None,
     quote: dict[str, object] | None,
+    market_flow: dict[str, object] | None,
     broker_ranking: dict[str, list[dict[str, object]]] | None,
     technical: dict[str, object] | None,
     basis_history: list[dict[str, object]] | None,
@@ -406,6 +446,7 @@ def build_instrument(
         },
         "trend": trend,
         "quote": quote,
+        "marketFlow": market_flow,
         "brokerRanking": broker_ranking or {"netLong": [], "netShort": []},
         "technical": technical,
         "fundamentals": {
@@ -589,6 +630,8 @@ def build_snapshot(report_date: str) -> dict[str, object]:
     fallback_quote_file = latest_dated_file("eastmoney_main_quotes_*.csv", report_date)
     quote_file = current_quote_file if current_quote_file.exists() else fallback_quote_file
     quotes = quote_index(read_csv(quote_file) if quote_file else [], report_date)
+    ths_file = ROOT / "data" / f"ths_main_quotes_{report_date}.csv"
+    ths_markets = ths_market_index(read_csv(ths_file), report_date)
     technicals = technical_index(read_json(ROOT / "data" / f"eastmoney_technical_snapshot_{report_date}.json"))
     wuxing_file = latest_dated_file("wuxing_month_seasonality_*.json", report_date)
     wuxing_payload = read_json(wuxing_file) if wuxing_file else {}
@@ -609,7 +652,11 @@ def build_snapshot(report_date: str) -> dict[str, object]:
         row["group"] = broker_groups.get(row.get("broker", ""), "内资")
     broker_rankings = build_broker_rankings(
         full_position_rows or contract_rows,
-        {symbol: str(quote.get("contract", "")) for symbol, quote in quotes.items()},
+        {
+            row.get("symbol", "").upper(): row.get("domestic_margin_contract", "")
+            for row in amount_rows
+            if row.get("symbol")
+        },
     )
     source_plans = fundamental_source_plans()
     mysteel_facts = fundamental_fact_index(read_csv(mysteel_fact_file) if mysteel_fact_file else [], report_date)
@@ -620,12 +667,14 @@ def build_snapshot(report_date: str) -> dict[str, object]:
         symbol = amount_row.get("symbol", "").upper()
         if not symbol or symbol in EXCLUDED_SYMBOLS:
             continue
+        ths_market = ths_markets.get((symbol, normalize_contract(amount_row.get("domestic_margin_contract", ""))))
         instruments.append(
             build_instrument(
                 amount_row,
                 hands_by_symbol.get(symbol, {}),
                 trends.get(symbol),
-                quotes.get(symbol),
+                ths_market["quote"] if ths_market else quotes.get(symbol),
+                ths_market["marketFlow"] if ths_market else None,
                 broker_rankings.get(symbol),
                 technicals.get(symbol),
                 basis_by_symbol.get(symbol),
@@ -678,6 +727,18 @@ def build_snapshot(report_date: str) -> dict[str, object]:
     status_counts = defaultdict(int)
     for row in fetch_rows:
         status_counts[row.get("note", "UNKNOWN")] += 1
+    instrument_by_symbol = {str(item["symbol"]): item for item in instruments}
+    key_events = []
+    for event in qhkch_overview.get("events", []) if isinstance(qhkch_overview, dict) else []:
+        instrument = instrument_by_symbol.get(str(event.get("symbol", "")).upper(), {})
+        market_flow = instrument.get("marketFlow") or {}
+        quote = instrument.get("quote") or {}
+        key_events.append({
+            **event,
+            "priceChangePct": quote.get("changePct", event.get("priceChangePct")),
+            "openInterestChangePct": market_flow.get("openInterestChangePct", event.get("openInterestChangePct")),
+            "turnover": market_flow.get("turnover", event.get("turnover")),
+        })
 
     return {
         "date": report_date,
@@ -700,7 +761,9 @@ def build_snapshot(report_date: str) -> dict[str, object]:
             "marginCacheNote": margin_source.get("note", ""),
             "trendSourceFile": trend_file.name if trend_file else "",
             "quoteSourceFile": quote_file.name if quote_file else "",
-            "quoteSource": next((str(item["quote"].get("source", "")) for item in instruments if item.get("quote")), ""),
+            "thsSourceFile": ths_file.name if ths_file.exists() else "",
+            "thsMarketCoveredCount": sum(1 for item in instruments if item.get("marketFlow")),
+            "quoteSource": f"同花顺期货通 {len(ths_markets)} 个；其余沿用当日行情源",
             "basisSourceFile": basis_file.name if basis_file else "",
             "warehouseSourceFile": warehouse_file.name if warehouse_file else "",
             "mysteelFundamentalSourceFile": mysteel_fact_file.name if mysteel_fact_file else "",
@@ -713,7 +776,7 @@ def build_snapshot(report_date: str) -> dict[str, object]:
         "sectorSummary": sector_summary,
         "tripleResonance": triples,
         "tide": build_tide(instruments),
-        "keyEvents": qhkch_overview.get("events", []) if isinstance(qhkch_overview, dict) else [],
+        "keyEvents": key_events,
         "trendResonance": build_trend_resonance(instruments),
         "brokerHighlights": build_broker_highlights(contract_rows, margin_by_symbol),
         "instruments": instruments,
@@ -781,6 +844,7 @@ def main() -> None:
             for key in (
                 "trendSourceFile",
                 "quoteSourceFile",
+                "thsSourceFile",
                 "basisSourceFile",
                 "warehouseSourceFile",
                 "mysteelFundamentalSourceFile",
