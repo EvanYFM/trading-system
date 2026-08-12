@@ -626,9 +626,9 @@ def build_snapshot(report_date: str) -> dict[str, object]:
     trend_file = current_trend_file if current_trend_file.exists() else fallback_trend_file
     trend_rows = read_csv(trend_file) if trend_file else read_csv(amount_dir / "trend_temperature_used.csv")
     trends = trend_index(trend_rows, report_date)
-    current_quote_file = ROOT / "data" / f"eastmoney_main_quotes_{report_date}.csv"
-    fallback_quote_file = latest_dated_file("eastmoney_main_quotes_*.csv", report_date)
-    quote_file = current_quote_file if current_quote_file.exists() else fallback_quote_file
+    current_quote_file = ROOT / "data" / f"sina_quhe_main_quotes_{report_date}.csv"
+    legacy_quote_file = ROOT / "data" / f"eastmoney_main_quotes_{report_date}.csv"
+    quote_file = current_quote_file if current_quote_file.exists() else legacy_quote_file if legacy_quote_file.exists() else None
     quotes = quote_index(read_csv(quote_file) if quote_file else [], report_date)
     ths_file = ROOT / "data" / f"ths_main_quotes_{report_date}.csv"
     ths_markets = ths_market_index(read_csv(ths_file), report_date)
@@ -673,7 +673,7 @@ def build_snapshot(report_date: str) -> dict[str, object]:
                 amount_row,
                 hands_by_symbol.get(symbol, {}),
                 trends.get(symbol),
-                ths_market["quote"] if ths_market else quotes.get(symbol),
+                quotes.get(symbol),
                 ths_market["marketFlow"] if ths_market else None,
                 broker_rankings.get(symbol),
                 technicals.get(symbol),
@@ -763,7 +763,7 @@ def build_snapshot(report_date: str) -> dict[str, object]:
             "quoteSourceFile": quote_file.name if quote_file else "",
             "thsSourceFile": ths_file.name if ths_file.exists() else "",
             "thsMarketCoveredCount": sum(1 for item in instruments if item.get("marketFlow")),
-            "quoteSource": f"同花顺期货通 {len(ths_markets)} 个；其余沿用当日行情源",
+            "quoteSource": "曲合期货主力行情；新浪财经主力合约日线与实时收盘校验",
             "basisSourceFile": basis_file.name if basis_file else "",
             "warehouseSourceFile": warehouse_file.name if warehouse_file else "",
             "mysteelFundamentalSourceFile": mysteel_fact_file.name if mysteel_fact_file else "",

@@ -145,7 +145,7 @@ $env:REPORT_DATE="YYYYMMDD"; python scripts/generate_option_vol_report.py
 ```powershell
 $py="C:\Users\29266\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe"
 $env:REPORT_DATE="YYYYMMDD"
-& $py scripts\fetch_eastmoney_main_quotes.py
+& $py scripts\fetch_sina_quhe_main_quotes.py
 & $py scripts\build_research_dashboard.py
 & $py -m http.server 8788 --bind 127.0.0.1 --directory output\research_dashboard
 ```
