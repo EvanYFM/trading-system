@@ -14,7 +14,7 @@ from fetch_qhk_weather_risk import fetch_weather_risk
 
 ROOT = Path(__file__).resolve().parents[1]
 RUN_DATE = os.environ.get("REPORT_DATE", datetime.now().strftime("%Y%m%d"))
-SKIP_REPORT_HTML = os.environ.get("SKIP_REPORT_HTML", "").strip().lower() in {"1", "true", "yes"}
+WRITE_REPORT_HTML = os.environ.get("WRITE_REPORT_HTML", "").strip().lower() in {"1", "true", "yes"}
 OUT_DIR = ROOT / "output" / f"institutional_seat_report_{RUN_DATE}"
 DATA_DIR = OUT_DIR / "data"
 
@@ -897,7 +897,7 @@ def main() -> None:
     weather.to_csv(DATA_DIR / "agri_weather_risk.csv", index=False, encoding="utf-8-sig")
     pd.DataFrame([weather_status]).to_csv(DATA_DIR / "agri_weather_fetch_status.csv", index=False, encoding="utf-8-sig")
 
-    if not SKIP_REPORT_HTML:
+    if WRITE_REPORT_HTML:
         html_text = build_html(rows, fetch_status, domestic, foreign, family, broker_summary, resonance, weather, weather_status)
         (OUT_DIR / "report.html").write_text(html_text, encoding="utf-8")
         print(f"report: {OUT_DIR / 'report.html'}")

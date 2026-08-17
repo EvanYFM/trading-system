@@ -15,7 +15,7 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 RUN_DATE = os.environ.get("REPORT_DATE", datetime.now().strftime("%Y%m%d"))
-SKIP_REPORT_HTML = os.environ.get("SKIP_REPORT_HTML", "").strip().lower() in {"1", "true", "yes"}
+WRITE_REPORT_HTML = os.environ.get("WRITE_REPORT_HTML", "").strip().lower() in {"1", "true", "yes"}
 OUT_DIR = ROOT / "output" / f"margin_weighted_seat_report_{RUN_DATE}"
 DATA_DIR = OUT_DIR / "data"
 MARGIN_URL = "https://qhweb.eastmoney.com/bzj/allexchange"
@@ -1413,16 +1413,16 @@ def main() -> None:
     index_rows.to_csv(DATA_DIR / "stock_index_amount_contract_rows.csv", index=False, encoding="utf-8-sig")
     index_resonance.to_csv(DATA_DIR / "stock_index_amount_resonance.csv", index=False, encoding="utf-8-sig")
 
-    if not SKIP_REPORT_HTML:
+    if WRITE_REPORT_HTML:
         html_text = build_html(rows, fetch_status, margin_status, trend_temperature, trend_status, domestic, foreign, family, broker_summary, resonance, index_resonance, position_source)
         (OUT_DIR / "report.html").write_text(html_text, encoding="utf-8")
 
     used_symbols = rows["symbol"].nunique() if not rows.empty else 0
     matched_symbols = rows.loc[~rows["margin_missing"], "symbol"].nunique() if not rows.empty else 0
-    if SKIP_REPORT_HTML:
-        print(f"data only: {DATA_DIR}")
-    else:
+    if WRITE_REPORT_HTML:
         print(f"report: {OUT_DIR / 'report.html'}")
+    else:
+        print(f"data only: {DATA_DIR}")
     print(f"rows: {len(rows)}")
     print(f"margin coverage: {matched_symbols}/{used_symbols}")
     print(f"triple resonance: {int(resonance['triple_resonance'].sum()) if not resonance.empty else 0}")

@@ -1,6 +1,6 @@
 # 期货席位资金面分析
 
-本项目用于跟踪奇货可查主要期货公司席位资金面变化，并生成每日 HTML 资金日报与主力趋势表格更新辅助文件。
+本项目用于跟踪奇货可查主要期货公司席位资金面变化，并更新本地静态研究工作站与主力趋势表格辅助文件。
 
 ## 数据来源
 
@@ -19,7 +19,7 @@
 
 席位名称以网页实际可返回持仓表的名称为准；用户简称只作为别名。原“乾坤期货”已按现名“高盛期货”处理。
 
-两份正式日报统一使用上述内资 13 家、外资 3 家、家人 9 家样本；机构专题重点观察内外资同向共振，以及家人席位反向后的三方共振。
+数据生产脚本统一使用上述内资、外资与家人样本；工作站重点观察内外资同向共振，以及家人席位反向后的三方共振。
 
 ## 当前分析口径
 
@@ -29,7 +29,7 @@
 - 日报重点输出反向共振品种、三组最强偏多/偏空品种、家人反向解读，以及强共振品种最近 5 个可用披露日的持续/反转。
 - 不再输出单席位 40% 阈值观察；EC 集运欧线因网页无持仓数据，不纳入重点持仓观察。
 - 中文交易语境下，看多/上涨/正向使用红色；看空/下跌/负向使用绿色。
-- 每日自动化暂不生成机构合并专题和保证金金额口径日报 HTML；两份脚本继续以 `SKIP_REPORT_HTML=1` 运行，作为研究工作站的结构化数据生产与对账层。只有用户明确要求时才手动生成日报 HTML。
+- 日常工作流不再生成两份日报 HTML；两份脚本默认只作为研究工作站的结构化数据生产与对账层。仅在手动诊断时设置 `WRITE_REPORT_HTML=1` 才写出旧版日报 HTML。
 - 两份日报均取消共振地图/散点象限地图；机构合并专题和保证金金额口径日报是后续主要观察版本。
 - 机构合并专题和保证金金额口径日报新增“期货资金潮汐”模块：当前无行情涨跌字段时，以资金净流入/流出 × 总持仓增/减判断资金潮汐；接入行情源后可升级为资金流入/流出 × 上涨/下跌四象限。
 - 核心品种/边际矩阵应以同一行内条形刻度、进度条等方式可视化内资、外资、家人相对变化，避免只列纯数字。
@@ -56,31 +56,31 @@
 
 Windows PowerShell 下不要使用 Bash 风格 heredoc；临时 Python 校验请使用原生 `python -c "..."`，或直接运行项目已有脚本。
 
-生成合并机构席位专题日报：
+更新机构席位数据层：
 
 ```powershell
 $env:REPORT_DATE="YYYYMMDD"; python scripts/generate_institutional_seat_report.py
 ```
 
-只更新研究工作站所需 CSV、跳过日报 HTML 时：
+手动诊断时生成旧版机构日报 HTML：
 
 ```powershell
-$env:REPORT_DATE="YYYYMMDD"; $env:SKIP_REPORT_HTML="1"; python scripts/generate_institutional_seat_report.py
+$env:REPORT_DATE="YYYYMMDD"; $env:WRITE_REPORT_HTML="1"; python scripts/generate_institutional_seat_report.py
 ```
 
 外资席位不再单独生成专题日报；机构合并专题日报统一介绍内资、外资和家人共振情况。
 旧全席位日报不再作为每日正式输出；如需临时排查旧口径，可手动运行 `scripts/generate_futures_report.py`。
 
-生成保证金金额口径席位日报：
+更新保证金金额数据层：
 
 ```powershell
 $env:REPORT_DATE="YYYYMMDD"; python scripts/generate_margin_weighted_seat_report.py
 ```
 
-只更新研究工作站所需保证金 CSV、跳过日报 HTML 时：
+手动诊断时生成旧版保证金日报 HTML：
 
 ```powershell
-$env:REPORT_DATE="YYYYMMDD"; $env:SKIP_REPORT_HTML="1"; python scripts/generate_margin_weighted_seat_report.py
+$env:REPORT_DATE="YYYYMMDD"; $env:WRITE_REPORT_HTML="1"; python scripts/generate_margin_weighted_seat_report.py
 ```
 
 生成当日趋势动物 API 快照后再生成保证金日报：
