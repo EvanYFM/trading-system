@@ -434,7 +434,9 @@ def read_cached_history(symbol: str, report_date: str) -> list[dict[str, float |
 
 
 def read_report_contracts(report_date: str) -> dict[str, dict[str, object]]:
-    path = ROOT / "data" / f"eastmoney_main_quotes_{report_date}.csv"
+    path = ROOT / "data" / f"sina_quhe_main_quotes_{report_date}.csv"
+    if not path.exists():
+        path = ROOT / "data" / f"eastmoney_main_quotes_{report_date}.csv"
     if not path.exists():
         return {}
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
@@ -451,7 +453,9 @@ def read_report_contracts(report_date: str) -> dict[str, dict[str, object]]:
 
 
 def reconcile_latest_quote(rows: list[dict[str, float | str]], symbol: str, report_date: str) -> bool:
-    path = ROOT / "data" / f"eastmoney_main_quotes_{report_date}.csv"
+    path = ROOT / "data" / f"sina_quhe_main_quotes_{report_date}.csv"
+    if not path.exists():
+        path = ROOT / "data" / f"eastmoney_main_quotes_{report_date}.csv"
     if not rows or not path.exists():
         return False
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
@@ -517,6 +521,8 @@ def build_snapshot(contract: dict[str, object], report_date: str) -> tuple[dict[
             payload = get_json(KLINE_URL, params)
         rows = parse_klines(((payload.get("data") or {}).get("klines") or []))
     except OSError:
+        rows = []
+    if not rows:
         rows = read_cached_history(str(contract["symbol"]), report_date)
         if rows:
             history_status = "CACHED_HISTORY"

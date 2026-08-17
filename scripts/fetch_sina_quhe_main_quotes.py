@@ -21,6 +21,7 @@ ALIASES = {
     "PG": "液化石油气", "SM": "锰硅", "OI": "菜籽油", "LU": "低硫燃料油",
     "RM": "菜籽粕（菜粕）", "RU": "橡胶",
 }
+CONTRACT_OVERRIDES = {"JM": "JM2701"}
 
 
 def fetch_text(url: str, referer: str = QUHE_PAGE) -> str:
@@ -56,6 +57,10 @@ def normalize_contract(contract: str) -> str:
     return f"{match.group(1)}2{match.group(2)}" if match else contract
 
 
+def report_contract(symbol: str, contract: str) -> str:
+    return CONTRACT_OVERRIDES.get(symbol.upper(), contract)
+
+
 def sina_realtime(contract: str) -> dict[str, object]:
     symbol = normalize_contract(contract).upper()
     text = fetch_text(f"https://hq.sinajs.cn/list=nf_{symbol}", "https://finance.sina.com.cn/futuremarket/")
@@ -80,7 +85,10 @@ def report_contracts(report_date: str) -> list[dict[str, str]]:
         {
             "symbol": row["symbol"].upper(),
             "variety": row["variety"],
-            "contract": row.get("domestic_margin_contract") or row.get("foreign_margin_contract") or row.get("family_margin_contract") or "",
+            "contract": report_contract(
+                row["symbol"],
+                row.get("domestic_margin_contract") or row.get("foreign_margin_contract") or row.get("family_margin_contract") or "",
+            ),
         }
         for row in rows
         if row.get("symbol")
@@ -114,26 +122,28 @@ def build(report_date: str) -> list[dict[str, object]]:
         close = float(quhe.get("q63", 0) or 0)
         sina_close = float(sina.get("close", 0) or 0)
         agreed = bool(close and sina_close and quhe_date == iso_date and abs(close - sina_close) <= max(0.01, abs(close) * 0.0002))
-        use_quhe = bool(close and quhe_date == iso_date)
-        fallback_ok = bool(realtime.get("close") and realtime.get("date") == iso_date)
+        use_quhe = bool(close and quhe_date == iso_date and symbol not in CONTRACT_OVERRIDES)
+        use_realtime = bool(realtime.get("close") and realtime.get("date") == iso_date)
+        fallback = realtime if use_realtime else sina if sina.get("close") and sina.get("date") == iso_date else {}
+        fallback_ok = bool(fallback)
         output.append(
             {
                 **contract,
                 "contract": str(quhe.get("showCode", "")) if use_quhe else normalize_contract(contract["contract"]),
                 "market": "",
-                "source_date": quhe_date if use_quhe else realtime.get("date", ""),
-                "open": quhe.get("q1", "") if use_quhe else realtime.get("open", ""),
-                "high": quhe.get("q3", "") if use_quhe else realtime.get("high", ""),
-                "low": quhe.get("q4", "") if use_quhe else realtime.get("low", ""),
-                "close": close if use_quhe else realtime.get("close", ""),
-                "change_pct": quhe.get("q80", "") if use_quhe else realtime.get("change_pct", ""),
-                "change_amount": quhe.get("q70", "") if use_quhe else realtime.get("change_amount", ""),
-                "volume": quhe.get("q60", "") if use_quhe else realtime.get("volume", ""),
-                "turnover": quhe.get("q61", ""),
+                "source_date": quhe_date if use_quhe else fallback.get("date", ""),
+                "open": quhe.get("q1", "") if use_quhe else fallback.get("open", ""),
+                "high": quhe.get("q3", "") if use_quhe else fallback.get("high", ""),
+                "low": quhe.get("q4", "") if use_quhe else fallback.get("low", ""),
+                "close": close if use_quhe else fallback.get("close", ""),
+                "change_pct": quhe.get("q80", "") if use_quhe else fallback.get("change_pct", ""),
+                "change_amount": quhe.get("q70", "") if use_quhe else fallback.get("change_amount", ""),
+                "volume": quhe.get("q60", "") if use_quhe else fallback.get("volume", ""),
+                "turnover": quhe.get("q61", "") if use_quhe else fallback.get("turnover", ""),
                 "amplitude_pct": "",
-                "source": "曲合期货主力行情（涨跌按前结算）" if use_quhe else "新浪财经主力合约实时收盘（涨跌按前结算）",
+                "source": "曲合期货主力行情（涨跌按前结算）" if use_quhe else "新浪财经主力合约实时收盘（涨跌按前结算）" if use_realtime else "新浪财经主力合约日线（涨跌按前收盘）",
                 "source_url": QUHE_PAGE if use_quhe else "https://finance.sina.com.cn/futuremarket/",
-                "validation_status": "SINA_CLOSE_AGREES" if agreed else "QUHE_MAIN_DIFFERS_FROM_SEAT_CONTRACT" if use_quhe else "SINA_ONLY",
+                "validation_status": "SINA_CLOSE_AGREES" if use_quhe and agreed else "QUHE_MAIN_DIFFERS_FROM_SEAT_CONTRACT" if use_quhe else "SINA_REALTIME" if use_realtime else "SINA_DAILY",
                 "sina_close": sina_close or "",
                 "quhe_code": code or "",
                 "status": "OK" if use_quhe or fallback_ok else "MISSING_OR_CONFLICT",

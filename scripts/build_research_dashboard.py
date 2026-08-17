@@ -653,7 +653,8 @@ def build_snapshot(report_date: str) -> dict[str, object]:
     broker_rankings = build_broker_rankings(
         full_position_rows or contract_rows,
         {
-            row.get("symbol", "").upper(): row.get("domestic_margin_contract", "")
+            row.get("symbol", "").upper(): quotes.get(row.get("symbol", "").upper(), {}).get("contract")
+            or row.get("domestic_margin_contract", "")
             for row in amount_rows
             if row.get("symbol")
         },
@@ -667,7 +668,8 @@ def build_snapshot(report_date: str) -> dict[str, object]:
         symbol = amount_row.get("symbol", "").upper()
         if not symbol or symbol in EXCLUDED_SYMBOLS:
             continue
-        ths_market = ths_markets.get((symbol, normalize_contract(amount_row.get("domestic_margin_contract", ""))))
+        ths_contract = quotes.get(symbol, {}).get("contract") or amount_row.get("domestic_margin_contract", "")
+        ths_market = ths_markets.get((symbol, normalize_contract(ths_contract)))
         instruments.append(
             build_instrument(
                 amount_row,
