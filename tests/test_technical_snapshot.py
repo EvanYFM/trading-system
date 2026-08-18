@@ -1,4 +1,6 @@
+import csv
 import sys
+import tempfile
 import unittest
 from datetime import datetime
 from pathlib import Path
@@ -18,6 +20,7 @@ from fetch_eastmoney_technical_snapshot import (  # noqa: E402
     momentum_pct,
     parse_sina_daily_payload,
     recent_central_zone,
+    read_report_contracts,
     session_activity,
 )
 
@@ -29,6 +32,25 @@ def point(index, kind, price):
 class TechnicalSnapshotTests(unittest.TestCase):
     def test_default_coverage_symbols(self):
         self.assertEqual(DEFAULT_SYMBOLS, ("AG", "JM", "FU", "LH", "LC", "JD"))
+
+    def test_report_contracts_ignore_generic_main_codes(self):
+        import fetch_eastmoney_technical_snapshot as module
+
+        with tempfile.TemporaryDirectory() as temporary:
+            original_root = module.ROOT
+            module.ROOT = Path(temporary)
+            try:
+                data_dir = module.ROOT / "data"
+                data_dir.mkdir()
+                path = data_dir / "sina_quhe_main_quotes_20260818.csv"
+                with path.open("w", encoding="utf-8-sig", newline="") as handle:
+                    writer = csv.DictWriter(handle, fieldnames=("symbol", "variety", "contract", "market", "status"))
+                    writer.writeheader()
+                    writer.writerow({"symbol": "AG", "variety": "沪银", "contract": "agm", "market": 113, "status": "OK"})
+                    writer.writerow({"symbol": "JM", "variety": "焦煤", "contract": "JM2701", "market": 114, "status": "OK"})
+                self.assertEqual(tuple(read_report_contracts("20260818")), ("JM",))
+            finally:
+                module.ROOT = original_root
 
     def test_sina_daily_history_is_cut_off_and_calculates_change(self):
         payload = 'x=([{"d":"2026-07-16","o":"100","h":"105","l":"99","c":"102","v":"8"},{"d":"2026-07-17","o":"102","h":"106","l":"101","c":"104","v":"9"},{"d":"2026-07-20","o":"104","h":"108","l":"103","c":"107","v":"10"}]);'

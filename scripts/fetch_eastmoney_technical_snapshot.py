@@ -448,7 +448,10 @@ def read_report_contracts(report_date: str) -> dict[str, dict[str, object]]:
                 "market": int(value(row.get("market"))),
             }
             for row in csv.DictReader(handle)
-            if row.get("symbol") and row.get("contract") and row.get("status") == "OK"
+            if row.get("symbol")
+            and row.get("contract")
+            and any(char.isdigit() for char in row["contract"])
+            and row.get("status") == "OK"
         }
 
 
