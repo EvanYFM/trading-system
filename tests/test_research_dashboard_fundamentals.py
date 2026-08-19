@@ -74,6 +74,25 @@ class ResearchDashboardFundamentalTests(unittest.TestCase):
         self.assertEqual(-36972, exact["marketFlow"]["openInterestChange"])
         self.assertEqual({}, dashboard.ths_market_index([{**rows[0], "source_date": "2026-08-11"}], "20260812"))
 
+    def test_ths_market_snapshot_allows_unique_contract_for_generic_main_code(self):
+        rows = [{
+            "symbol": "JM", "contract": "jm2701", "status": "OK", "source_date": "2026-08-19",
+            "close": "1586.5", "change_pct": "3.46", "capital_flow": "1436000000",
+        }]
+        markets = dashboard.ths_market_index(rows, "20260819")
+        selected = dashboard.select_ths_market(markets, "JM", "jmm")
+        self.assertEqual(1586.5, selected["quote"]["close"])
+        self.assertIsNone(dashboard.select_ths_market(markets, "JM", "jm2609"))
+
+    def test_user_screenshot_can_replace_stale_specific_contract(self):
+        rows = [{
+            "symbol": "AL", "contract": "al2610", "status": "OK", "source_date": "2026-08-19",
+            "close": "23675", "change_pct": "-1.07", "source": "同花顺期货通截图",
+        }]
+        markets = dashboard.ths_market_index(rows, "20260819")
+        selected = dashboard.select_ths_market(markets, "AL", "al2609")
+        self.assertEqual("al2610", selected["quote"]["contract"])
+
     def test_detail_header_uses_ths_market_flow_not_three_party_money(self):
         app = (ROOT / "web" / "research_dashboard" / "app.js").read_text(encoding="utf-8")
         self.assertIn("<small>资金流向</small>", app)

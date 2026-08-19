@@ -241,6 +241,19 @@ def ths_market_index(rows: list[dict[str, str]], report_date: str) -> dict[tuple
     return indexed
 
 
+def select_ths_market(
+    markets: dict[tuple[str, str], dict[str, object]], symbol: str, contract: str
+) -> dict[str, object] | None:
+    exact = markets.get((symbol, normalize_contract(contract)))
+    if exact:
+        return exact
+    candidates = [market for (market_symbol, _), market in markets.items() if market_symbol == symbol]
+    if len(candidates) != 1:
+        return None
+    source = str(candidates[0].get("quote", {}).get("source", ""))
+    return candidates[0] if re.fullmatch(r"[a-z]+m", contract.strip().lower()) or source == "同花顺期货通截图" else None
+
+
 def technical_index(payload: dict[str, object]) -> dict[str, dict[str, object]]:
     indexed: dict[str, dict[str, object]] = {}
     for item in payload.get("items", []):
@@ -650,10 +663,20 @@ def build_snapshot(report_date: str) -> dict[str, object]:
     full_position_rows = read_csv(ROOT / "data" / f"qhkch_main_position_rows_{report_date}.csv")
     for row in full_position_rows:
         row["group"] = broker_groups.get(row.get("broker", ""), "内资")
+    contracts_by_symbol: dict[str, set[str]] = defaultdict(set)
+    for row in full_position_rows:
+        if row.get("symbol") and row.get("contract"):
+            contracts_by_symbol[row["symbol"].upper()].add(row["contract"])
+    position_contracts = {
+        symbol: next(iter(contracts))
+        for symbol, contracts in contracts_by_symbol.items()
+        if len(contracts) == 1
+    }
     broker_rankings = build_broker_rankings(
         full_position_rows or contract_rows,
         {
-            row.get("symbol", "").upper(): quotes.get(row.get("symbol", "").upper(), {}).get("contract")
+            row.get("symbol", "").upper(): position_contracts.get(row.get("symbol", "").upper())
+            or quotes.get(row.get("symbol", "").upper(), {}).get("contract")
             or row.get("domestic_margin_contract", "")
             for row in amount_rows
             if row.get("symbol")
@@ -669,13 +692,13 @@ def build_snapshot(report_date: str) -> dict[str, object]:
         if not symbol or symbol in EXCLUDED_SYMBOLS:
             continue
         ths_contract = quotes.get(symbol, {}).get("contract") or amount_row.get("domestic_margin_contract", "")
-        ths_market = ths_markets.get((symbol, normalize_contract(ths_contract)))
+        ths_market = select_ths_market(ths_markets, symbol, str(ths_contract))
         instruments.append(
             build_instrument(
                 amount_row,
                 hands_by_symbol.get(symbol, {}),
                 trends.get(symbol),
-                quotes.get(symbol),
+                ths_market["quote"] if ths_market else quotes.get(symbol),
                 ths_market["marketFlow"] if ths_market else None,
                 broker_rankings.get(symbol),
                 technicals.get(symbol),
