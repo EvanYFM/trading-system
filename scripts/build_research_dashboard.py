@@ -17,8 +17,15 @@ TARGET_DIR = OUTPUT_ROOT / "research_dashboard"
 SNAPSHOT_DIR = TARGET_DIR / "data" / "snapshots"
 FUNDAMENTAL_SOURCE_CONFIG = ROOT / "config" / "fundamental_sources.json"
 DATE_RE = re.compile(r"(\d{8})$")
-EXCLUDED_SYMBOLS = {"IC", "IF", "IH", "IM", "T", "TF", "TL", "TS", "CS"}
-SECTOR_OVERRIDES = {"LU": "油化工", "PR": "油化工", "NR": "农副软商"}
+EXCLUDED_SYMBOLS = {
+    "IC", "IF", "IH", "IM", "T", "TF", "TL", "TS", "CS",
+    "AD", "PL", "RR", "CY", "OP", "RS",
+}
+SECTOR_OVERRIDES = {
+    "LU": "油化工", "PR": "油化工", "NR": "农副软商",
+    "PS": "家人品种", "SP": "家人品种",
+}
+ANALYSIS_SECTORS = {"贵金属", "有色金属", "家人品种", "黑色系", "油化工", "谷物饲料", "油脂油料", "农副软商"}
 WATCHLIST_SYMBOLS = {"AU", "AG", "SN", "LC", "FU", "JM", "I", "FG", "SA", "AO", "SH", "M", "JD", "LH", "P", "RU"}
 ACTIVE_TEMPERATURES = {"温", "热", "沸", "凉", "寒", "冻"}
 BEIJING = ZoneInfo("Asia/Shanghai")
@@ -689,7 +696,8 @@ def build_snapshot(report_date: str) -> dict[str, object]:
     instruments = []
     for amount_row in amount_rows:
         symbol = amount_row.get("symbol", "").upper()
-        if not symbol or symbol in EXCLUDED_SYMBOLS:
+        sector = SECTOR_OVERRIDES.get(symbol, amount_row.get("sector", ""))
+        if not symbol or symbol in EXCLUDED_SYMBOLS or sector not in ANALYSIS_SECTORS:
             continue
         ths_contract = quotes.get(symbol, {}).get("contract") or amount_row.get("domestic_margin_contract", "")
         ths_market = select_ths_market(ths_markets, symbol, str(ths_contract))

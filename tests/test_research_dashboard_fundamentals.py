@@ -233,6 +233,14 @@ class ResearchDashboardFundamentalTests(unittest.TestCase):
         self.assertNotIn("三组存量与今日边际", app)
         self.assertNotIn("样本席位净持仓前五", app)
 
+    def test_workstation_universe_excludes_retired_symbols_and_has_no_other_sector(self):
+        self.assertTrue({"AD", "PL", "RR", "CY", "OP", "RS"} <= dashboard.EXCLUDED_SYMBOLS)
+        self.assertEqual("家人品种", dashboard.SECTOR_OVERRIDES["PS"])
+        self.assertEqual("家人品种", dashboard.SECTOR_OVERRIDES["SP"])
+        self.assertNotIn("其他商品", dashboard.ANALYSIS_SECTORS)
+        self.assertTrue({"PS", "SP"} <= futures_report.FAMILY_SECTOR_SYMBOLS)
+        self.assertNotIn("其他商品", futures_report.SECTOR_ORDER)
+
     def test_broker_rankings_keep_action_components(self):
         rankings = dashboard.build_broker_rankings([{
             "symbol": "I", "contract": "i2609", "broker": "国泰君安", "group": "内资",

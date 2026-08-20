@@ -55,7 +55,7 @@ OPENVLAB_BASE = "https://www.openvlab.cn/chart/light/"
 
 EXCLUDED_FINANCIAL_SYMBOLS = {"IC", "IF", "IH", "IM", "T", "TF", "TL", "TS"}
 EXCLUDED_EXTERNAL_SYMBOLS = {"GCOW", "SIOW", "BRNOW", "CLO", "CLOY"}
-EXCLUDED_THIN_SYMBOLS = {"CS"}
+EXCLUDED_THIN_SYMBOLS = {"CS", "AD", "PL", "RR", "CY", "OP", "RS"}
 
 SECTOR_ORDER = [
     "贵金属",
@@ -66,10 +66,9 @@ SECTOR_ORDER = [
     "谷物饲料",
     "油脂油料",
     "农副软商",
-    "其他商品",
 ]
 
-FAMILY_SECTOR_SYMBOLS = {"FG", "SA", "AO", "SH"}
+FAMILY_SECTOR_SYMBOLS = {"FG", "SA", "AO", "SH", "PS", "SP"}
 SECTOR_BY_SYMBOL = {
     "AU": "贵金属",
     "AG": "贵金属",
