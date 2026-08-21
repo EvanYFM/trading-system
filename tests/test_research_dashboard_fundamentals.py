@@ -194,6 +194,7 @@ class ResearchDashboardFundamentalTests(unittest.TestCase):
             }
             self.assertNotIn("中信期货", values["DOMESTIC_BROKERS"])
             self.assertNotIn("光大期货", values["DOMESTIC_BROKERS"])
+            self.assertTrue({"大地期货", "宝城期货"} <= set(values["DOMESTIC_BROKERS"]))
             self.assertTrue({"中信期货", "光大期货", "招商期货"} <= set(values["FAMILY_BROKERS"]))
         self.assertEqual("亏损机构（特殊）", dashboard.broker_display_group("中信期货", "家人"))
         self.assertEqual("家人", dashboard.broker_display_group("光大期货", "家人"))
