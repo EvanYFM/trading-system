@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import math
 import statistics
@@ -13,6 +14,7 @@ SNAPSHOT_DIR = ROOT / "output" / "research_dashboard" / "data" / "snapshots"
 OUTPUT_DIR = ROOT / "output" / "cta_factor_demo"
 EXCLUDED = {"IC", "IF", "IH", "IM", "T", "TF", "TL", "TS", "CS", "AD", "PL", "RR", "CY", "OP", "RS"}
 WEIGHTS = {"trend": 0.40, "seat": 0.35, "position": 0.15, "carry": 0.10}
+LOSS_BROKERS = {"中信期货"}
 
 
 def clamp(value: float, low: float = -1.0, high: float = 1.0) -> float:
@@ -67,7 +69,45 @@ def load_snapshots(report_date: str | None) -> list[dict]:
     return [json.loads(path.read_text(encoding="utf-8")) for path in files]
 
 
-def build_rows(snapshots: list[dict]) -> list[dict]:
+def load_loss_rows(report_date: str) -> dict[str, dict[str, float]]:
+    path = ROOT / "data" / f"qhkch_main_position_rows_{report_date}.csv"
+    if not path.exists():
+        return {}
+    result: dict[str, dict[str, float]] = {}
+    with path.open(encoding="utf-8-sig", newline="") as handle:
+        for row in csv.DictReader(handle):
+            if row.get("broker") not in LOSS_BROKERS:
+                continue
+            item = result.setdefault(row["symbol"], {"net": 0.0, "flow": 0.0})
+            item["net"] += float(row.get("net_pos") or 0)
+            item["flow"] += float(row.get("flow_score") or 0)
+    return result
+
+
+def seat_components(item: dict, loss_rows: dict[str, dict[str, float]]) -> tuple[dict[str, float], dict[str, float]]:
+    groups = item.get("groups") or {}
+    loss = loss_rows.get(item["symbol"], {})
+    family = groups.get("family") or {}
+    stock = {
+        "机构": float((groups.get("domestic") or {}).get("netPosition") or 0),
+        "外资": float((groups.get("foreign") or {}).get("netPosition") or 0),
+        "家人反向": -(float(family.get("netPosition") or 0) - float(loss.get("net") or 0)),
+        "亏损机构反向": -float(loss.get("net") or 0),
+    }
+    flow = {
+        "机构": float((groups.get("domestic") or {}).get("hands") or 0),
+        "外资": float((groups.get("foreign") or {}).get("hands") or 0),
+        "家人反向": -(float(family.get("hands") or 0) - float(loss.get("flow") or 0)),
+        "亏损机构反向": -float(loss.get("flow") or 0),
+    }
+    return stock, flow
+
+
+def component_text(parts: dict[str, float]) -> str:
+    return " / ".join(f"{name} {value:+,.0f}" for name, value in parts.items())
+
+
+def build_rows(snapshots: list[dict], loss_rows: dict[str, dict[str, float]]) -> list[dict]:
     latest = snapshots[-1]
     history: dict[str, list[float]] = {}
     for snapshot in snapshots:
@@ -77,7 +117,15 @@ def build_rows(snapshots: list[dict]) -> list[dict]:
                 history.setdefault(item["symbol"], []).append(float(close))
 
     instruments = [item for item in latest.get("instruments", []) if item.get("symbol") not in EXCLUDED]
-    amount_peers = [float(item.get("amountSignal") or 0) for item in instruments]
+    components = {item["symbol"]: seat_components(item, loss_rows) for item in instruments}
+    stock_amounts = {
+        item["symbol"]: sum(components[item["symbol"]][0].values()) * float((item.get("margin") or {}).get("perLot") or 0)
+        for item in instruments
+    }
+    flow_amounts = {
+        item["symbol"]: sum(components[item["symbol"]][1].values()) * float((item.get("margin") or {}).get("perLot") or 0)
+        for item in instruments
+    }
     rows: list[dict] = []
     for item in instruments:
         symbol = item["symbol"]
@@ -90,17 +138,16 @@ def build_rows(snapshots: list[dict]) -> list[dict]:
             trend_parts.append(math.tanh(ret20 / 0.10))
         trend = sum(trend_parts) / len(trend_parts) if trend_parts else None
 
-        amount = float(item.get("amountSignal") or 0)
-        seat = signed_rank(amount, amount_peers)
+        stock_parts, flow_parts = components[symbol]
+        stock_amount = stock_amounts[symbol]
+        flow_amount = flow_amounts[symbol]
+        seat = signed_rank(stock_amount, list(stock_amounts.values()))
         if (item.get("resonance") or {}).get("triple"):
-            seat = clamp(seat + math.copysign(0.12, amount))
+            seat = clamp(seat + math.copysign(0.12, stock_amount))
 
         change_pct = float((item.get("quote") or {}).get("changePct") or 0)
-        position_change = float(item.get("totalPositionChange") or 0)
-        if change_pct and position_change:
-            position = math.copysign(1.0 if position_change > 0 else 0.45, change_pct)
-        else:
-            position = None
+        position_change = sum(flow_parts.values())
+        position = signed_rank(flow_amount, list(flow_amounts.values())) if flow_amount else None
 
         carry, carry_evidence = carry_factor(item.get("fundamentals") or {})
         factors = {"trend": trend, "seat": seat, "position": position, "carry": carry}
@@ -129,14 +176,14 @@ def build_rows(snapshots: list[dict]) -> list[dict]:
             "coverage": round(100 * denominator / sum(WEIGHTS.values())),
             "close": (item.get("quote") or {}).get("close"),
             "changePct": change_pct,
-            "amountSignal": amount,
+            "amountSignal": flow_amount,
             "positionChange": position_change,
             "volatility": round(vol * 100, 1) if vol is not None else None,
             "factors": {name: None if value is None else round(value * 100) for name, value in factors.items()},
             "evidence": {
                 "trend": f"5日 {ret5 * 100:+.1f}% / 20日 {ret20 * 100:+.1f}%" if ret5 is not None and ret20 is not None else "历史不足",
-                "seat": f"样本席位净保证金 {amount / 1e8:+.2f} 亿",
-                "position": f"当日涨跌 {change_pct:+.2f}% / 席位净变动 {position_change:+,.0f} 手" if position is not None else "当日席位增减仓不足",
+                "seat": f"合成存量 {stock_amount / 1e8:+.2f} 亿；{component_text(stock_parts)}",
+                "position": f"合成边际 {flow_amount / 1e8:+.2f} 亿；{component_text(flow_parts)}" if position is not None else "当日席位增减仓不足",
                 "carry": "；".join(carry_evidence) or "基差/仓单不足",
             },
         })
@@ -179,7 +226,7 @@ footer{{max-width:1180px;margin:0 auto 24px;padding:0 22px;color:var(--muted);fo
 <aside class="panel detail"><h2>因子拆解</h2><div class="detail-body" id="detail"></div></aside></div></main>
 <footer>Demo 评分不是回测后的交易策略。奇货可查提供席位/保证金事实；价格、基差与仓单沿用工作站已核验底表。交易可查当前公开页为动态前端，本版未取得可复算字段。8 月 20 日同花顺资金流缺失，未沿用旧日数据。</footer>
 <script>const DATA={payload};
-const labels={{trend:'量价趋势',seat:'席位资金',position:'席位增减仓',carry:'基差与仓单'}};
+const labels={{trend:'量价趋势',seat:'席位存量',position:'席位边际',carry:'基差与仓单'}};
 const rank=document.querySelector('#rank'),detail=document.querySelector('#detail');let selected=DATA[0]?.symbol;
 function tone(v){{return v>0?'bull':v<0?'bear':''}}function fmt(v,d=0){{return Number(v).toLocaleString('zh-CN',{{maximumFractionDigits:d}})}}
 function bar(v){{if(v==null)return '<div class="bar"></div>';const left=v<0?50+v/2:50,width=Math.abs(v)/2;return `<div class="bar"><i style="left:${{left}}%;width:${{width}}%;background:${{v>=0?'var(--bull)':'var(--bear)'}}"></i></div>`}}
@@ -194,9 +241,10 @@ def main() -> None:
     args = parser.parse_args()
     snapshots = load_snapshots(args.date)
     report_date = snapshots[-1]["date"]
-    rows = build_rows(snapshots)
+    rows = build_rows(snapshots, load_loss_rows(report_date))
     assert rows and all(-100 <= row["score"] <= 100 for row in rows)
     assert not ({row["symbol"] for row in rows} & EXCLUDED)
+    assert all("亏损机构反向" in row["evidence"]["seat"] for row in rows)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     target = OUTPUT_DIR / "index.html"
     target.write_text(render_html(report_date, rows), encoding="utf-8")
