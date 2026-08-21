@@ -15,6 +15,7 @@ OUTPUT_DIR = ROOT / "output" / "cta_factor_demo"
 EXCLUDED = {"IC", "IF", "IH", "IM", "T", "TF", "TL", "TS", "CS", "AD", "PL", "RR", "CY", "OP", "RS"}
 WEIGHTS = {"trend": 0.40, "seat": 0.35, "position": 0.15, "carry": 0.10}
 LOSS_BROKERS = {"中信期货"}
+RELATIVE_STRENGTH_SECTORS = {"家人品种", "有色金属", "油化工", "谷物饲料", "贵金属", "黑色系"}
 
 
 def clamp(value: float, low: float = -1.0, high: float = 1.0) -> float:
@@ -191,6 +192,13 @@ def build_rows(snapshots: list[dict], loss_rows: dict[str, dict[str, float]]) ->
 
 
 def render_html(report_date: str, rows: list[dict]) -> str:
+    for sector in RELATIVE_STRENGTH_SECTORS:
+        peers = [row for row in rows if row["sector"] == sector]
+        if not peers:
+            continue
+        max(peers, key=lambda row: row["score"])["relative_strength"] = "板块最强"
+        if len(peers) > 1:
+            min(peers, key=lambda row: row["score"])["relative_strength"] = "板块最弱"
     payload = json.dumps(rows, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     sectors = sorted({row["sector"] for row in rows})
     options = "".join(f'<option value="{escape(sector)}">{escape(sector)}</option>' for sector in sectors)
@@ -210,6 +218,7 @@ input,select{{width:100%;min-height:42px;padding:8px 12px;border:1px solid var(-
 .panel{{background:var(--paper);border:1px solid var(--line)}}.panel h2{{margin:0;padding:15px 17px;border-bottom:2px solid var(--ink);font-size:18px}}
 .rank-head,.rank-row{{display:grid;grid-template-columns:46px minmax(130px,1fr) 90px 86px 78px;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #e2e7ec}}
 .rank-head{{color:var(--muted);font-size:12px;background:#f5f7f8}}.rank-row{{cursor:pointer}}.rank-row:hover,.rank-row.active{{background:#f3f6f8}}.rank-row strong{{font-size:15px}}
+.relative-badge{{display:inline-block;margin-left:6px;padding:1px 4px;border:1px solid currentColor;border-radius:2px;font-size:10px;font-weight:700;vertical-align:2px;white-space:nowrap}}
 .score{{font-size:22px;font-weight:800;text-align:right;font-variant-numeric:tabular-nums}}.bar{{height:6px;background:#e7ecef}}.bar i{{display:block;height:100%}}
 .detail{{position:sticky;top:12px;align-self:start}}.detail-body{{padding:17px}}.detail-title{{display:flex;justify-content:space-between;align-items:end;border-bottom:1px solid var(--line);padding-bottom:14px}}
 .detail-title h3{{margin:0;font-size:25px}}.detail-title b{{font-size:34px}}.factor{{padding:13px 0;border-bottom:1px solid #e2e7ec}}.factor-top{{display:flex;justify-content:space-between;font-weight:700}}
@@ -231,7 +240,7 @@ const rank=document.querySelector('#rank'),detail=document.querySelector('#detai
 function tone(v){{return v>0?'bull':v<0?'bear':''}}function fmt(v,d=0){{return Number(v).toLocaleString('zh-CN',{{maximumFractionDigits:d}})}}
 function bar(v){{if(v==null)return '<div class="bar"></div>';const left=v<0?50+v/2:50,width=Math.abs(v)/2;return `<div class="bar"><i style="left:${{left}}%;width:${{width}}%;background:${{v>=0?'var(--bull)':'var(--bear)'}}"></i></div>`}}
 function showDetail(row){{if(!row)return;selected=row.symbol;document.querySelectorAll('.rank-row').forEach(el=>el.classList.toggle('active',el.dataset.symbol===selected));detail.innerHTML=`<div class="detail-title"><div><h3>${{row.variety}} <small>${{row.symbol}}</small></h3><span class="muted">${{row.sector}} · 年化波动 ${{row.volatility??'—'}}%</span></div><b class="${{tone(row.score)}}">${{row.score>0?'+':''}}${{row.score}}</b></div>${{Object.entries(labels).map(([key,label])=>`<div class="factor"><div class="factor-top"><span>${{label}}</span><span class="${{tone(row.factors[key])}}">${{row.factors[key]==null?'未覆盖':(row.factors[key]>0?'+':'')+row.factors[key]}}</span></div>${{bar(row.factors[key])}}<p>${{row.evidence[key]}}</p></div>`).join('')}}<div class="source"><b>解释边界</b><br>可用因子覆盖 ${{row.coverage}}%。分数按可用权重重算，缺失不等于中性；波动率只作风险标签，不决定方向。</div>`}}
-function render(){{const q=document.querySelector('#search').value.trim().toLowerCase(),sector=document.querySelector('#sector').value,direction=document.querySelector('#direction').value;const rows=DATA.filter(r=>(!q||(r.variety+r.symbol).toLowerCase().includes(q))&&(!sector||r.sector===sector)&&(!direction||r.signal===direction));rank.innerHTML=rows.map((r,i)=>`<div class="rank-row ${{r.symbol===selected?'active':''}}" data-symbol="${{r.symbol}}"><span>${{i+1}}</span><span><strong>${{r.variety}}</strong> <small>${{r.symbol}}</small>${{bar(r.score)}}</span><span class="score ${{tone(r.score)}}">${{r.score>0?'+':''}}${{r.score}}</span><span class="coverage">${{r.coverage}}%</span><span class="${{tone(r.score)}}">${{r.signal}}</span></div>`).join('')||'<p class="muted" style="padding:20px">没有匹配品种</p>';document.querySelectorAll('.rank-row').forEach(el=>el.onclick=()=>showDetail(DATA.find(r=>r.symbol===el.dataset.symbol)));const bull=rows.filter(r=>r.score>=15).length,bear=rows.filter(r=>r.score<=-15).length,flat=rows.length-bull-bear;bullCount.textContent=bull;bearCount.textContent=bear;flatCount.textContent=flat;coverage.textContent=(rows.length?Math.round(rows.reduce((s,r)=>s+r.coverage,0)/rows.length):0)+'%';marketRead.textContent=bull>bear?'多头占优':bear>bull?'空头占优':'多空均衡';marketRead.className=bull>bear?'bull':bear>bull?'bear':'';showDetail(rows.find(r=>r.symbol===selected)||rows[0])}}
+function render(){{const q=document.querySelector('#search').value.trim().toLowerCase(),sector=document.querySelector('#sector').value,direction=document.querySelector('#direction').value;const rows=DATA.filter(r=>(!q||(r.variety+r.symbol).toLowerCase().includes(q))&&(!sector||r.sector===sector)&&(!direction||r.signal===direction));rank.innerHTML=rows.map((r,i)=>`<div class="rank-row ${{r.symbol===selected?'active':''}}" data-symbol="${{r.symbol}}"><span>${{i+1}}</span><span><strong>${{r.variety}}</strong>${{r.relative_strength?`<em class="relative-badge ${{r.relative_strength==='板块最强'?'bull':'bear'}}">${{r.relative_strength}}</em>`:''}} <small>${{r.symbol}}</small>${{bar(r.score)}}</span><span class="score ${{tone(r.score)}}">${{r.score>0?'+':''}}${{r.score}}</span><span class="coverage">${{r.coverage}}%</span><span class="${{tone(r.score)}}">${{r.signal}}</span></div>`).join('')||'<p class="muted" style="padding:20px">没有匹配品种</p>';document.querySelectorAll('.rank-row').forEach(el=>el.onclick=()=>showDetail(DATA.find(r=>r.symbol===el.dataset.symbol)));const bull=rows.filter(r=>r.score>=15).length,bear=rows.filter(r=>r.score<=-15).length,flat=rows.length-bull-bear;bullCount.textContent=bull;bearCount.textContent=bear;flatCount.textContent=flat;coverage.textContent=(rows.length?Math.round(rows.reduce((s,r)=>s+r.coverage,0)/rows.length):0)+'%';marketRead.textContent=bull>bear?'多头占优':bear>bull?'空头占优':'多空均衡';marketRead.className=bull>bear?'bull':bear>bull?'bear':'';showDetail(rows.find(r=>r.symbol===selected)||rows[0])}}
 document.querySelectorAll('.toolbar input,.toolbar select').forEach(el=>el.addEventListener('input',render));render();</script></body></html>"""
 
 
@@ -248,6 +257,9 @@ def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     target = OUTPUT_DIR / "index.html"
     target.write_text(render_html(report_date, rows), encoding="utf-8")
+    marked = [row for row in rows if row.get("relative_strength")]
+    assert len(marked) == 2 * len(RELATIVE_STRENGTH_SECTORS)
+    assert not any(row.get("relative_strength") for row in rows if row["sector"] not in RELATIVE_STRENGTH_SECTORS)
     assert target.stat().st_size > 20_000 and f"CTA 因子评分 Demo" in target.read_text(encoding="utf-8")
     print(target)
 
