@@ -13,9 +13,9 @@ ROOT = Path(__file__).resolve().parents[1]
 SNAPSHOT_DIR = ROOT / "output" / "research_dashboard" / "data" / "snapshots"
 OUTPUT_DIR = ROOT / "output" / "cta_factor_demo"
 EXCLUDED = {"IC", "IF", "IH", "IM", "T", "TF", "TL", "TS", "CS", "AD", "PL", "RR", "CY", "OP", "RS"}
-WEIGHTS = {"trend": 0.40, "seat": 0.35, "position": 0.15, "carry": 0.10}
+WEIGHTS = {"trend": 0.36, "seat": 0.315, "position": 0.135, "carry": 0.09, "option": 0.10}
 LOSS_BROKERS = {"中信期货"}
-RELATIVE_STRENGTH_SECTORS = {"家人品种", "有色金属", "油化工", "谷物饲料", "贵金属", "黑色系"}
+RELATIVE_STRENGTH_SECTORS = {"家人品种", "有色金属", "油化工", "谷物饲料", "黑色系"}
 
 
 def clamp(value: float, low: float = -1.0, high: float = 1.0) -> float:
@@ -85,6 +85,26 @@ def load_loss_rows(report_date: str) -> dict[str, dict[str, float]]:
     return result
 
 
+def load_option_rows(report_date: str) -> dict[str, dict[str, str]]:
+    path = ROOT / "data" / f"openvlab_option_factors_{report_date}.csv"
+    if not path.exists():
+        return {}
+    with path.open(encoding="utf-8-sig", newline="") as handle:
+        return {row["symbol"]: row for row in csv.DictReader(handle) if row.get("status") == "OK"}
+
+
+def option_factor(row: dict[str, str] | None) -> tuple[float | None, str]:
+    if not row or not row.get("skew_percentile"):
+        return None, "未提供期权截面"
+    value = clamp((float(row["skew_percentile"]) - 50) / 50)
+    evidence = (
+        f"隐波 {float(row['implied_vol']):.2f}% / 实波 {float(row['realized_vol']):.2f}%；"
+        f"偏度 {float(row['skew']):+.2f}；IV 分位 {float(row['iv_percentile']):.0f}；"
+        f"偏度分位 {float(row['skew_percentile']):.0f}"
+    )
+    return value, evidence
+
+
 def seat_components(item: dict, loss_rows: dict[str, dict[str, float]]) -> tuple[dict[str, float], dict[str, float]]:
     groups = item.get("groups") or {}
     loss = loss_rows.get(item["symbol"], {})
@@ -108,7 +128,7 @@ def component_text(parts: dict[str, float]) -> str:
     return " / ".join(f"{name} {value:+,.0f}" for name, value in parts.items())
 
 
-def build_rows(snapshots: list[dict], loss_rows: dict[str, dict[str, float]]) -> list[dict]:
+def build_rows(snapshots: list[dict], loss_rows: dict[str, dict[str, float]], option_rows: dict[str, dict[str, str]]) -> list[dict]:
     latest = snapshots[-1]
     history: dict[str, list[float]] = {}
     for snapshot in snapshots:
@@ -151,7 +171,8 @@ def build_rows(snapshots: list[dict], loss_rows: dict[str, dict[str, float]]) ->
         position = signed_rank(flow_amount, list(flow_amounts.values())) if flow_amount else None
 
         carry, carry_evidence = carry_factor(item.get("fundamentals") or {})
-        factors = {"trend": trend, "seat": seat, "position": position, "carry": carry}
+        option, option_evidence = option_factor(option_rows.get(symbol))
+        factors = {"trend": trend, "seat": seat, "position": position, "carry": carry, "option": option}
         available = {name: value for name, value in factors.items() if value is not None}
         denominator = sum(WEIGHTS[name] for name in available)
         score = 100 * sum(WEIGHTS[name] * value for name, value in available.items()) / denominator if denominator else 0
@@ -186,6 +207,7 @@ def build_rows(snapshots: list[dict], loss_rows: dict[str, dict[str, float]]) ->
                 "seat": f"合成存量 {stock_amount / 1e8:+.2f} 亿；{component_text(stock_parts)}",
                 "position": f"合成边际 {flow_amount / 1e8:+.2f} 亿；{component_text(flow_parts)}" if position is not None else "当日席位增减仓不足",
                 "carry": "；".join(carry_evidence) or "基差/仓单不足",
+                "option": option_evidence,
             },
         })
     return sorted(rows, key=lambda row: row["score"], reverse=True)
@@ -203,7 +225,7 @@ def render_html(report_date: str, rows: list[dict]) -> str:
     sectors = sorted({row["sector"] for row in rows})
     options = "".join(f'<option value="{escape(sector)}">{escape(sector)}</option>' for sector in sectors)
     return f"""<!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,">
 <title>CTA 因子评分 Demo · {report_date}</title>
 <style>
 :root{{--bg:#eef1f4;--ink:#17212b;--muted:#6d7885;--line:#cfd7df;--paper:#fff;--bull:#c9445a;--bear:#008271;--gold:#b48a2c}}
@@ -233,9 +255,9 @@ footer{{max-width:1180px;margin:0 auto 24px;padding:0 22px;color:var(--muted);fo
 <section class="summary"><div><span class="muted">市场方向</span><strong id="marketRead">—</strong></div><div><span class="muted">偏多</span><strong class="bull" id="bullCount">0</strong></div><div><span class="muted">中性</span><strong id="flatCount">0</strong></div><div><span class="muted">偏空</span><strong class="bear" id="bearCount">0</strong></div><div><span class="muted">平均覆盖</span><strong id="coverage">0%</strong></div></section>
 <div class="layout"><section class="panel"><h2>CTA 截面评分</h2><div class="rank-head"><span>排名</span><span>品种</span><span>分数</span><span>覆盖</span><span>信号</span></div><div id="rank"></div></section>
 <aside class="panel detail"><h2>因子拆解</h2><div class="detail-body" id="detail"></div></aside></div></main>
-<footer>Demo 评分不是回测后的交易策略。奇货可查提供席位/保证金事实；价格、基差与仓单沿用工作站已核验底表。交易可查当前公开页为动态前端，本版未取得可复算字段。8 月 20 日同花顺资金流缺失，未沿用旧日数据。</footer>
+<footer>Demo 评分不是回测后的交易策略。奇货可查提供席位/保证金事实；价格、基差与仓单沿用工作站已核验底表。8 月 21 日 AU、AG、JM、LH、LC 期权截面来自 OpenVLab 截图；隐波分位只作拥挤风险证据，偏度分位决定方向，缺失品种不扣分。</footer>
 <script>const DATA={payload};
-const labels={{trend:'量价趋势',seat:'席位存量',position:'席位边际',carry:'基差与仓单'}};
+const labels={{trend:'量价趋势',seat:'席位存量',position:'席位边际',carry:'基差与仓单',option:'期权偏度'}};
 const rank=document.querySelector('#rank'),detail=document.querySelector('#detail');let selected=DATA[0]?.symbol;
 function tone(v){{return v>0?'bull':v<0?'bear':''}}function fmt(v,d=0){{return Number(v).toLocaleString('zh-CN',{{maximumFractionDigits:d}})}}
 function bar(v){{if(v==null)return '<div class="bar"></div>';const left=v<0?50+v/2:50,width=Math.abs(v)/2;return `<div class="bar"><i style="left:${{left}}%;width:${{width}}%;background:${{v>=0?'var(--bull)':'var(--bear)'}}"></i></div>`}}
@@ -250,7 +272,7 @@ def main() -> None:
     args = parser.parse_args()
     snapshots = load_snapshots(args.date)
     report_date = snapshots[-1]["date"]
-    rows = build_rows(snapshots, load_loss_rows(report_date))
+    rows = build_rows(snapshots, load_loss_rows(report_date), load_option_rows(report_date))
     assert rows and all(-100 <= row["score"] <= 100 for row in rows)
     assert not ({row["symbol"] for row in rows} & EXCLUDED)
     assert all("亏损机构反向" in row["evidence"]["seat"] for row in rows)

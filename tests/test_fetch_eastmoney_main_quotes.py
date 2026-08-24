@@ -65,6 +65,27 @@ class EastmoneyQuoteFetchTests(unittest.TestCase):
         self.assertEqual(2385, row["long_chg"])
         self.assertEqual(-96, row["short_chg"])
 
+    def test_previous_day_still_uses_exact_qhkch_snapshot(self):
+        page = '''
+        <div id="variety-key-events"></div><div id="variety-sector-temperature"></div>
+        <script>let varietyMarketRows = [{"variety":"焦煤","symbol":"jm","close_price":1581.5,"previous_close_price":1583.5,"price_change_rate":-0.13,"data_date":"2026-08-21","data_complete":true,"url":"/jm"}];</script>
+        '''
+        position = {"symbol": "JM", "contract": "jm2701", "broker": "国泰君安"}
+        with tempfile.TemporaryDirectory() as directory:
+            with (
+                patch.dict(quotes.os.environ, {"REPORT_DATE": "20260821"}),
+                patch.object(quotes, "ROOT", Path(directory)),
+                patch.object(quotes, "fetch_main_contracts", return_value=[{"symbol": "JM", "variety": "焦煤", "contract": "jm2701", "market": 114}]),
+                patch.object(quotes, "get_text", return_value=page),
+                patch.object(quotes, "fetch_qhkch_position_rows", return_value=[position]),
+                patch.object(quotes, "fetch_daily_quote") as daily_quote,
+            ):
+                quotes.main()
+
+                daily_quote.assert_not_called()
+                with (Path(directory) / "data" / "qhkch_main_position_rows_20260821.csv").open("r", encoding="utf-8-sig", newline="") as handle:
+                    self.assertEqual("jm2701", next(csv.DictReader(handle))["contract"])
+
 
 if __name__ == "__main__":
     unittest.main()

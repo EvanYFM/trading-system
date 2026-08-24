@@ -309,36 +309,25 @@ def main() -> None:
     beijing_today = datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y%m%d")
     events: list[dict[str, object]] = []
     position_rows: list[dict[str, object]] = []
-    if report_date == beijing_today:
-        try:
-            market, events = parse_qhkch_overview(get_text(QHKCH_OVERVIEW_URL), report_date)
-        except (HTTPError, URLError, TimeoutError, http.client.RemoteDisconnected, UnicodeDecodeError, json.JSONDecodeError):
-            market = {}
-        if market:
-            position_rows = fetch_qhkch_position_rows(market)
-        rows = [quote_from_qhkch(contract, market.get(str(contract["symbol"]), {})) for contract in contracts]
-        missing = [row for row in rows if not valid_quote_row(row)]
-        if missing:
-            replacements: dict[str, dict[str, object]] = {}
-            with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-                futures = {executor.submit(fetch_daily_quote, row, report_date): row for row in missing}
-                for future in as_completed(futures):
-                    row = futures[future]
-                    try:
-                        replacements[str(row["symbol"])] = future.result()
-                    except Exception as exc:
-                        replacements[str(row["symbol"])] = {**row, "status": f"ERROR:{type(exc).__name__}", "source_date": ""}
-            rows = [replacements.get(str(row["symbol"]), row) for row in rows]
-    else:
-        rows = []
+    try:
+        market, events = parse_qhkch_overview(get_text(QHKCH_OVERVIEW_URL), report_date)
+    except (HTTPError, URLError, TimeoutError, http.client.RemoteDisconnected, UnicodeDecodeError, json.JSONDecodeError):
+        market = {}
+    if market:
+        position_rows = fetch_qhkch_position_rows(market)
+    rows = [quote_from_qhkch(contract, market.get(str(contract["symbol"]), {})) for contract in contracts]
+    missing = [row for row in rows if not valid_quote_row(row)]
+    if missing:
+        replacements: dict[str, dict[str, object]] = {}
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-            futures = {executor.submit(fetch_daily_quote, contract, report_date): contract for contract in contracts}
+            futures = {executor.submit(fetch_daily_quote, row, report_date): row for row in missing}
             for future in as_completed(futures):
-                contract = futures[future]
+                row = futures[future]
                 try:
-                    rows.append(future.result())
+                    replacements[str(row["symbol"])] = future.result()
                 except Exception as exc:
-                    rows.append({**contract, "status": f"ERROR:{type(exc).__name__}", "source_date": ""})
+                    replacements[str(row["symbol"])] = {**row, "status": f"ERROR:{type(exc).__name__}", "source_date": ""}
+        rows = [replacements.get(str(row["symbol"]), row) for row in rows]
 
     data_dir = ROOT / "data"
     data_dir.mkdir(parents=True, exist_ok=True)
