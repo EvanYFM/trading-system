@@ -9,6 +9,13 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+try:
+    from .build_cta_factor_demo import build_rows as build_cta_rows
+    from .build_cta_factor_demo import load_loss_rows, load_option_rows
+except ImportError:
+    from build_cta_factor_demo import build_rows as build_cta_rows
+    from build_cta_factor_demo import load_loss_rows, load_option_rows
+
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_ROOT = ROOT / "output"
@@ -238,6 +245,10 @@ def ths_market_index(rows: list[dict[str, str]], report_date: str) -> dict[tuple
                 "openInterest": optional_number(row.get("open_interest")),
                 "openInterestChange": optional_number(row.get("open_interest_change")),
                 "openInterestChangePct": optional_number(row.get("open_interest_change_pct")),
+                "return10d": optional_number(row.get("return_10d")),
+                "return20d": optional_number(row.get("return_20d")),
+                "return30d": optional_number(row.get("return_30d")),
+                "monthlyReturn": optional_number(row.get("monthly_return")),
                 "turnover": optional_number(row.get("turnover")),
                 "volume": optional_number(row.get("volume")),
                 "source": row.get("source", "同花顺期货通桌面自选"),
@@ -483,6 +494,7 @@ def build_stock_rows(
     rows: list[dict[str, str]],
     trends: dict[str, dict[str, object]],
     index_quotes: dict[str, dict[str, object]],
+    ths_markets: dict[tuple[str, str], dict[str, object]],
 ) -> list[dict[str, object]]:
     result = []
     seen: set[str] = set()
@@ -491,6 +503,7 @@ def build_stock_rows(
         if symbol not in {"IH", "IF", "IC", "IM"}:
             continue
         seen.add(symbol)
+        ths_market = select_ths_market(ths_markets, symbol, row.get("domestic_margin_contract", ""))
         result.append(
             {
                 "variety": row.get("variety", ""),
@@ -501,7 +514,18 @@ def build_stock_rows(
                 "foreign": number(row.get("foreign_amount_score")),
                 "familyReverse": -number(row.get("family_amount_score")),
                 "trend": trends.get(symbol),
-                "quote": index_quotes.get(symbol),
+                "quote": ths_market["quote"] if ths_market else index_quotes.get(symbol),
+                "marketFlow": ths_market["marketFlow"] if ths_market else None,
+                "stockComponents": {
+                    "机构": number(row.get("domestic_long_pos_amount")) - number(row.get("domestic_short_pos_amount")),
+                    "外资": number(row.get("foreign_long_pos_amount")) - number(row.get("foreign_short_pos_amount")),
+                    "家人反向": number(row.get("family_short_pos_amount")) - number(row.get("family_long_pos_amount")),
+                },
+                "flowComponents": {
+                    "机构": number(row.get("domestic_amount_score")),
+                    "外资": number(row.get("foreign_amount_score")),
+                    "家人反向": -number(row.get("family_amount_score")),
+                },
                 "hasFuturesFlow": True,
             }
         )
@@ -814,7 +838,7 @@ def build_snapshot(report_date: str) -> dict[str, object]:
         "brokerHighlights": build_broker_highlights(contract_rows, margin_by_symbol),
         "instruments": instruments,
         "weather": build_weather(read_csv(institutional_dir / "agri_weather_risk.csv")),
-        "stockIndices": build_stock_rows(read_csv(amount_dir / "stock_index_amount_resonance.csv"), trends, index_quotes),
+        "stockIndices": build_stock_rows(read_csv(amount_dir / "stock_index_amount_resonance.csv"), trends, index_quotes, ths_markets),
         "equitySentiment": build_sentiment(report_date),
     }
 
@@ -843,6 +867,12 @@ def main() -> None:
         date: persisted_snapshots[date]
         for date in sorted(persisted_snapshots, reverse=True)[:30]
     }
+    history: list[dict] = []
+    for date in sorted(snapshots):
+        history.append(snapshots[date])
+        snapshots[date]["cta"] = build_cta_rows(history, load_loss_rows(date), load_option_rows(date))
+        with (SNAPSHOT_DIR / f"{date}.json").open("w", encoding="utf-8") as handle:
+            json.dump(snapshots[date], handle, ensure_ascii=False, separators=(",", ":"))
     generated_at = datetime.now(BEIJING)
     payload = {
         "generatedAt": generated_at.isoformat(timespec="seconds"),

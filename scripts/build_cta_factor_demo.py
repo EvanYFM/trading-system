@@ -105,7 +105,26 @@ def option_factor(row: dict[str, str] | None) -> tuple[float | None, str]:
     return value, evidence
 
 
+def cta_items(snapshot: dict) -> list[dict]:
+    commodities = [item for item in snapshot.get("instruments", []) if item.get("symbol") not in EXCLUDED]
+    indices = [
+        {
+            **item,
+            "sector": "股指",
+            "margin": {"perLot": 1},
+            "resonance": {},
+            "fundamentals": {},
+            "ctaIndex": True,
+        }
+        for item in snapshot.get("stockIndices", [])
+        if item.get("symbol") in {"IH", "IF", "IC", "IM"} and item.get("hasFuturesFlow")
+    ]
+    return commodities + indices
+
+
 def seat_components(item: dict, loss_rows: dict[str, dict[str, float]]) -> tuple[dict[str, float], dict[str, float]]:
+    if item.get("ctaIndex"):
+        return item.get("stockComponents") or {}, item.get("flowComponents") or {}
     groups = item.get("groups") or {}
     loss = loss_rows.get(item["symbol"], {})
     family = groups.get("family") or {}
@@ -132,12 +151,12 @@ def build_rows(snapshots: list[dict], loss_rows: dict[str, dict[str, float]], op
     latest = snapshots[-1]
     history: dict[str, list[float]] = {}
     for snapshot in snapshots:
-        for item in snapshot.get("instruments", []):
+        for item in cta_items(snapshot):
             close = (item.get("quote") or {}).get("close")
             if close:
                 history.setdefault(item["symbol"], []).append(float(close))
 
-    instruments = [item for item in latest.get("instruments", []) if item.get("symbol") not in EXCLUDED]
+    instruments = cta_items(latest)
     components = {item["symbol"]: seat_components(item, loss_rows) for item in instruments}
     stock_amounts = {
         item["symbol"]: sum(components[item["symbol"]][0].values()) * float((item.get("margin") or {}).get("perLot") or 0)
@@ -152,11 +171,17 @@ def build_rows(snapshots: list[dict], loss_rows: dict[str, dict[str, float]], op
         symbol = item["symbol"]
         closes = history.get(symbol, [])
         ret5, ret20 = pct_change(closes, 5), pct_change(closes, 20)
-        trend_parts = []
-        if ret5 is not None:
-            trend_parts.append(math.tanh(ret5 / 0.04))
-        if ret20 is not None:
-            trend_parts.append(math.tanh(ret20 / 0.10))
+        market_flow = item.get("marketFlow") or {}
+        screenshot_ret10 = market_flow.get("return10d")
+        screenshot_ret20 = market_flow.get("return20d")
+        trend_parts = (
+            [math.tanh(float(screenshot_ret10) / 6), math.tanh(float(screenshot_ret20) / 10)]
+            if screenshot_ret10 is not None and screenshot_ret20 is not None
+            else [value for value in (
+                math.tanh(ret5 / 0.04) if ret5 is not None else None,
+                math.tanh(ret20 / 0.10) if ret20 is not None else None,
+            ) if value is not None]
+        )
         trend = sum(trend_parts) / len(trend_parts) if trend_parts else None
 
         stock_parts, flow_parts = components[symbol]
@@ -203,7 +228,11 @@ def build_rows(snapshots: list[dict], loss_rows: dict[str, dict[str, float]], op
             "volatility": round(vol * 100, 1) if vol is not None else None,
             "factors": {name: None if value is None else round(value * 100) for name, value in factors.items()},
             "evidence": {
-                "trend": f"5日 {ret5 * 100:+.1f}% / 20日 {ret20 * 100:+.1f}%" if ret5 is not None and ret20 is not None else "历史不足",
+                "trend": (
+                    f"10日 {float(screenshot_ret10):+.1f}% / 20日 {float(screenshot_ret20):+.1f}%（同花顺截图）"
+                    if screenshot_ret10 is not None and screenshot_ret20 is not None
+                    else f"5日 {ret5 * 100:+.1f}% / 20日 {ret20 * 100:+.1f}%" if ret5 is not None and ret20 is not None else "历史不足"
+                ),
                 "seat": f"合成存量 {stock_amount / 1e8:+.2f} 亿；{component_text(stock_parts)}",
                 "position": f"合成边际 {flow_amount / 1e8:+.2f} 亿；{component_text(flow_parts)}" if position is not None else "当日席位增减仓不足",
                 "carry": "；".join(carry_evidence) or "基差/仓单不足",
@@ -250,12 +279,12 @@ footer{{max-width:1180px;margin:0 auto 24px;padding:0 22px;color:var(--muted);fo
 @media(max-width:820px){{.toolbar{{grid-template-columns:1fr 1fr}}.toolbar input{{grid-column:1/-1}}.summary{{grid-template-columns:1fr 1fr}}.summary>div{{border-bottom:1px solid var(--line)}}.layout{{grid-template-columns:1fr}}.detail{{position:static}}}}
 @media(max-width:520px){{main{{padding:12px}}header{{padding:20px 14px}}h1{{font-size:24px}}.rank-head,.rank-row{{grid-template-columns:34px minmax(110px,1fr) 66px 62px}}.rank-head span:nth-child(4),.rank-row .coverage{{display:none}}.summary strong{{font-size:20px}}}}
 </style></head><body>
-<header><div class="eyebrow">QUANT RESEARCH · EXPLAINABLE V1</div><h1>CTA 因子评分 Demo</h1><p>{report_date[:4]}-{report_date[4:6]}-{report_date[6:]} · 独立页面，不修改现有工作站</p></header>
+<header><div class="eyebrow">QUANT RESEARCH · EXPLAINABLE V1</div><h1>CTA 因子评分 Demo</h1><p>{report_date[:4]}-{report_date[4:6]}-{report_date[6:]} · 同口径结果已并入研究工作站</p></header>
 <main><div class="toolbar"><input id="search" placeholder="筛选品种或代码"><select id="sector"><option value="">全部板块</option>{options}</select><select id="direction"><option value="">全部方向</option><option>强多</option><option>偏多</option><option>中性</option><option>偏空</option><option>强空</option></select></div>
 <section class="summary"><div><span class="muted">市场方向</span><strong id="marketRead">—</strong></div><div><span class="muted">偏多</span><strong class="bull" id="bullCount">0</strong></div><div><span class="muted">中性</span><strong id="flatCount">0</strong></div><div><span class="muted">偏空</span><strong class="bear" id="bearCount">0</strong></div><div><span class="muted">平均覆盖</span><strong id="coverage">0%</strong></div></section>
 <div class="layout"><section class="panel"><h2>CTA 截面评分</h2><div class="rank-head"><span>排名</span><span>品种</span><span>分数</span><span>覆盖</span><span>信号</span></div><div id="rank"></div></section>
 <aside class="panel detail"><h2>因子拆解</h2><div class="detail-body" id="detail"></div></aside></div></main>
-<footer>Demo 评分不是回测后的交易策略。奇货可查提供席位/保证金事实；价格、基差与仓单沿用工作站已核验底表。8 月 21 日 AU、AG、JM、LH、LC 期权截面来自 OpenVLab 截图；隐波分位只作拥挤风险证据，偏度分位决定方向，缺失品种不扣分。</footer>
+<footer>Demo 评分不是回测后的交易策略。奇货可查提供席位/保证金事实；价格、基差与仓单沿用工作站已核验底表；同花顺与 OpenVLab 截图属于二级证据。隐波分位只作拥挤风险证据，偏度分位决定方向，缺失品种不扣分。</footer>
 <script>const DATA={payload};
 const labels={{trend:'量价趋势',seat:'席位存量',position:'席位边际',carry:'基差与仓单',option:'期权偏度'}};
 const rank=document.querySelector('#rank'),detail=document.querySelector('#detail');let selected=DATA[0]?.symbol;
@@ -274,8 +303,9 @@ def main() -> None:
     report_date = snapshots[-1]["date"]
     rows = build_rows(snapshots, load_loss_rows(report_date), load_option_rows(report_date))
     assert rows and all(-100 <= row["score"] <= 100 for row in rows)
-    assert not ({row["symbol"] for row in rows} & EXCLUDED)
-    assert all("亏损机构反向" in row["evidence"]["seat"] for row in rows)
+    assert not ({row["symbol"] for row in rows} & (EXCLUDED - {"IC", "IF", "IH", "IM"}))
+    assert {row["symbol"] for row in rows if row["sector"] == "股指"} == {"IC", "IF", "IH", "IM"}
+    assert all(row["sector"] == "股指" or "亏损机构反向" in row["evidence"]["seat"] for row in rows)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     target = OUTPUT_DIR / "index.html"
     target.write_text(render_html(report_date, rows), encoding="utf-8")

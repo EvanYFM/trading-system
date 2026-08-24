@@ -17,6 +17,10 @@ const state = {
   decisionSector: "all",
   decisionSymbol: "all",
   decisionPage: 1,
+  ctaQuery: "",
+  ctaSector: "all",
+  ctaDirection: "all",
+  activeCtaSymbol: null,
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -728,6 +732,28 @@ function renderDecisionView() {
     </div><p class="decision-due">五个交易日后复盘：${due ? formatDate(due) : "历史快照尚未积累到复盘日"}</p><p id="decisionFormMessage" class="form-message" aria-live="polite"></p><div class="decision-form-actions"><button class="decision-save" type="submit">保存决策记录</button><button class="decision-delete" type="button" data-delete-decision="${escapeHtml(record.id)}">删除</button></div></form>`;
 }
 
+const CTA_FACTOR_LABELS = {trend: "量价趋势", seat: "席位存量", position: "席位边际", carry: "基差与仓单", option: "期权偏度"};
+
+function renderCta() {
+  const allRows = currentSnapshot().cta || [];
+  const sectors = [...new Set(allRows.map((row) => row.sector))].sort();
+  $("#ctaSectorFilter").innerHTML = `<option value="all">全部板块</option>${sectors.map((sector) => `<option value="${escapeHtml(sector)}" ${sector === state.ctaSector ? "selected" : ""}>${escapeHtml(sector)}</option>`).join("")}`;
+  const query = state.ctaQuery.trim().toLowerCase();
+  const rows = allRows.filter((row) => (!query || `${row.variety}${row.symbol}`.toLowerCase().includes(query)) && (state.ctaSector === "all" || row.sector === state.ctaSector) && (state.ctaDirection === "all" || row.signal === state.ctaDirection));
+  const bull = rows.filter((row) => row.score >= 15).length;
+  const bear = rows.filter((row) => row.score <= -15).length;
+  $("#ctaSummary").innerHTML = [
+    summaryCard("CTA 样本", rows.length, `全量 ${allRows.length} 个，含股指 ${allRows.filter((row) => row.sector === "股指").length} 个`),
+    summaryCard("偏多", bull, "分数不低于 +15", "bull-text"),
+    summaryCard("中性", rows.length - bull - bear, "-15 至 +15"),
+    summaryCard("偏空", bear, "分数不高于 -15", "bear-text"),
+  ].join("");
+  $("#ctaRows").innerHTML = rows.map((row, index) => `<tr data-cta-symbol="${escapeHtml(row.symbol)}" class="${row.symbol === state.activeCtaSymbol ? "is-selected" : ""}"><td>${index + 1}</td><td><strong>${escapeHtml(row.variety)}</strong><small>${escapeHtml(row.symbol)}</small></td><td>${escapeHtml(row.sector)}</td><td class="cta-score ${signClass(row.score)}">${formatSigned(row.score)}</td><td>${row.coverage}%</td><td class="${signClass(row.score)}">${escapeHtml(row.signal)}</td></tr>`).join("") || `<tr><td colspan="6">没有匹配品种。</td></tr>`;
+  const selected = rows.find((row) => row.symbol === state.activeCtaSymbol) || rows[0];
+  state.activeCtaSymbol = selected?.symbol || null;
+  $("#ctaDetail").innerHTML = selected ? `<div class="detail-kicker">CTA FACTOR BREAKDOWN</div><h3>${escapeHtml(selected.variety)} <small>${escapeHtml(selected.symbol)}</small></h3><div class="cta-detail-score ${signClass(selected.score)}">${formatSigned(selected.score)} <small>${escapeHtml(selected.signal)}</small></div><p>${escapeHtml(selected.sector)} · 可用因子覆盖 ${selected.coverage}% · 年化波动 ${selected.volatility ?? "—"}%</p><div class="cta-factor-list">${Object.entries(CTA_FACTOR_LABELS).map(([key, label]) => `<article><div><strong>${label}</strong><span class="${selected.factors[key] == null ? "neutral-text" : signClass(selected.factors[key])}">${selected.factors[key] == null ? "未覆盖" : formatSigned(selected.factors[key])}</span></div><p>${escapeHtml(selected.evidence[key])}</p></article>`).join("")}</div><div class="detail-source-notice">缺失因子不按中性计分，而是按可用权重重算。截图是二级证据；评分不是回测后的交易策略或买卖建议。</div>` : `<div class="detail-empty">该筛选条件没有 CTA 品种。</div>`;
+}
+
 function renderAll() {
   renderDateControls();
   renderSummary();
@@ -744,6 +770,7 @@ function renderAll() {
   renderHistory();
   renderStatus();
   renderDecisionView();
+  renderCta();
 }
 
 function switchView(view) {
@@ -753,6 +780,7 @@ function switchView(view) {
   if (view === "detail") renderDetailWorkspace();
   if (view === "history") renderHistory();
   if (view === "decisions") renderDecisionView();
+  if (view === "cta") renderCta();
 }
 
 function setDate(date) {
@@ -762,6 +790,7 @@ function setDate(date) {
   state.detailSector = "all";
   state.detailQuery = "";
   state.decisionPage = 1;
+  state.activeCtaSymbol = null;
   renderAll();
 }
 
@@ -781,6 +810,8 @@ function bindEvents() {
     if (dateButton) setDate(dateButton.dataset.date);
     const row = event.target.closest("[data-symbol]");
     if (row) { state.activeSymbol = row.dataset.symbol; renderInstrumentTable(); }
+    const ctaRow = event.target.closest("[data-cta-symbol]");
+    if (ctaRow) { state.activeCtaSymbol = ctaRow.dataset.ctaSymbol; renderCta(); }
     const detailName = event.target.closest("[data-open-detail-symbol]");
     if (detailName) { state.activeSymbol = detailName.dataset.openDetailSymbol; switchView("detail"); window.scrollTo({top: 0, behavior: "smooth"}); }
     const focus = event.target.closest("[data-open-symbol]");
@@ -817,6 +848,9 @@ function bindEvents() {
   $("#historyControls").addEventListener("change", (event) => { if (event.target.id === "historySymbolSelect") { state.historySymbol = event.target.value; renderHistory(); } });
   $("#decisionSectorFilter").addEventListener("change", (event) => { state.decisionSector = event.target.value; state.decisionSymbol = "all"; state.decisionPage = 1; renderDecisionView(); });
   $("#decisionSymbolFilter").addEventListener("change", (event) => { state.decisionSymbol = event.target.value; state.decisionPage = 1; renderDecisionView(); });
+  $("#ctaSearchInput").addEventListener("input", (event) => { state.ctaQuery = event.target.value; renderCta(); });
+  $("#ctaSectorFilter").addEventListener("change", (event) => { state.ctaSector = event.target.value; state.activeCtaSymbol = null; renderCta(); });
+  $("#ctaDirectionFilter").addEventListener("change", (event) => { state.ctaDirection = event.target.value; state.activeCtaSymbol = null; renderCta(); });
   $("#decisionEditor").addEventListener("submit", (event) => {
     if (event.target.id !== "decisionForm") return;
     event.preventDefault();

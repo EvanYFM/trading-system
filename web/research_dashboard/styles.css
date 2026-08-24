@@ -518,6 +518,23 @@ h1 { margin: 6px 0 0; font-size: 30px; line-height: 1.15; letter-spacing: 0; }
 .decision-form-actions { display: flex; gap: 8px; align-items: center; }
 .decision-delete { min-height: 36px; margin-top: 10px; padding: 0 12px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font-size: 11px; }
 
+.cta-summary { grid-template-columns: repeat(4, 1fr); margin: 14px 0; }
+.cta-layout { display: grid; grid-template-columns: minmax(0, 1fr) 390px; gap: 12px; align-items: start; }
+.cta-table { min-width: 650px; }
+.cta-table td strong, .cta-table td small { display: block; }
+.cta-table td small { color: var(--muted); font: 9px/1.4 ui-monospace, monospace; }
+.cta-table tbody tr.is-selected { background: #f2f5f7; }
+.cta-score { font-size: 17px !important; font-weight: 800; font-variant-numeric: tabular-nums; }
+.cta-detail { min-height: 0; }
+.cta-detail h3 { margin: 4px 0 0; font-size: 23px; }
+.cta-detail h3 small { color: var(--muted); font: 11px ui-monospace, monospace; }
+.cta-detail-score { margin: 15px 0 3px; font-size: 34px; font-weight: 800; }
+.cta-detail-score small { font-size: 12px; }
+.cta-detail > p { margin: 0 0 12px; color: var(--muted); font-size: 10px; }
+.cta-factor-list article { padding: 10px 0; border-top: 1px solid var(--line); }
+.cta-factor-list article > div { display: flex; justify-content: space-between; gap: 12px; }
+.cta-factor-list article p { margin: 4px 0 0; color: var(--muted); font-size: 9px; line-height: 1.55; }
+
 @media (max-width: 1180px) {
   .summary-strip { grid-template-columns: repeat(3, 1fr); }
   .focus-grid { grid-template-columns: repeat(3, 1fr); }
@@ -534,6 +551,7 @@ h1 { margin: 6px 0 0; font-size: 30px; line-height: 1.15; letter-spacing: 0; }
   .technical-layer-grid article:last-child { grid-column: 1 / -1; }
   .event-timeline { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .decision-layout { grid-template-columns: 230px minmax(0, 1fr); }
+  .cta-layout { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 760px) {
@@ -554,7 +572,7 @@ h1 { margin: 6px 0 0; font-size: 30px; line-height: 1.15; letter-spacing: 0; }
   h1 { font-size: 24px; }
   .header-meta { width: 100%; flex-wrap: wrap; }
   .date-select { flex: 1; }
-  .summary-strip { grid-template-columns: 1fr 1fr; }
+  .summary-strip, .cta-summary { grid-template-columns: 1fr 1fr; }
   .summary-card { min-height: 100px; padding: 14px; }
   .summary-card:first-child { grid-column: 1 / -1; }
   .section-heading { align-items: flex-start; }

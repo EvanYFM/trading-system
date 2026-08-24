@@ -93,6 +93,20 @@ class ResearchDashboardFundamentalTests(unittest.TestCase):
         selected = dashboard.select_ths_market(markets, "AL", "al2609")
         self.assertEqual("al2610", selected["quote"]["contract"])
 
+    def test_stock_index_cta_stock_amount_uses_long_minus_short(self):
+        rows = [{
+            "symbol": "IH", "variety": "上证50", "signal_dir": "偏多",
+            "domestic_long_pos_amount": "100", "domestic_short_pos_amount": "40",
+            "foreign_long_pos_amount": "30", "foreign_short_pos_amount": "10",
+            "family_long_pos_amount": "80", "family_short_pos_amount": "20",
+            "domestic_amount_score": "5", "foreign_amount_score": "3", "family_amount_score": "-2",
+        }]
+
+        item = dashboard.build_stock_rows(rows, {}, {}, {})[0]
+
+        self.assertEqual({"机构": 60, "外资": 20, "家人反向": -60}, item["stockComponents"])
+        self.assertEqual({"机构": 5, "外资": 3, "家人反向": 2}, item["flowComponents"])
+
     def test_detail_header_uses_ths_market_flow_not_three_party_money(self):
         app = (ROOT / "web" / "research_dashboard" / "app.js").read_text(encoding="utf-8")
         self.assertIn("<small>资金流向</small>", app)

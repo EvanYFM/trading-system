@@ -9,6 +9,7 @@
 - 只有在加入账号权限、服务端定时抓取、数据库查询、私有数据或 API 代理后，才需要轻量应用服务器。
 - 长图候选版已经合并到 `output/research_dashboard/index.html`，并将每日数据固化到 `output/research_dashboard/data/snapshots/YYYYMMDD.json`；`output/research_dashboard_v2_mockup/index.html` 仅保留为早期设计参考。
 - 当前网页仍消费两份正式日报生成的 CSV。停用日报前，必须先把抓取、计算和质量校验抽成共享数据任务，再让网页直接消费共享 CSV/JSON；不能直接删除日报脚本或其数据目录。
+- CTA 截面评分已并入主工作站和每日快照；商品与 `IH/IF/IC/IM` 共用评分口径，但四个股指只属于独立“股指”板块，不参与商品共振。
 
 ## 品种详情信息架构
 
