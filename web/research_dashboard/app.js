@@ -642,12 +642,6 @@ function renderStatus() {
     <section class="status-block"><h3>行情、趋势与基本面</h3><div class="status-list"><div class="status-line"><span>当日收盘行情</span><strong>${summary.quoteFreshCount || 0} / ${summary.instrumentCount}</strong></div><div class="status-line"><span>当日趋势品种</span><strong>${summary.trendFreshCount} / ${summary.instrumentCount}</strong></div><div class="status-line"><span>期现基差覆盖</span><strong>${summary.basisCoveredCount || 0} 个</strong></div><div class="status-line"><span>仓单覆盖</span><strong>${summary.warehouseCoveredCount || 0} 个</strong></div><div class="status-line"><span>股指独立观察</span><strong>${snapshot.stockIndices.length} 个</strong></div></div></section>`;
 }
 
-function reviewDueDate(reportDate) {
-  const dates = [...state.data.dates].sort();
-  const index = dates.indexOf(reportDate);
-  return index >= 0 ? dates[index + 5] || "" : "";
-}
-
 function decisionChoiceLabel(choice) {
   return ({accept: "接受", reject: "拒绝", observe: "观察"})[choice] || "待确认";
 }
@@ -708,28 +702,24 @@ function renderDecisionView() {
     $("#decisionEditor").innerHTML = `<div class="detail-empty">先对一个工作站信号选择“接受 / 拒绝 / 观察”。</div>`;
     return;
   }
-  const due = reviewDueDate(record.reportDate);
   const snapshotItem = state.data.snapshots[record.reportDate]?.instruments.find((item) => item.symbol === record.symbol);
   const ranking = record.brokerRanking || snapshotItem?.brokerRanking || {netLong: [], netShort: []};
   const option = (value, label, current) => `<option value="${value}" ${current === value ? "selected" : ""}>${label}</option>`;
   $("#decisionEditor").innerHTML = `<form id="decisionForm"><header><div><small>${formatDate(record.reportDate)} · ${escapeHtml(record.runId)}</small><h3>${escapeHtml(record.variety)} ${escapeHtml(record.symbol)}</h3></div><div class="decision-market-facts"><strong class="${signClass(record.amountSignal)}">${formatAmount(record.amountSignal)}</strong><strong class="${record.changePct == null ? "" : signClass(record.changePct)}">${record.changePct == null ? "涨跌 暂无" : `${formatSigned(record.changePct, 2)}%`}</strong></div></header>
     <div class="decision-facts"><span>手数 ${formatHands(record.handsSignal)}</span><span>收盘 ${formatPrice(record.close)}</span><span>趋势 ${escapeHtml(record.trend || "暂无")}</span></div>
-    <div class="seat-rank-grid decision-ranks"><div class="seat-rank-list"><div class="seat-rank-title bull-text">净多席位 ${ranking.netLong.length}/5 <span>${rankingDominance(ranking.netLong)}</span></div>${rankRows(ranking.netLong, "bull-text", "暂无净多席位")}</div><div class="seat-rank-list"><div class="seat-rank-title bear-text">净空席位 ${ranking.netShort.length}/5 <span>${rankingDominance(ranking.netShort)}</span></div>${rankRows(ranking.netShort, "bear-text", "暂无净空席位")}</div></div>
+    <details class="decision-evidence"><summary>查看当日席位证据</summary><div class="seat-rank-grid decision-ranks"><div class="seat-rank-list"><div class="seat-rank-title bull-text">净多席位 ${ranking.netLong.length}/5 <span>${rankingDominance(ranking.netLong)}</span></div>${rankRows(ranking.netLong, "bull-text", "暂无净多席位")}</div><div class="seat-rank-list"><div class="seat-rank-title bear-text">净空席位 ${ranking.netShort.length}/5 <span>${rankingDominance(ranking.netShort)}</span></div>${rankRows(ranking.netShort, "bear-text", "暂无净空席位")}</div></div></details>
     <div class="decision-form-grid">
       <label>人工确认<select name="choice">${option("accept","接受",record.choice)}${option("reject","拒绝",record.choice)}${option("observe","观察",record.choice)}</select></label>
       <label>交易状态<select name="tradeStatus">${option("no_trade","未交易",record.tradeStatus)}${option("open","持仓中",record.tradeStatus)}${option("closed","已退出",record.tradeStatus)}</select></label>
-      <label class="wide">主要矛盾<textarea name="mainContradiction" rows="2">${escapeHtml(record.mainContradiction)}</textarea></label>
-      <label>技术/价格触发<input name="trigger" value="${escapeHtml(record.trigger)}"></label>
-      <label>证伪/失效条件<input name="invalidation" value="${escapeHtml(record.invalidation)}"></label>
+      <label class="wide">核心逻辑<textarea name="mainContradiction" rows="2" placeholder="为什么值得做，最关键的支撑和反向证据是什么">${escapeHtml(record.mainContradiction)}</textarea></label>
+      <label>入场触发<input name="trigger" value="${escapeHtml(record.trigger)}" placeholder="价格或技术条件"></label>
+      <label>失效 / 止损<input name="invalidation" value="${escapeHtml(record.invalidation)}" placeholder="错在哪里退出"></label>
       <label>交易日志编号或链接<input name="tradeLogRef" value="${escapeHtml(record.tradeLogRef)}" placeholder="手工日志中的编号、文件路径或链接"></label>
       <label>未交易原因<input name="noTradeReason" value="${escapeHtml(record.noTradeReason)}"></label>
-      <label class="wide">退出结果<textarea name="exitResult" rows="2">${escapeHtml(record.exitResult)}</textarea></label>
-      <label>问题归因<select name="problemType">${option("pending","待复盘",record.problemType)}${option("data","数据问题",record.problemType)}${option("judgment","判断问题",record.problemType)}${option("execution","执行问题",record.problemType)}${option("no_issue","无明显问题",record.problemType)}</select></label>
-      <label>看对<select name="seeRight">${option("pending","待评",record.seeRight)}${option("yes","是",record.seeRight)}${option("no","否",record.seeRight)}</select></label>
-      <label>做对<select name="doRight">${option("pending","待评",record.doRight)}${option("yes","是",record.doRight)}${option("no","否",record.doRight)}</select></label>
-      <label>做好<select name="doWell">${option("pending","待评",record.doWell)}${option("yes","是",record.doWell)}${option("no","否",record.doWell)}</select></label>
-      <label class="wide">五日复盘<textarea name="reviewNote" rows="3">${escapeHtml(record.reviewNote)}</textarea></label>
-    </div><p class="decision-due">五个交易日后复盘：${due ? formatDate(due) : "历史快照尚未积累到复盘日"}</p><p id="decisionFormMessage" class="form-message" aria-live="polite"></p><div class="decision-form-actions"><button class="decision-save" type="submit">保存决策记录</button><button class="decision-delete" type="button" data-delete-decision="${escapeHtml(record.id)}">删除</button></div></form>`;
+      <label>结果<textarea name="exitResult" rows="2" placeholder="盈亏不是唯一结果，记录是否按计划执行">${escapeHtml(record.exitResult)}</textarea></label>
+      <label>主要来源<select name="problemType">${option("pending","待复盘",record.problemType)}${option("judgment","判断",record.problemType)}${option("timing","时机",record.problemType)}${option("position","仓位",record.problemType)}${option("execution","执行",record.problemType)}${option("emotion","情绪",record.problemType)}${option("data","数据 / 证据",record.problemType)}${option("no_issue","无明显问题",record.problemType)}</select></label>
+      <label class="wide">最大错误与下一条规则<textarea name="reviewNote" rows="3" placeholder="最大错误：&#10;下一次只改：">${escapeHtml(record.reviewNote)}</textarea></label>
+    </div><p id="decisionFormMessage" class="form-message" aria-live="polite"></p><div class="decision-form-actions"><button class="decision-save" type="submit">保存复盘</button><button class="decision-delete" type="button" data-delete-decision="${escapeHtml(record.id)}">删除</button></div></form>`;
 }
 
 const CTA_FACTOR_LABELS = {trend: "量价趋势", seat: "席位存量", position: "席位边际", carry: "基差与仓单", option: "期权偏度"};

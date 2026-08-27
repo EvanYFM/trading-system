@@ -507,7 +507,10 @@ h1 { margin: 6px 0 0; font-size: 30px; line-height: 1.15; letter-spacing: 0; }
 .decision-editor header small { color: var(--muted); font-size: 9px; }
 .decision-market-facts { display: flex; gap: 14px; align-items: baseline; }
 .decision-facts { display: flex; flex-wrap: wrap; gap: 12px; padding: 10px 0; color: var(--muted); font-size: 10px; }
-.decision-ranks { margin: 0 0 12px; }
+.decision-evidence { margin: 0 0 12px; border: 1px solid var(--line); background: var(--surface-subtle); }
+.decision-evidence summary { padding: 9px 11px; color: var(--muted); font-size: 10px; cursor: pointer; }
+.decision-evidence[open] summary { border-bottom: 1px solid var(--line); }
+.decision-ranks { margin: 10px; }
 .decision-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .decision-form-grid label { display: grid; gap: 5px; color: var(--muted); font-size: 10px; }
 .decision-form-grid label.wide { grid-column: 1 / -1; }
