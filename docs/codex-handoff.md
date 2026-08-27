@@ -861,5 +861,6 @@ $env:REPORT_DATE="YYYYMMDD"; python scripts/generate_margin_weighted_seat_report
 ## 2026-08-27 本地常驻与私有发布
 
 - 确认本地页面隔日失效的原因是临时 `http.server` 进程退出，静态产物本身未过期；Windows 计划任务 `FuturesResearchDashboardLocal` 已设置为登录后启动并在失败后重启，继续提供 `http://127.0.0.1:8788/`。
-- 研究工作站 Sites 版本 6 已私有发布到 `https://futures-research-workstation.myfpanda.chatgpt.site`，访问策略保持仅所有者，不公开、不共享。
+- 研究工作站 Sites 版本 7 已私有发布到 `https://futures-research-workstation.myfpanda.chatgpt.site`，访问策略保持仅所有者，不公开、不共享。
 - 交易日 17:00 自动化恢复：先发布可自动获取的当日基线；期货通与 OpenVLab Legend 截图缺失时明确标记待补充且不沿用旧值，用户补发对应交易日截图后再补录、重建并覆盖私有发布同日快照。
+- 8 月 27 日快照已完成：席位底表 4,389 行，59 个商品、CTA 63 个标的（含 `IH/IF/IC/IM`），同花顺截图与 OpenVLab 截图均按当日证据落盘；45 项 Python 测试、JavaScript 语法、Sites 构建测试和本地 HTTP 200 验证通过。
