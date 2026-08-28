@@ -4,6 +4,7 @@ import argparse
 import csv
 import json
 import math
+import os
 import statistics
 from html import escape
 from pathlib import Path
@@ -16,6 +17,7 @@ EXCLUDED = {"IC", "IF", "IH", "IM", "T", "TF", "TL", "TS", "CS", "AD", "PL", "RR
 WEIGHTS = {"trend": 0.36, "seat": 0.315, "position": 0.135, "carry": 0.09, "option": 0.10}
 LOSS_BROKERS = {"中信期货"}
 RELATIVE_STRENGTH_SECTORS = {"家人品种", "有色金属", "油化工", "谷物饲料", "黑色系"}
+DEFAULT_MACRO_PATH = ROOT.parent / "宏观经济-codex" / "site" / "public" / "data" / "latest.json"
 
 
 def clamp(value: float, low: float = -1.0, high: float = 1.0) -> float:
@@ -105,6 +107,101 @@ def option_factor(row: dict[str, str] | None) -> tuple[float | None, str]:
     return value, evidence
 
 
+def load_macro_context(report_date: str) -> dict:
+    paths = [Path(os.environ["MACRO_WORKBENCH_DATA"])] if os.environ.get("MACRO_WORKBENCH_DATA") else []
+    paths.append(DEFAULT_MACRO_PATH)
+    for path in paths:
+        if not path.exists():
+            continue
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if str(payload.get("asOf", ""))[:10].replace("-", "") == report_date:
+            return payload
+    return {}
+
+
+def find_indicator(payload: object, indicator_id: str) -> dict:
+    if isinstance(payload, dict):
+        if payload.get("id") == indicator_id:
+            return payload
+        for value in payload.values():
+            found = find_indicator(value, indicator_id)
+            if found:
+                return found
+    elif isinstance(payload, list):
+        for value in payload:
+            found = find_indicator(value, indicator_id)
+            if found:
+                return found
+    return {}
+
+
+def build_precious_metals_4d(rows: list[dict], macro: dict, report_date: str) -> dict | None:
+    by_symbol = {row["symbol"]: row for row in rows}
+    gold, silver = by_symbol.get("AU"), by_symbol.get("AG")
+    if not gold or not silver:
+        return None
+    copper = by_symbol.get("CU")
+    dxy, tips, pmi = (find_indicator(macro, key) for key in ("dxy", "tips10", "ismMfg"))
+
+    def dimension(name: str, confirmed: bool | None, evidence: str, pending: bool = False) -> dict:
+        status = "待确认" if pending or confirmed is None else "确认" if confirmed else "冲突"
+        return {"name": name, "status": status, "evidence": evidence}
+
+    gold_ret = gold.get("return20d")
+    gold_sentiment = [gold["factors"].get(key) for key in ("position", "option") if gold["factors"].get(key) is not None]
+    momentum_ok = gold_ret is not None and gold_ret > 0 and all(value >= 0 for value in gold_sentiment)
+    momentum_pending = gold_ret is None or not gold_sentiment
+    momentum_text = f"黄金20日 {gold_ret:+.1f}%" if gold_ret is not None else "黄金20日数据缺失"
+    momentum_text += "；投机/边际 " + (" / ".join(f"{value:+.0f}" for value in gold_sentiment) if gold_sentiment else "缺失")
+
+    dxy_change = dxy.get("pctChange")
+    gold_day = gold.get("changePct")
+    dxy_pending = dxy_change is None or gold_day is None
+    dxy_ok = bool(gold_day > 0 and float(dxy_change) <= 0) if not dxy_pending else None
+    if not dxy_pending and gold_day > 0 and float(dxy_change) > 0:
+        dxy_pending = True
+    dxy_text = "DXY或黄金日涨跌缺失" if dxy_change is None or gold_day is None else f"黄金 {gold_day:+.2f}% / DXY {float(dxy_change):+.2f}%"
+    if dxy_pending and dxy_change is not None and gold_day is not None:
+        dxy_text += "，同向状态需信用/流动性确认"
+
+    pmi_value = float(pmi.get("displayValue")) if pmi.get("displayValue") not in (None, "") else None
+    copper_ret = copper.get("return20d") if copper else None
+    industrial_pending = pmi_value is None or copper_ret is None
+    industrial_ok = bool(pmi_value >= 50 and copper_ret >= 0) if not industrial_pending else None
+    industrial_text = f"ISM PMI {pmi_value:.1f} / 沪铜20日 {copper_ret:+.1f}%" if not industrial_pending else "ISM PMI或沪铜20日趋势缺失"
+
+    tips_value, tips_previous = tips.get("value"), tips.get("previous")
+    tips_pending = tips_value is None or tips_previous is None
+    tips_ok = bool(float(tips_value) <= float(tips_previous)) if not tips_pending else None
+    tips_text = f"10Y TIPS {float(tips_previous):.2f}% → {float(tips_value):.2f}%（{tips.get('dataDate', '日期缺失')}）" if not tips_pending else "10Y TIPS变化缺失"
+
+    dimensions = [
+        dimension("黄金动量 × 投机情绪", momentum_ok, momentum_text, momentum_pending),
+        dimension("DXY × 黄金", dxy_ok, dxy_text, dxy_pending),
+        dimension("工业 PMI 领先", industrial_ok, industrial_text, industrial_pending),
+        dimension("实际利率", tips_ok, tips_text, tips_pending),
+    ]
+    relative20 = silver.get("return20d") - gold_ret if silver.get("return20d") is not None and gold_ret is not None else None
+    relative_ok = relative20 is not None and relative20 > 0
+    silver_position, silver_option = silver["factors"].get("position"), silver["factors"].get("option")
+    flow_ok = silver_position is not None and silver_position >= 0 and silver_option is not None and silver_option > 0
+    call_ready = all(item["status"] == "确认" for item in dimensions) and relative_ok and flow_ok
+    blockers = [item["name"] for item in dimensions if item["status"] != "确认"]
+    if not relative_ok:
+        blockers.append("白银20日相对黄金转强")
+    if not flow_ok:
+        blockers.append("白银席位边际与期权偏度同向")
+    missing = any(item["status"] == "待确认" for item in dimensions) or silver_position is None or silver_option is None or relative20 is None
+    return {
+        "asOf": macro.get("asOf") or report_date,
+        "signal": "可考虑 Call 白银" if call_ready else "暂不 Call 白银" if any(item["status"] == "冲突" for item in dimensions) else "数据不足，继续观察" if missing else "暂不 Call 白银",
+        "callSilver": call_ready,
+        "relative20d": round(relative20, 1) if relative20 is not None else None,
+        "dimensions": dimensions,
+        "blockers": blockers,
+    }
+
+
 def cta_items(snapshot: dict) -> list[dict]:
     commodities = [item for item in snapshot.get("instruments", []) if item.get("symbol") not in EXCLUDED]
     indices = [
@@ -147,7 +244,7 @@ def component_text(parts: dict[str, float]) -> str:
     return " / ".join(f"{name} {value:+,.0f}" for name, value in parts.items())
 
 
-def build_rows(snapshots: list[dict], loss_rows: dict[str, dict[str, float]], option_rows: dict[str, dict[str, str]]) -> list[dict]:
+def build_rows(snapshots: list[dict], loss_rows: dict[str, dict[str, float]], option_rows: dict[str, dict[str, str]], macro_context: dict | None = None) -> list[dict]:
     latest = snapshots[-1]
     history: dict[str, list[float]] = {}
     for snapshot in snapshots:
@@ -226,6 +323,7 @@ def build_rows(snapshots: list[dict], loss_rows: dict[str, dict[str, float]], op
             "amountSignal": flow_amount,
             "positionChange": position_change,
             "volatility": round(vol * 100, 1) if vol is not None else None,
+            "return20d": float(screenshot_ret20) if screenshot_ret20 is not None else round(ret20 * 100, 1) if ret20 is not None else None,
             "factors": {name: None if value is None else round(value * 100) for name, value in factors.items()},
             "evidence": {
                 "trend": (
@@ -239,6 +337,11 @@ def build_rows(snapshots: list[dict], loss_rows: dict[str, dict[str, float]], op
                 "option": option_evidence,
             },
         })
+    framework = build_precious_metals_4d(rows, macro_context if macro_context is not None else load_macro_context(str(latest.get("date", ""))), str(latest.get("date", "")))
+    if framework:
+        for row in rows:
+            if row["symbol"] in {"AU", "AG"}:
+                row["metal4d"] = framework
     return sorted(rows, key=lambda row: row["score"], reverse=True)
 
 

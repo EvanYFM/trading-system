@@ -724,6 +724,15 @@ function renderDecisionView() {
 
 const CTA_FACTOR_LABELS = {trend: "量价趋势", seat: "席位存量", position: "席位边际", carry: "基差与仓单", option: "期权偏度"};
 
+function renderMetal4d(row) {
+  const framework = row.metal4d;
+  if (!framework) return "";
+  const statusClass = (status) => status === "确认" ? "bull-text" : status === "冲突" ? "bear-text" : "neutral-text";
+  const signalClass = framework.callSilver ? "bullish" : framework.signal.startsWith("暂不") ? "bearish" : "";
+  const relative = framework.relative20d == null ? "缺失" : `${formatSigned(framework.relative20d, 1)}%`;
+  return `<section class="cta-metal4d"><div class="cta-metal4d-head"><div><small>GOLD–SILVER 4D</small><h4>金银四维框架</h4></div><span class="tag ${signalClass}">${escapeHtml(framework.signal)}</span></div><p>白银相对黄金20日超额 ${relative} · 数据时点 ${escapeHtml(framework.asOf)}</p><div class="cta-factor-list">${framework.dimensions.map((item) => `<article><div><strong>${escapeHtml(item.name)}</strong><span class="${statusClass(item.status)}">${escapeHtml(item.status)}</span></div><p>${escapeHtml(item.evidence)}</p></article>`).join("")}</div><div class="detail-source-notice">待满足：${framework.blockers.length ? escapeHtml(framework.blockers.join("、")) : "四维与白银资金结构均已确认"}。Call 提示只代表条件筛选，不替代波动率、期限与最大亏损检查。</div></section>`;
+}
+
 function renderCta() {
   const allRows = currentSnapshot().cta || [];
   const sectors = [...new Set(allRows.map((row) => row.sector))].sort();
@@ -741,7 +750,7 @@ function renderCta() {
   $("#ctaRows").innerHTML = rows.map((row, index) => `<tr data-cta-symbol="${escapeHtml(row.symbol)}" class="${row.symbol === state.activeCtaSymbol ? "is-selected" : ""}"><td>${index + 1}</td><td><strong>${escapeHtml(row.variety)}</strong><small>${escapeHtml(row.symbol)}</small></td><td>${escapeHtml(row.sector)}</td><td class="cta-score ${signClass(row.score)}">${formatSigned(row.score)}</td><td>${row.coverage}%</td><td class="${signClass(row.score)}">${escapeHtml(row.signal)}</td></tr>`).join("") || `<tr><td colspan="6">没有匹配品种。</td></tr>`;
   const selected = rows.find((row) => row.symbol === state.activeCtaSymbol) || rows[0];
   state.activeCtaSymbol = selected?.symbol || null;
-  $("#ctaDetail").innerHTML = selected ? `<div class="detail-kicker">CTA FACTOR BREAKDOWN</div><h3>${escapeHtml(selected.variety)} <small>${escapeHtml(selected.symbol)}</small></h3><div class="cta-detail-score ${signClass(selected.score)}">${formatSigned(selected.score)} <small>${escapeHtml(selected.signal)}</small></div><p>${escapeHtml(selected.sector)} · 可用因子覆盖 ${selected.coverage}% · 年化波动 ${selected.volatility ?? "—"}%</p><div class="cta-factor-list">${Object.entries(CTA_FACTOR_LABELS).map(([key, label]) => `<article><div><strong>${label}</strong><span class="${selected.factors[key] == null ? "neutral-text" : signClass(selected.factors[key])}">${selected.factors[key] == null ? "未覆盖" : formatSigned(selected.factors[key])}</span></div><p>${escapeHtml(selected.evidence[key])}</p></article>`).join("")}</div><div class="detail-source-notice">缺失因子不按中性计分，而是按可用权重重算。截图是二级证据；评分不是回测后的交易策略或买卖建议。</div>` : `<div class="detail-empty">该筛选条件没有 CTA 品种。</div>`;
+  $("#ctaDetail").innerHTML = selected ? `<div class="detail-kicker">CTA FACTOR BREAKDOWN</div><h3>${escapeHtml(selected.variety)} <small>${escapeHtml(selected.symbol)}</small></h3><div class="cta-detail-score ${signClass(selected.score)}">${formatSigned(selected.score)} <small>${escapeHtml(selected.signal)}</small></div><p>${escapeHtml(selected.sector)} · 可用因子覆盖 ${selected.coverage}% · 年化波动 ${selected.volatility ?? "—"}%</p><div class="cta-factor-list">${Object.entries(CTA_FACTOR_LABELS).map(([key, label]) => `<article><div><strong>${label}</strong><span class="${selected.factors[key] == null ? "neutral-text" : signClass(selected.factors[key])}">${selected.factors[key] == null ? "未覆盖" : formatSigned(selected.factors[key])}</span></div><p>${escapeHtml(selected.evidence[key])}</p></article>`).join("")}</div>${renderMetal4d(selected)}<div class="detail-source-notice">缺失因子不按中性计分，而是按可用权重重算。截图是二级证据；评分不是回测后的交易策略或买卖建议。</div>` : `<div class="detail-empty">该筛选条件没有 CTA 品种。</div>`;
 }
 
 function renderAll() {

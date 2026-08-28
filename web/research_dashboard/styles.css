@@ -537,6 +537,10 @@ h1 { margin: 6px 0 0; font-size: 30px; line-height: 1.15; letter-spacing: 0; }
 .cta-factor-list article { padding: 10px 0; border-top: 1px solid var(--line); }
 .cta-factor-list article > div { display: flex; justify-content: space-between; gap: 12px; }
 .cta-factor-list article p { margin: 4px 0 0; color: var(--muted); font-size: 9px; line-height: 1.55; }
+.cta-metal4d { margin-top: 14px; padding-top: 12px; border-top: 2px solid var(--ink); }
+.cta-metal4d-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.cta-metal4d-head small, .cta-metal4d > p { color: var(--muted); font-size: 9px; }
+.cta-metal4d h4 { margin: 2px 0 0; font-size: 15px; }
 
 @media (max-width: 1180px) {
   .summary-strip { grid-template-columns: repeat(3, 1fr); }
