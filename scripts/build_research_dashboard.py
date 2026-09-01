@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import re
 import shutil
 from collections import defaultdict
@@ -657,6 +658,38 @@ def build_weather(rows: list[dict[str, str]]) -> list[dict[str, object]]:
     ]
 
 
+def validate_seat_evidence(
+    snapshot: dict[str, object], position_rows: list[dict[str, str]], report_date: str
+) -> None:
+    instruments = snapshot.get("instruments", [])
+    source_symbols = {
+        row.get("symbol", "").upper()
+        for row in position_rows
+        if row.get("symbol") and row.get("contract") and row.get("broker")
+    }
+    missing_source = []
+    missing_long = []
+    missing_short = []
+    for item in instruments if isinstance(instruments, list) else []:
+        symbol = str(item.get("symbol", "")).upper()
+        ranking = item.get("brokerRanking") or {}
+        if symbol not in source_symbols:
+            missing_source.append(symbol)
+        if not ranking.get("netLong"):
+            missing_long.append(symbol)
+        if not ranking.get("netShort"):
+            missing_short.append(symbol)
+    if missing_source or missing_long or missing_short:
+        details = []
+        if missing_source:
+            details.append(f"source rows missing: {','.join(missing_source)}")
+        if missing_long:
+            details.append(f"net-long seats missing: {','.join(missing_long)}")
+        if missing_short:
+            details.append(f"net-short seats missing: {','.join(missing_short)}")
+        raise RuntimeError(f"Incomplete seat evidence for {report_date}: {'; '.join(details)}")
+
+
 def build_snapshot(report_date: str) -> dict[str, object]:
     institutional_dir = OUTPUT_ROOT / f"institutional_seat_report_{report_date}" / "data"
     amount_dir = OUTPUT_ROOT / f"margin_weighted_seat_report_{report_date}" / "data"
@@ -851,7 +884,16 @@ def main() -> None:
     if not common_dates:
         raise SystemExit("No common institutional and margin-weighted snapshots were found.")
 
+    requested_date = os.environ.get("REPORT_DATE", "").strip()
+    target_date = requested_date or common_dates[0]
+    if target_date not in common_dates[:30]:
+        raise SystemExit(f"No build inputs were found for REPORT_DATE={target_date}.")
     generated_snapshots = {date: build_snapshot(date) for date in common_dates[:30]}
+    validate_seat_evidence(
+        generated_snapshots[target_date],
+        read_csv(ROOT / "data" / f"qhkch_main_position_rows_{target_date}.csv"),
+        target_date,
+    )
     SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
     for date, snapshot in generated_snapshots.items():
         with (SNAPSHOT_DIR / f"{date}.json").open("w", encoding="utf-8") as handle:

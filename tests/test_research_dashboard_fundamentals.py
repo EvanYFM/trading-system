@@ -279,6 +279,27 @@ class ResearchDashboardFundamentalTests(unittest.TestCase):
         self.assertEqual(12, entry["addShort"])
         self.assertEqual(2, entry["reduceLong"])
 
+    def test_seat_evidence_validation_requires_both_sides_for_every_symbol(self):
+        snapshot = {"instruments": [{
+            "symbol": "JM",
+            "brokerRanking": {"netLong": [{"broker": "甲"}], "netShort": []},
+        }, {
+            "symbol": "I",
+            "brokerRanking": {"netLong": [], "netShort": [{"broker": "乙"}]},
+        }]}
+        rows = [{"symbol": "JM", "contract": "jm2701", "broker": "甲"}]
+
+        with self.assertRaises(RuntimeError) as error:
+            dashboard.validate_seat_evidence(snapshot, rows, "20260831")
+        self.assertIn("source rows missing: I", str(error.exception))
+        self.assertIn("net-long seats missing: I", str(error.exception))
+        self.assertIn("net-short seats missing: JM", str(error.exception))
+
+        snapshot["instruments"][0]["brokerRanking"]["netShort"] = [{"broker": "丙"}]
+        snapshot["instruments"][1]["brokerRanking"]["netLong"] = [{"broker": "丁"}]
+        rows.append({"symbol": "I", "contract": "i2701", "broker": "丁"})
+        dashboard.validate_seat_evidence(snapshot, rows, "20260831")
+
 
 if __name__ == "__main__":
     unittest.main()
