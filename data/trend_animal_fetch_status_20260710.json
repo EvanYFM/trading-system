@@ -1,0 +1,39 @@
+{
+  "source": "Trend Animal API",
+  "run_date": "20260710",
+  "commodity_update": {
+    "asOfDate": "2026-07-10",
+    "updateDt": "2026-07-10 17:59:00"
+  },
+  "requested_fields": [
+    "trendTemperatureCurr",
+    "trendTemperaturePrev",
+    "isTrendRightSide",
+    "daysSinceTrendEntry",
+    "gainSinceTrendEntry",
+    "trendPhaseCurr",
+    "trendPhasePrev",
+    "trendStrengthLocalCurr",
+    "trendStrengthLocalChange",
+    "return1d"
+  ],
+  "per_row_cost_yuan": 0.036000000000000004,
+  "estimated_cost_yuan": 0.36800000000000005,
+  "resolved_count": 8,
+  "unresolved": [],
+  "doc_version_entries": 12,
+  "change_log_latest": [
+    {
+      "date": "2026-07-06",
+      "change": "趋势动物API上线。"
+    },
+    {
+      "date": "2026-07-10",
+      "change": "趋势动物Api上线，已面向金融会员开启内测。"
+    },
+    {
+      "date": "2026-07-10",
+      "change": "可供API查询的大类截面：A股、ETF基金、美股、商品期货、港股。"
+    }
+  ]
+}

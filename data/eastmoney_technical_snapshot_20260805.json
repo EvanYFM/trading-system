@@ -1,0 +1,874 @@
+{
+  "reportDate": "20260805",
+  "items": [
+    {
+      "symbol": "AG",
+      "variety": "沪银2610",
+      "contract": "ag2610",
+      "market": 113,
+      "reportDate": "20260805",
+      "sourceDate": "2026-08-05",
+      "status": "OK",
+      "source": "新浪财经合约日线 + 东方财富报告日收盘校正",
+      "sourceUrl": "https://qhweb.eastmoney.com/quote/zhuli",
+      "historyStatus": "SINA_DAILY_FALLBACK+FINAL_QUOTE",
+      "barCount": 197,
+      "startDate": "2025-10-16",
+      "endDate": "2026-08-05",
+      "close": 15105.0,
+      "changePct": 7.08,
+      "ma5": 14398.4,
+      "ma20": 14281.85,
+      "ma60": 16027.983333333334,
+      "dailyState": "中枢震荡",
+      "chan15": {
+        "period": 15,
+        "status": "OK",
+        "state": "偏多",
+        "barCount": 160,
+        "processedBarCount": 125,
+        "strokeCount": 12,
+        "startTime": "2026-07-30 10:00",
+        "endTime": "2026-08-05 15:00",
+        "latestClose": 15105.0,
+        "recentTops": [
+          {
+            "timestamp": "2026-08-05 01:30",
+            "price": 14653.0
+          },
+          {
+            "timestamp": "2026-08-05 14:00",
+            "price": 15059.0
+          }
+        ],
+        "recentBottoms": [
+          {
+            "timestamp": "2026-08-04 23:30",
+            "price": 14492.0
+          },
+          {
+            "timestamp": "2026-08-05 09:30",
+            "price": 14540.0
+          }
+        ],
+        "centralZone": {
+          "lower": 14540.0,
+          "upper": 14653.0
+        },
+        "activity": {
+          "volume": 582247.0,
+          "previousVolume": 220489.0,
+          "openInterest": 315307.0,
+          "openInterestChange": 18704.0
+        },
+        "source": "新浪财经主力合约分钟K线",
+        "sourceUrl": "https://stock2.finance.sina.com.cn/futures/api/jsonp.php/AG2610_15_=/InnerFuturesNewService.getFewMinLine?symbol=AG2610&type=15"
+      },
+      "chan60": {
+        "period": 60,
+        "status": "OK",
+        "state": "偏多",
+        "barCount": 120,
+        "processedBarCount": 93,
+        "strokeCount": 8,
+        "startTime": "2026-07-21 00:00",
+        "endTime": "2026-08-05 15:00",
+        "latestClose": 15105.0,
+        "recentTops": [
+          {
+            "timestamp": "2026-07-30 09:30",
+            "price": 14531.0
+          },
+          {
+            "timestamp": "2026-08-05 02:00",
+            "price": 14653.0
+          }
+        ],
+        "recentBottoms": [
+          {
+            "timestamp": "2026-07-28 13:45",
+            "price": 13880.0
+          },
+          {
+            "timestamp": "2026-08-01 01:00",
+            "price": 13956.0
+          }
+        ],
+        "centralZone": {
+          "lower": 13956.0,
+          "upper": 14531.0
+        },
+        "activity": {
+          "volume": 441030.0,
+          "previousVolume": 197205.0,
+          "openInterest": 315307.0,
+          "openInterestChange": 18704.0
+        },
+        "source": "新浪财经主力合约分钟K线",
+        "sourceUrl": "https://stock2.finance.sina.com.cn/futures/api/jsonp.php/AG2610_60_=/InnerFuturesNewService.getFewMinLine?symbol=AG2610&type=60"
+      },
+      "marketActivity": {
+        "volume": 0.0,
+        "previousVolume": 663822.0,
+        "volumeRatio": 0.0,
+        "openInterest": 315307.0,
+        "openInterestChange": 18704.0,
+        "label": "增仓上涨",
+        "impulse": "多头推动"
+      },
+      "keyLevels": {
+        "supports": [
+          {
+            "label": "15分钟中枢上沿",
+            "value": 14653.0,
+            "source": "中枢"
+          },
+          {
+            "label": "15分钟中枢下沿",
+            "value": 14540.0,
+            "source": "中枢"
+          }
+        ],
+        "resistances": [
+          {
+            "label": "MA60",
+            "value": 16027.983333333334,
+            "source": "均线"
+          }
+        ]
+      },
+      "bias": "偏多",
+      "score": 4.125,
+      "signalStrength": "中",
+      "method": "日线 MA5/20/60、成交量与持仓量、15/60 分钟简化缠论结构三层验证",
+      "limitations": "日线为当前主力合约自身历史，不是复权连续合约；分钟结构先处理包含关系，再以三根K线分型和最少4根处理后K线构成简化笔，不等同于严格缠论背驰或一、二、三类买卖点。",
+      "fetchedAt": "2026-08-05T17:08:27+08:00"
+    },
+    {
+      "symbol": "JM",
+      "variety": "焦煤2609",
+      "contract": "jm2609",
+      "market": 114,
+      "reportDate": "20260805",
+      "sourceDate": "2026-08-05",
+      "status": "OK",
+      "source": "新浪财经合约日线 + 东方财富报告日收盘校正",
+      "sourceUrl": "https://qhweb.eastmoney.com/quote/zhuli",
+      "historyStatus": "SINA_DAILY_FALLBACK+FINAL_QUOTE",
+      "barCount": 214,
+      "startDate": "2025-09-15",
+      "endDate": "2026-08-05",
+      "close": 1233.0,
+      "changePct": 3.35,
+      "ma5": 1203.9,
+      "ma20": 1250.35,
+      "ma60": 1279.8083333333334,
+      "dailyState": "中枢震荡",
+      "chan15": {
+        "period": 15,
+        "status": "OK",
+        "state": "偏多",
+        "barCount": 160,
+        "processedBarCount": 105,
+        "strokeCount": 11,
+        "startTime": "2026-07-27 21:30",
+        "endTime": "2026-08-05 15:00",
+        "latestClose": 1233.0,
+        "recentTops": [
+          {
+            "timestamp": "2026-08-04 13:45",
+            "price": 1204.0
+          },
+          {
+            "timestamp": "2026-08-05 14:15",
+            "price": 1237.0
+          }
+        ],
+        "recentBottoms": [
+          {
+            "timestamp": "2026-08-03 15:00",
+            "price": 1181.5
+          },
+          {
+            "timestamp": "2026-08-04 21:30",
+            "price": 1188.5
+          }
+        ],
+        "centralZone": {
+          "lower": 1188.5,
+          "upper": 1204.0
+        },
+        "activity": {
+          "volume": 470959.0,
+          "previousVolume": 153300.0,
+          "openInterest": 375771.0,
+          "openInterestChange": -21680.0
+        },
+        "source": "新浪财经主力合约分钟K线",
+        "sourceUrl": "https://stock2.finance.sina.com.cn/futures/api/jsonp.php/JM2609_15_=/InnerFuturesNewService.getFewMinLine?symbol=JM2609&type=15"
+      },
+      "chan60": {
+        "period": 60,
+        "status": "OK",
+        "state": "偏空",
+        "barCount": 120,
+        "processedBarCount": 74,
+        "strokeCount": 6,
+        "startTime": "2026-07-08 22:00",
+        "endTime": "2026-08-05 15:00",
+        "latestClose": 1233.0,
+        "recentTops": [
+          {
+            "timestamp": "2026-07-23 15:00",
+            "price": 1296.5
+          },
+          {
+            "timestamp": "2026-08-04 14:15",
+            "price": 1204.5
+          }
+        ],
+        "recentBottoms": [
+          {
+            "timestamp": "2026-07-21 10:00",
+            "price": 1233.0
+          },
+          {
+            "timestamp": "2026-08-03 10:00",
+            "price": 1171.0
+          }
+        ],
+        "centralZone": null,
+        "activity": {
+          "volume": 364138.0,
+          "previousVolume": 129128.0,
+          "openInterest": 375771.0,
+          "openInterestChange": -21680.0
+        },
+        "source": "新浪财经主力合约分钟K线",
+        "sourceUrl": "https://stock2.finance.sina.com.cn/futures/api/jsonp.php/JM2609_60_=/InnerFuturesNewService.getFewMinLine?symbol=JM2609&type=60"
+      },
+      "marketActivity": {
+        "volume": 0.0,
+        "previousVolume": 370970.0,
+        "volumeRatio": 0.0,
+        "openInterest": 375771.0,
+        "openInterestChange": -21680.0,
+        "label": "减仓上涨",
+        "impulse": "空头回补"
+      },
+      "keyLevels": {
+        "supports": [
+          {
+            "label": "15分钟中枢上沿",
+            "value": 1204.0,
+            "source": "中枢"
+          },
+          {
+            "label": "MA5",
+            "value": 1203.9,
+            "source": "均线"
+          }
+        ],
+        "resistances": [
+          {
+            "label": "MA20",
+            "value": 1250.35,
+            "source": "均线"
+          },
+          {
+            "label": "MA60",
+            "value": 1279.8083333333334,
+            "source": "均线"
+          }
+        ]
+      },
+      "bias": "中枢震荡",
+      "score": -0.625,
+      "signalStrength": "弱",
+      "method": "日线 MA5/20/60、成交量与持仓量、15/60 分钟简化缠论结构三层验证",
+      "limitations": "日线为当前主力合约自身历史，不是复权连续合约；分钟结构先处理包含关系，再以三根K线分型和最少4根处理后K线构成简化笔，不等同于严格缠论背驰或一、二、三类买卖点。",
+      "fetchedAt": "2026-08-05T17:08:40+08:00"
+    },
+    {
+      "symbol": "FU",
+      "variety": "燃油2609",
+      "contract": "fu2609",
+      "market": 113,
+      "reportDate": "20260805",
+      "sourceDate": "2026-08-05",
+      "status": "OK",
+      "source": "新浪财经合约日线 + 东方财富报告日收盘校正",
+      "sourceUrl": "https://qhweb.eastmoney.com/quote/zhuli",
+      "historyStatus": "SINA_DAILY_FALLBACK+FINAL_QUOTE",
+      "barCount": 224,
+      "startDate": "2025-09-01",
+      "endDate": "2026-08-05",
+      "close": 3325.0,
+      "changePct": -3.82,
+      "ma5": 3486.8,
+      "ma20": 3544.7,
+      "ma60": 3547.733333333333,
+      "dailyState": "偏空",
+      "chan15": {
+        "period": 15,
+        "status": "OK",
+        "state": "偏空",
+        "barCount": 160,
+        "processedBarCount": 100,
+        "strokeCount": 9,
+        "startTime": "2026-07-27 21:30",
+        "endTime": "2026-08-05 15:00",
+        "latestClose": 3325.0,
+        "recentTops": [
+          {
+            "timestamp": "2026-07-31 23:00",
+            "price": 3643.0
+          },
+          {
+            "timestamp": "2026-08-04 13:45",
+            "price": 3517.0
+          }
+        ],
+        "recentBottoms": [
+          {
+            "timestamp": "2026-08-03 21:15",
+            "price": 3394.0
+          },
+          {
+            "timestamp": "2026-08-05 11:00",
+            "price": 3304.0
+          }
+        ],
+        "centralZone": {
+          "lower": 3394.0,
+          "upper": 3517.0
+        },
+        "activity": {
+          "volume": 632819.0,
+          "previousVolume": 192378.0,
+          "openInterest": 132833.0,
+          "openInterestChange": -12252.0
+        },
+        "source": "新浪财经主力合约分钟K线",
+        "sourceUrl": "https://stock2.finance.sina.com.cn/futures/api/jsonp.php/FU2609_15_=/InnerFuturesNewService.getFewMinLine?symbol=FU2609&type=15"
+      },
+      "chan60": {
+        "period": 60,
+        "status": "OK",
+        "state": "偏空",
+        "barCount": 120,
+        "processedBarCount": 78,
+        "strokeCount": 8,
+        "startTime": "2026-07-08 22:00",
+        "endTime": "2026-08-05 15:00",
+        "latestClose": 3325.0,
+        "recentTops": [
+          {
+            "timestamp": "2026-07-23 23:00",
+            "price": 3974.0
+          },
+          {
+            "timestamp": "2026-07-30 15:00",
+            "price": 3724.0
+          }
+        ],
+        "recentBottoms": [
+          {
+            "timestamp": "2026-07-28 11:15",
+            "price": 3475.0
+          },
+          {
+            "timestamp": "2026-08-03 22:00",
+            "price": 3394.0
+          }
+        ],
+        "centralZone": {
+          "lower": 3475.0,
+          "upper": 3724.0
+        },
+        "activity": {
+          "volume": 499441.0,
+          "previousVolume": 169019.0,
+          "openInterest": 132833.0,
+          "openInterestChange": -12252.0
+        },
+        "source": "新浪财经主力合约分钟K线",
+        "sourceUrl": "https://stock2.finance.sina.com.cn/futures/api/jsonp.php/FU2609_60_=/InnerFuturesNewService.getFewMinLine?symbol=FU2609&type=60"
+      },
+      "marketActivity": {
+        "volume": 0.0,
+        "previousVolume": 563468.0,
+        "volumeRatio": 0.0,
+        "openInterest": 132833.0,
+        "openInterestChange": -12252.0,
+        "label": "减仓下跌",
+        "impulse": "多头撤退"
+      },
+      "keyLevels": {
+        "supports": [],
+        "resistances": [
+          {
+            "label": "15分钟中枢下沿",
+            "value": 3394.0,
+            "source": "中枢"
+          },
+          {
+            "label": "60分钟中枢下沿",
+            "value": 3475.0,
+            "source": "中枢"
+          }
+        ]
+      },
+      "bias": "偏空",
+      "score": -4.375,
+      "signalStrength": "中",
+      "method": "日线 MA5/20/60、成交量与持仓量、15/60 分钟简化缠论结构三层验证",
+      "limitations": "日线为当前主力合约自身历史，不是复权连续合约；分钟结构先处理包含关系，再以三根K线分型和最少4根处理后K线构成简化笔，不等同于严格缠论背驰或一、二、三类买卖点。",
+      "fetchedAt": "2026-08-05T17:08:56+08:00"
+    },
+    {
+      "symbol": "LH",
+      "variety": "生猪2609",
+      "contract": "lh2609",
+      "market": 114,
+      "reportDate": "20260805",
+      "sourceDate": "2026-08-05",
+      "status": "OK",
+      "source": "新浪财经合约日线 + 东方财富报告日收盘校正",
+      "sourceUrl": "https://qhweb.eastmoney.com/quote/zhuli",
+      "historyStatus": "SINA_DAILY_FALLBACK+FINAL_QUOTE",
+      "barCount": 205,
+      "startDate": "2025-09-26",
+      "endDate": "2026-08-05",
+      "close": 10970.0,
+      "changePct": 1.34,
+      "ma5": 10802.0,
+      "ma20": 11401.25,
+      "ma60": 11878.75,
+      "dailyState": "中枢震荡",
+      "chan15": {
+        "period": 15,
+        "status": "OK",
+        "state": "偏多",
+        "barCount": 160,
+        "processedBarCount": 106,
+        "strokeCount": 14,
+        "startTime": "2026-07-22 10:45",
+        "endTime": "2026-08-05 15:00",
+        "latestClose": 10970.0,
+        "recentTops": [
+          {
+            "timestamp": "2026-08-04 14:00",
+            "price": 10930.0
+          },
+          {
+            "timestamp": "2026-08-05 13:45",
+            "price": 11045.0
+          }
+        ],
+        "recentBottoms": [
+          {
+            "timestamp": "2026-08-03 14:15",
+            "price": 10640.0
+          },
+          {
+            "timestamp": "2026-08-05 09:45",
+            "price": 10830.0
+          }
+        ],
+        "centralZone": {
+          "lower": 10830.0,
+          "upper": 10930.0
+        },
+        "activity": {
+          "volume": 111407.0,
+          "previousVolume": 13925.0,
+          "openInterest": 118271.0,
+          "openInterestChange": -11737.0
+        },
+        "source": "新浪财经主力合约分钟K线",
+        "sourceUrl": "https://stock2.finance.sina.com.cn/futures/api/jsonp.php/LH2609_15_=/InnerFuturesNewService.getFewMinLine?symbol=LH2609&type=15"
+      },
+      "chan60": {
+        "period": 60,
+        "status": "OK",
+        "state": "偏空",
+        "barCount": 120,
+        "processedBarCount": 87,
+        "strokeCount": 9,
+        "startTime": "2026-06-25 10:00",
+        "endTime": "2026-08-05 15:00",
+        "latestClose": 10970.0,
+        "recentTops": [
+          {
+            "timestamp": "2026-07-10 15:00",
+            "price": 12450.0
+          },
+          {
+            "timestamp": "2026-07-16 11:15",
+            "price": 12115.0
+          }
+        ],
+        "recentBottoms": [
+          {
+            "timestamp": "2026-07-14 10:00",
+            "price": 11900.0
+          },
+          {
+            "timestamp": "2026-08-03 15:00",
+            "price": 10640.0
+          }
+        ],
+        "centralZone": {
+          "lower": 11900.0,
+          "upper": 12115.0
+        },
+        "activity": {
+          "volume": 88187.0,
+          "previousVolume": 2705.0,
+          "openInterest": 118271.0,
+          "openInterestChange": -11737.0
+        },
+        "source": "新浪财经主力合约分钟K线",
+        "sourceUrl": "https://stock2.finance.sina.com.cn/futures/api/jsonp.php/LH2609_60_=/InnerFuturesNewService.getFewMinLine?symbol=LH2609&type=60"
+      },
+      "marketActivity": {
+        "volume": 0.0,
+        "previousVolume": 162332.0,
+        "volumeRatio": 0.0,
+        "openInterest": 118271.0,
+        "openInterestChange": -11737.0,
+        "label": "减仓上涨",
+        "impulse": "空头回补"
+      },
+      "keyLevels": {
+        "supports": [
+          {
+            "label": "15分钟中枢上沿",
+            "value": 10930.0,
+            "source": "中枢"
+          },
+          {
+            "label": "15分钟中枢下沿",
+            "value": 10830.0,
+            "source": "中枢"
+          }
+        ],
+        "resistances": [
+          {
+            "label": "MA20",
+            "value": 11401.25,
+            "source": "均线"
+          },
+          {
+            "label": "MA60",
+            "value": 11878.75,
+            "source": "均线"
+          }
+        ]
+      },
+      "bias": "中枢震荡",
+      "score": -0.625,
+      "signalStrength": "弱",
+      "method": "日线 MA5/20/60、成交量与持仓量、15/60 分钟简化缠论结构三层验证",
+      "limitations": "日线为当前主力合约自身历史，不是复权连续合约；分钟结构先处理包含关系，再以三根K线分型和最少4根处理后K线构成简化笔，不等同于严格缠论背驰或一、二、三类买卖点。",
+      "fetchedAt": "2026-08-05T17:09:09+08:00"
+    },
+    {
+      "symbol": "LC",
+      "variety": "碳酸锂2609",
+      "contract": "lc2609",
+      "market": 225,
+      "reportDate": "20260805",
+      "sourceDate": "2026-08-05",
+      "status": "OK",
+      "source": "新浪财经合约日线 + 东方财富报告日收盘校正",
+      "sourceUrl": "https://qhweb.eastmoney.com/quote/zhuli",
+      "historyStatus": "SINA_DAILY_FALLBACK+FINAL_QUOTE",
+      "barCount": 214,
+      "startDate": "2025-09-15",
+      "endDate": "2026-08-05",
+      "close": 143220.0,
+      "changePct": 2.61,
+      "ma5": 140064.0,
+      "ma20": 145905.0,
+      "ma60": 162732.66666666666,
+      "dailyState": "中枢震荡",
+      "chan15": {
+        "period": 15,
+        "status": "OK",
+        "state": "偏多",
+        "barCount": 160,
+        "processedBarCount": 110,
+        "strokeCount": 12,
+        "startTime": "2026-07-22 10:45",
+        "endTime": "2026-08-05 15:00",
+        "latestClose": 143220.0,
+        "recentTops": [
+          {
+            "timestamp": "2026-08-03 14:00",
+            "price": 140820.0
+          },
+          {
+            "timestamp": "2026-08-05 14:45",
+            "price": 144280.0
+          }
+        ],
+        "recentBottoms": [
+          {
+            "timestamp": "2026-08-03 09:30",
+            "price": 135560.0
+          },
+          {
+            "timestamp": "2026-08-05 09:15",
+            "price": 138320.0
+          }
+        ],
+        "centralZone": {
+          "lower": 138320.0,
+          "upper": 140820.0
+        },
+        "activity": {
+          "volume": 148599.0,
+          "previousVolume": 15585.0,
+          "openInterest": 306472.0,
+          "openInterestChange": -9402.0
+        },
+        "source": "新浪财经主力合约分钟K线",
+        "sourceUrl": "https://stock2.finance.sina.com.cn/futures/api/jsonp.php/LC2609_15_=/InnerFuturesNewService.getFewMinLine?symbol=LC2609&type=15"
+      },
+      "chan60": {
+        "period": 60,
+        "status": "OK",
+        "state": "偏空",
+        "barCount": 120,
+        "processedBarCount": 80,
+        "strokeCount": 8,
+        "startTime": "2026-06-25 10:00",
+        "endTime": "2026-08-05 15:00",
+        "latestClose": 143220.0,
+        "recentTops": [
+          {
+            "timestamp": "2026-07-23 11:15",
+            "price": 148460.0
+          },
+          {
+            "timestamp": "2026-08-04 14:15",
+            "price": 141300.0
+          }
+        ],
+        "recentBottoms": [
+          {
+            "timestamp": "2026-07-21 11:15",
+            "price": 136800.0
+          },
+          {
+            "timestamp": "2026-08-03 10:00",
+            "price": 135560.0
+          }
+        ],
+        "centralZone": {
+          "lower": 136800.0,
+          "upper": 141300.0
+        },
+        "activity": {
+          "volume": 88636.0,
+          "previousVolume": 3845.0,
+          "openInterest": 306472.0,
+          "openInterestChange": -9402.0
+        },
+        "source": "新浪财经主力合约分钟K线",
+        "sourceUrl": "https://stock2.finance.sina.com.cn/futures/api/jsonp.php/LC2609_60_=/InnerFuturesNewService.getFewMinLine?symbol=LC2609&type=60"
+      },
+      "marketActivity": {
+        "volume": 0.0,
+        "previousVolume": 134684.0,
+        "volumeRatio": 0.0,
+        "openInterest": 306472.0,
+        "openInterestChange": -9402.0,
+        "label": "减仓上涨",
+        "impulse": "空头回补"
+      },
+      "keyLevels": {
+        "supports": [
+          {
+            "label": "60分钟中枢上沿",
+            "value": 141300.0,
+            "source": "中枢"
+          },
+          {
+            "label": "15分钟中枢上沿",
+            "value": 140820.0,
+            "source": "中枢"
+          }
+        ],
+        "resistances": [
+          {
+            "label": "MA20",
+            "value": 145905.0,
+            "source": "均线"
+          },
+          {
+            "label": "MA60",
+            "value": 162732.66666666666,
+            "source": "均线"
+          }
+        ]
+      },
+      "bias": "中枢震荡",
+      "score": -0.625,
+      "signalStrength": "弱",
+      "method": "日线 MA5/20/60、成交量与持仓量、15/60 分钟简化缠论结构三层验证",
+      "limitations": "日线为当前主力合约自身历史，不是复权连续合约；分钟结构先处理包含关系，再以三根K线分型和最少4根处理后K线构成简化笔，不等同于严格缠论背驰或一、二、三类买卖点。",
+      "fetchedAt": "2026-08-05T17:09:22+08:00"
+    },
+    {
+      "symbol": "JD",
+      "variety": "鸡蛋2609",
+      "contract": "jd2609",
+      "market": 114,
+      "reportDate": "20260805",
+      "sourceDate": "2026-08-05",
+      "status": "OK",
+      "source": "新浪财经合约日线 + 东方财富报告日收盘校正",
+      "sourceUrl": "https://qhweb.eastmoney.com/quote/zhuli",
+      "historyStatus": "SINA_DAILY_FALLBACK+FINAL_QUOTE",
+      "barCount": 205,
+      "startDate": "2025-09-26",
+      "endDate": "2026-08-05",
+      "close": 4076.0,
+      "changePct": 1.62,
+      "ma5": 4026.8,
+      "ma20": 4213.8,
+      "ma60": 4259.583333333333,
+      "dailyState": "中枢震荡",
+      "chan15": {
+        "period": 15,
+        "status": "OK",
+        "state": "偏多",
+        "barCount": 160,
+        "processedBarCount": 108,
+        "strokeCount": 12,
+        "startTime": "2026-07-22 10:45",
+        "endTime": "2026-08-05 15:00",
+        "latestClose": 4076.0,
+        "recentTops": [
+          {
+            "timestamp": "2026-08-03 15:00",
+            "price": 4064.0
+          },
+          {
+            "timestamp": "2026-08-05 11:30",
+            "price": 4094.0
+          }
+        ],
+        "recentBottoms": [
+          {
+            "timestamp": "2026-07-31 15:00",
+            "price": 3943.0
+          },
+          {
+            "timestamp": "2026-08-04 10:00",
+            "price": 3996.0
+          }
+        ],
+        "centralZone": {
+          "lower": 3996.0,
+          "upper": 4064.0
+        },
+        "activity": {
+          "volume": 407735.0,
+          "previousVolume": 432921.0,
+          "openInterest": 177464.0,
+          "openInterestChange": -11754.0
+        },
+        "source": "新浪财经主力合约分钟K线",
+        "sourceUrl": "https://stock2.finance.sina.com.cn/futures/api/jsonp.php/JD2609_15_=/InnerFuturesNewService.getFewMinLine?symbol=JD2609&type=15"
+      },
+      "chan60": {
+        "period": 60,
+        "status": "OK",
+        "state": "偏空",
+        "barCount": 120,
+        "processedBarCount": 79,
+        "strokeCount": 5,
+        "startTime": "2026-06-25 10:00",
+        "endTime": "2026-08-05 15:00",
+        "latestClose": 4076.0,
+        "recentTops": [
+          {
+            "timestamp": "2026-07-10 15:00",
+            "price": 4638.0
+          },
+          {
+            "timestamp": "2026-07-28 11:15",
+            "price": 4144.0
+          }
+        ],
+        "recentBottoms": [
+          {
+            "timestamp": "2026-07-24 15:00",
+            "price": 4022.0
+          },
+          {
+            "timestamp": "2026-07-31 15:00",
+            "price": 3943.0
+          }
+        ],
+        "centralZone": {
+          "lower": 4022.0,
+          "upper": 4144.0
+        },
+        "activity": {
+          "volume": 271266.0,
+          "previousVolume": 264671.0,
+          "openInterest": 177464.0,
+          "openInterestChange": -11754.0
+        },
+        "source": "新浪财经主力合约分钟K线",
+        "sourceUrl": "https://stock2.finance.sina.com.cn/futures/api/jsonp.php/JD2609_60_=/InnerFuturesNewService.getFewMinLine?symbol=JD2609&type=60"
+      },
+      "marketActivity": {
+        "volume": 0.0,
+        "previousVolume": 494390.0,
+        "volumeRatio": 0.0,
+        "openInterest": 177464.0,
+        "openInterestChange": -11754.0,
+        "label": "减仓上涨",
+        "impulse": "空头回补"
+      },
+      "keyLevels": {
+        "supports": [
+          {
+            "label": "15分钟中枢上沿",
+            "value": 4064.0,
+            "source": "中枢"
+          },
+          {
+            "label": "MA5",
+            "value": 4026.8,
+            "source": "均线"
+          }
+        ],
+        "resistances": [
+          {
+            "label": "60分钟中枢上沿",
+            "value": 4144.0,
+            "source": "中枢"
+          },
+          {
+            "label": "MA20",
+            "value": 4213.8,
+            "source": "均线"
+          }
+        ]
+      },
+      "bias": "中枢震荡",
+      "score": -0.625,
+      "signalStrength": "弱",
+      "method": "日线 MA5/20/60、成交量与持仓量、15/60 分钟简化缠论结构三层验证",
+      "limitations": "日线为当前主力合约自身历史，不是复权连续合约；分钟结构先处理包含关系，再以三根K线分型和最少4根处理后K线构成简化笔，不等同于严格缠论背驰或一、二、三类买卖点。",
+      "fetchedAt": "2026-08-05T17:09:36+08:00"
+    }
+  ]
+}

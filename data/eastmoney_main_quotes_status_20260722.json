@@ -1,0 +1,16 @@
+{
+  "report_date": "20260722",
+  "source": "东方财富期货主力日线",
+  "source_url": "https://qhweb.eastmoney.com/quote/zhuli",
+  "fetched_at": "2026-07-22T20:41:24+08:00",
+  "main_contracts": 87,
+  "matched_report_date": 81,
+  "missing": [
+    "BB",
+    "JR",
+    "PM",
+    "RI",
+    "WH",
+    "ZC"
+  ]
+}

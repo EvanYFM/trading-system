@@ -1,0 +1,37 @@
+{
+  "source": "知识星球·趋势小程序",
+  "data_date": "2026-07-21",
+  "status": "ok",
+  "sample_count": 39,
+  "topic_count": 10,
+  "comment_count": 29,
+  "nick_count": 13,
+  "bullish_count": 0,
+  "bearish_count": 2,
+  "neutral_count": 37,
+  "sentiment_score": -100,
+  "sentiment_label": "风险偏好偏低",
+  "confidence": "中",
+  "community_summary": "当日样本39条：偏多0、偏空2、中性37；按方向词加权后为风险偏好偏低，置信度中。",
+  "nick_summary": "我刚才用agent测试的没问题。检查你的agent是不是偷懒没有掉接口给你返回的过时图。强制让他从接口重新调取试试。；是，商品期货的结构有一次改动，你更新下逻辑。API也同步更新了。有疑问再反馈",
+  "evidence": [
+    {
+      "sentiment": "bearish",
+      "excerpt": "危险信号是用于止盈的指标，不在右侧的指标谈不上止盈"
+    },
+    {
+      "sentiment": "bearish",
+      "excerpt": "聂总，是不是只有标的处于右侧的时候才会触发危险信号的标签？如果之前没有温转热是不是即便有相同的价格行为也不会触发算法？"
+    },
+    {
+      "sentiment": "neutral",
+      "excerpt": "大佬在国外？"
+    },
+    {
+      "sentiment": "neutral",
+      "excerpt": "哥，总结很好"
+    }
+  ],
+  "methodology": "普通样本权重1，Nick样本权重2；只按当日帖子和评论中的显式风险偏好词计分，不代表全市场情绪。",
+  "error": ""
+}

@@ -1,0 +1,29 @@
+{
+  "source": "知识星球·趋势小程序",
+  "data_date": "2026-08-28",
+  "status": "ok",
+  "sample_count": 5,
+  "topic_count": 2,
+  "comment_count": 3,
+  "nick_count": 0,
+  "bullish_count": 0,
+  "bearish_count": 0,
+  "neutral_count": 5,
+  "sentiment_score": 0,
+  "sentiment_label": "样本不足",
+  "confidence": "低",
+  "community_summary": "当日样本5条：偏多0、偏空0、中性5；按方向词加权后为样本不足，置信度低。",
+  "nick_summary": "当日未发现 Nick 的发帖或回复。",
+  "evidence": [
+    {
+      "sentiment": "neutral",
+      "excerpt": "棒棒的"
+    },
+    {
+      "sentiment": "neutral",
+      "excerpt": "[坏笑]GS 都上过，这个洒洒水啦"
+    }
+  ],
+  "methodology": "普通样本权重1，Nick样本权重2；只按当日帖子和评论中的显式风险偏好词计分，不代表全市场情绪。",
+  "error": ""
+}

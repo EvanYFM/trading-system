@@ -1,0 +1,29 @@
+{
+  "source": "知识星球·趋势小程序",
+  "data_date": "2026-08-07",
+  "status": "ok",
+  "sample_count": 6,
+  "topic_count": 2,
+  "comment_count": 4,
+  "nick_count": 2,
+  "bullish_count": 0,
+  "bearish_count": 0,
+  "neutral_count": 6,
+  "sentiment_score": 0,
+  "sentiment_label": "样本不足",
+  "confidence": "低",
+  "community_summary": "当日样本6条：偏多0、偏空0、中性6；按方向词加权后为样本不足，置信度低。",
+  "nick_summary": "Etf在一起因为都是沪深交易所发布的etf；收到了 谢谢",
+  "evidence": [
+    {
+      "sentiment": "neutral",
+      "excerpt": "Etf在一起因为都是沪深交易所发布的etf"
+    },
+    {
+      "sentiment": "neutral",
+      "excerpt": "聂总好，我看到大类资产里港股和A股是分开的，但是在ETF基金里两者又是混在一起的，但是我感觉这样看起来不太方便，是否可以分开呢？"
+    }
+  ],
+  "methodology": "普通样本权重1，Nick样本权重2；只按当日帖子和评论中的显式风险偏好词计分，不代表全市场情绪。",
+  "error": ""
+}

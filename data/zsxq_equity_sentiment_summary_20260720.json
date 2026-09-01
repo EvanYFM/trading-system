@@ -1,0 +1,37 @@
+{
+  "source": "知识星球·趋势小程序",
+  "data_date": "2026-07-20",
+  "status": "ok",
+  "sample_count": 15,
+  "topic_count": 2,
+  "comment_count": 13,
+  "nick_count": 3,
+  "bullish_count": 3,
+  "bearish_count": 0,
+  "neutral_count": 12,
+  "sentiment_score": 100,
+  "sentiment_label": "风险偏好偏高",
+  "confidence": "中",
+  "community_summary": "当日样本15条：偏多3、偏空0、中性12；按方向词加权后为风险偏好偏高，置信度中。",
+  "nick_summary": "楼市跌多少是底？ 跌多少都不是底，但是一旦上涨就可能是底；破产小秘诀：逆势 扛单 重仓 不分散 四条里哪怕有一条做不到，也很难破产",
+  "evidence": [
+    {
+      "sentiment": "bullish",
+      "excerpt": "就怕来个和 23 年一样的假突破[撇嘴]"
+    },
+    {
+      "sentiment": "bullish",
+      "excerpt": "楼市跌多少是底？ 跌多少都不是底，但是一旦上涨就可能是底"
+    },
+    {
+      "sentiment": "neutral",
+      "excerpt": "请问面积代表流通市值或交易金额，这个流通市值具体是指什么呢，挂牌的总金额吗"
+    },
+    {
+      "sentiment": "neutral",
+      "excerpt": "楼市转涨了直接买房吗？有点担心房子流动性差、交易成本高，如果换成房地产相关的股票会不会更好一点？"
+    }
+  ],
+  "methodology": "普通样本权重1，Nick样本权重2；只按当日帖子和评论中的显式风险偏好词计分，不代表全市场情绪。",
+  "error": ""
+}

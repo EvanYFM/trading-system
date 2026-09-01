@@ -1,0 +1,11 @@
+﻿snapshot_date,symbol,variety,report_scope,asset,temperature,strength,trend_rank,source,note,tm_id,ticker_symbol,is_trend_right_side,days_since_trend_entry,trend_phase_curr,trend_temperature_prev,trend_strength_local_change,return_1d,api_update_dt
+2026-07-27,FU,燃油,commodity,商品期货,平,90.8,,trend_animal_api,API direct fact,300156,FU,False,,,平,,-0.0647,2026-07-27 17:20:01
+2026-07-27,EB,苯乙烯,commodity,商品期货,平,82.9,,trend_animal_api,API direct fact,308526,EB,False,,,平,,-0.0516,2026-07-27 17:20:01
+2026-07-27,LC,碳酸锂,commodity,商品期货,凉,17.1,,trend_animal_api,API direct fact,308564,lc,False,-13.0,立冬,凉,,0.0195,2026-07-27 17:20:01
+2026-07-27,M,豆粕,commodity,商品期货,温,100.0,,trend_animal_api,API direct fact,308534,M,True,13.0,夏至,热,,-0.0172,2026-07-27 17:20:01
+2026-07-27,JM,焦煤,commodity,商品期货,平,39.5,,trend_animal_api,API direct fact,308549,JM,False,,,平,,-0.0054,2026-07-27 17:20:01
+2026-07-27,JD,鸡蛋,commodity,商品期货,平,21.1,,trend_animal_api,API direct fact,308545,JD,False,,,平,,0.0083,2026-07-27 17:20:01
+2026-07-27,AU,黄金,commodity,商品期货,,70.5,,trend_animal_api,API direct fact,707175,AU2708,False,,,,,0.0133,2026-07-27 17:20:01
+2026-07-27,AG,白银,commodity,商品期货,,79.0,,trend_animal_api,API direct fact,707180,AG2707,False,,,,,0.028,2026-07-27 17:20:01
+2026-07-27,LH,生猪,commodity,商品期货,寒,2.6,,trend_animal_api,API direct fact,308562,LH,False,-11.0,冬至,寒,,0.0078,2026-07-27 17:20:01
+2026-07-27,IH,上证50,stock_index,ETF基金,温,81.6,,trend_animal_api,API direct fact,328631,510190,False,,,温,,0.0016,2026-07-27 17:20:01

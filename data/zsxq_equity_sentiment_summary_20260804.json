@@ -1,0 +1,37 @@
+{
+  "source": "知识星球·趋势小程序",
+  "data_date": "2026-08-04",
+  "status": "ok",
+  "sample_count": 15,
+  "topic_count": 5,
+  "comment_count": 10,
+  "nick_count": 5,
+  "bullish_count": 0,
+  "bearish_count": 2,
+  "neutral_count": 13,
+  "sentiment_score": -100,
+  "sentiment_label": "样本不足",
+  "confidence": "低",
+  "community_summary": "当日样本15条：偏多0、偏空2、中性13；按方向词加权后为样本不足，置信度低。",
+  "nick_summary": "服务器维护通知： 今天所有金融资产的更新会延期2-3个小时， 各位可以晚上再打开小程序看。 如果是 API 调用，也请晚上再轮询。 多谢理解和包容。；还不能，会做。",
+  "evidence": [
+    {
+      "sentiment": "bearish",
+      "excerpt": "左侧只有寒转冻是止盈信号吧，没有别的了"
+    },
+    {
+      "sentiment": "bearish",
+      "excerpt": "6月7月这一波科技，我确实有每天盯着左侧的卖出指标，但具体到我的持仓标的我是没看到左侧止盈的信号出现的。印象中只有韩股那边出现了开香槟的信号。然后持仓一路下跌到温转平才走，回撤了很大一波。 也想问问大家这一波有没有顺利左侧止盈走的，是根据什么走的呢?"
+    },
+    {
+      "sentiment": "neutral",
+      "excerpt": "标的覆盖美股粉单"
+    },
+    {
+      "sentiment": "neutral",
+      "excerpt": "没看懂什么是左侧"
+    }
+  ],
+  "methodology": "普通样本权重1，Nick样本权重2；只按当日帖子和评论中的显式风险偏好词计分，不代表全市场情绪。",
+  "error": ""
+}

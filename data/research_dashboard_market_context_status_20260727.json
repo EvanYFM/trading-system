@@ -1,0 +1,14 @@
+{
+  "report_date": "20260727",
+  "basis_failed_dates": [
+    {
+      "date": "20260727",
+      "error": "URLError"
+    }
+  ],
+  "inventory_failed_symbols": [],
+  "index_failed_symbols": [],
+  "basis_rows": 264,
+  "inventory_rows": 244,
+  "index_rows": 138
+}

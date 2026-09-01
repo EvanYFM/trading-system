@@ -1,0 +1,38 @@
+{
+  "report_date": "20260729",
+  "basis_failed_dates": [],
+  "basis_uncovered_symbols": [
+    "AD",
+    "AO",
+    "AP",
+    "B",
+    "CJ",
+    "LU",
+    "NR",
+    "OP",
+    "PK",
+    "RR"
+  ],
+  "inventory_failed_symbols": [],
+  "inventory_uncovered_symbols": [
+    "AP",
+    "FU"
+  ],
+  "index_failed_symbols": [
+    {
+      "symbol": "IM",
+      "error": "RuntimeError"
+    },
+    {
+      "symbol": "STAR50",
+      "error": "RuntimeError"
+    },
+    {
+      "symbol": "GEM50",
+      "error": "RuntimeError"
+    }
+  ],
+  "basis_rows": 1325,
+  "inventory_rows": 1450,
+  "index_rows": 75
+}

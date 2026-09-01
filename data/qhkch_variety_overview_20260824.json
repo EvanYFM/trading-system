@@ -1,0 +1,141 @@
+{
+  "reportDate": "20260824",
+  "events": [
+    {
+      "variety": "乙二醇",
+      "symbol": "EG",
+      "events": [
+        "多信号共振",
+        "价涨仓增",
+        "涨幅第1",
+        "增仓前10"
+      ],
+      "priceChangePct": 3.8831,
+      "openInterestChangePct": 5.1708,
+      "turnover": 105724091460,
+      "sector": "化工",
+      "sourceDate": "2026-08-24",
+      "source": "奇货可查商品概览",
+      "sourceUrl": "https://x.qhkch.com/variety"
+    },
+    {
+      "variety": "玻璃",
+      "symbol": "FG",
+      "events": [
+        "多信号共振",
+        "价涨仓减",
+        "涨幅前10",
+        "减仓第2"
+      ],
+      "priceChangePct": 1.6538,
+      "openInterestChangePct": -8.1282,
+      "turnover": 53700016920,
+      "sector": "轻工",
+      "sourceDate": "2026-08-24",
+      "source": "奇货可查商品概览",
+      "sourceUrl": "https://x.qhkch.com/variety"
+    },
+    {
+      "variety": "沪金",
+      "symbol": "AU",
+      "events": [
+        "多信号共振",
+        "价涨仓增",
+        "涨幅前10",
+        "成交额第1"
+      ],
+      "priceChangePct": 1.9627,
+      "openInterestChangePct": 0.6144,
+      "turnover": 496406722640,
+      "sector": "贵金属",
+      "sourceDate": "2026-08-24",
+      "source": "奇货可查商品概览",
+      "sourceUrl": "https://x.qhkch.com/variety"
+    },
+    {
+      "variety": "苹果",
+      "symbol": "AP",
+      "events": [
+        "多信号共振",
+        "价跌仓减",
+        "跌幅第2",
+        "农副波动领先"
+      ],
+      "priceChangePct": -2.3089,
+      "openInterestChangePct": -0.351,
+      "turnover": 11801711000,
+      "sector": "农副",
+      "sourceDate": "2026-08-24",
+      "source": "奇货可查商品概览",
+      "sourceUrl": "https://x.qhkch.com/variety"
+    },
+    {
+      "variety": "菜油",
+      "symbol": "OI",
+      "events": [
+        "多信号共振",
+        "价跌仓减",
+        "减仓前10",
+        "油脂油料波动领先"
+      ],
+      "priceChangePct": -0.7436,
+      "openInterestChangePct": -3.5511,
+      "turnover": 53526870710,
+      "sector": "油脂油料",
+      "sourceDate": "2026-08-24",
+      "source": "奇货可查商品概览",
+      "sourceUrl": "https://x.qhkch.com/variety"
+    },
+    {
+      "variety": "烧碱",
+      "symbol": "SH",
+      "events": [
+        "多信号共振",
+        "价涨仓减",
+        "涨幅前10",
+        "减仓前10"
+      ],
+      "priceChangePct": 1.6667,
+      "openInterestChangePct": -5.5665,
+      "turnover": 49900312500,
+      "sector": "化工",
+      "sourceDate": "2026-08-24",
+      "source": "奇货可查商品概览",
+      "sourceUrl": "https://x.qhkch.com/variety"
+    },
+    {
+      "variety": "沪锌",
+      "symbol": "ZN",
+      "events": [
+        "多信号共振",
+        "价涨仓增",
+        "增仓前10",
+        "有色波动领先"
+      ],
+      "priceChangePct": 0.7585,
+      "openInterestChangePct": 3.7199,
+      "turnover": 29013907275,
+      "sector": "有色",
+      "sourceDate": "2026-08-24",
+      "source": "奇货可查商品概览",
+      "sourceUrl": "https://x.qhkch.com/variety"
+    },
+    {
+      "variety": "焦炭",
+      "symbol": "J",
+      "events": [
+        "多信号共振",
+        "价涨仓增",
+        "涨幅前10",
+        "煤炭波动领先"
+      ],
+      "priceChangePct": 1.557,
+      "openInterestChangePct": 8.3576,
+      "turnover": 19759419700,
+      "sector": "煤炭",
+      "sourceDate": "2026-08-24",
+      "source": "奇货可查商品概览",
+      "sourceUrl": "https://x.qhkch.com/variety"
+    }
+  ]
+}

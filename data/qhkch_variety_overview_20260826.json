@@ -1,0 +1,158 @@
+{
+  "reportDate": "20260826",
+  "events": [
+    {
+      "variety": "沪银",
+      "symbol": "AG",
+      "events": [
+        "多信号共振",
+        "价涨仓减",
+        "成交额第3",
+        "贵金属波动领先"
+      ],
+      "priceChangePct": 0.7516,
+      "openInterestChangePct": -2.3387,
+      "turnover": 260247195045,
+      "sector": "贵金属",
+      "sourceDate": "2026-08-26",
+      "source": "奇货可查商品概览",
+      "sourceUrl": "https://x.qhkch.com/variety"
+    },
+    {
+      "variety": "甲醇",
+      "symbol": "MA",
+      "events": [
+        "多信号共振",
+        "价跌仓增",
+        "跌幅第3",
+        "化工波动领先"
+      ],
+      "priceChangePct": -5.3333,
+      "openInterestChangePct": 1.2091,
+      "turnover": 104255722740,
+      "sector": "化工",
+      "sourceDate": "2026-08-26",
+      "source": "奇货可查商品概览",
+      "sourceUrl": "https://x.qhkch.com/variety"
+    },
+    {
+      "variety": "对二甲苯",
+      "symbol": "PX",
+      "events": [
+        "多信号共振",
+        "价跌仓减",
+        "跌幅前10",
+        "减仓第2"
+      ],
+      "priceChangePct": -4.9299,
+      "openInterestChangePct": -11.9812,
+      "turnover": 54747009020,
+      "sector": "化工",
+      "sourceDate": "2026-08-26",
+      "source": "奇货可查商品概览",
+      "sourceUrl": "https://x.qhkch.com/variety"
+    },
+    {
+      "variety": "燃料油",
+      "symbol": "FU",
+      "events": [
+        "多信号共振",
+        "价跌仓减",
+        "跌幅第1",
+        "原油波动领先"
+      ],
+      "priceChangePct": -5.7262,
+      "openInterestChangePct": -5.3512,
+      "turnover": 54342790780,
+      "sector": "原油",
+      "sourceDate": "2026-08-26",
+      "source": "奇货可查商品概览",
+      "sourceUrl": "https://x.qhkch.com/variety"
+    },
+    {
+      "variety": "氧化铝",
+      "symbol": "AO",
+      "events": [
+        "多信号共振",
+        "价跌仓增",
+        "增仓第3",
+        "有色波动领先"
+      ],
+      "priceChangePct": -1.42,
+      "openInterestChangePct": 9.0604,
+      "turnover": 22323912460,
+      "sector": "有色",
+      "sourceDate": "2026-08-26",
+      "source": "奇货可查商品概览",
+      "sourceUrl": "https://x.qhkch.com/variety"
+    },
+    {
+      "variety": "低硫油",
+      "symbol": "LU",
+      "events": [
+        "多信号共振",
+        "价跌仓减",
+        "跌幅第2",
+        "减仓前10"
+      ],
+      "priceChangePct": -5.6086,
+      "openInterestChangePct": -6.9536,
+      "turnover": 10835977870,
+      "sector": "原油",
+      "sourceDate": "2026-08-26",
+      "source": "奇货可查商品概览",
+      "sourceUrl": "https://x.qhkch.com/variety"
+    },
+    {
+      "variety": "PTA",
+      "symbol": "TA",
+      "events": [
+        "多信号共振",
+        "价跌仓减",
+        "跌幅前10",
+        "减仓前10"
+      ],
+      "priceChangePct": -4.187,
+      "openInterestChangePct": -6.3083,
+      "turnover": 71130602400,
+      "sector": "化工",
+      "sourceDate": "2026-08-26",
+      "source": "奇货可查商品概览",
+      "sourceUrl": "https://x.qhkch.com/variety"
+    },
+    {
+      "variety": "硅铁",
+      "symbol": "SF",
+      "events": [
+        "多信号共振",
+        "价跌仓减",
+        "减仓前10",
+        "黑色波动领先"
+      ],
+      "priceChangePct": -1.6274,
+      "openInterestChangePct": -6.6763,
+      "turnover": 16059910150,
+      "sector": "黑色",
+      "sourceDate": "2026-08-26",
+      "source": "奇货可查商品概览",
+      "sourceUrl": "https://x.qhkch.com/variety"
+    },
+    {
+      "variety": "沪金",
+      "symbol": "AU",
+      "events": [
+        "多信号共振",
+        "价跌仓减",
+        "成交额第1",
+        "重要席位净流空"
+      ],
+      "priceChangePct": -0.1215,
+      "openInterestChangePct": -0.4348,
+      "turnover": 416156750520,
+      "sector": "贵金属",
+      "sourceDate": "2026-08-26",
+      "source": "奇货可查商品概览",
+      "sourceUrl": "https://x.qhkch.com/variety"
+    }
+  ]
+}

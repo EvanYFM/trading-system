@@ -1,0 +1,57 @@
+{
+  "source": "Trend Animal API",
+  "run_date": "20260715",
+  "commodity_update": {
+    "asOfDate": "2026-07-15",
+    "updateDt": "2026-07-15 17:25:01"
+  },
+  "asset_updates": {
+    "ETF基金": {
+      "asOfDate": "2026-07-15",
+      "updateDt": "2026-07-15 16:27:00"
+    },
+    "商品期货": {
+      "asOfDate": "2026-07-15",
+      "updateDt": "2026-07-15 17:25:01"
+    }
+  },
+  "requested_fields": [
+    "priceIndex",
+    "trendTemperatureCurr",
+    "trendTemperaturePrev",
+    "isTrendRightSide",
+    "daysSinceTrendEntry",
+    "trendPhaseCurr",
+    "trendStrengthLocalCurr",
+    "trendStrengthLocalChange",
+    "return1d"
+  ],
+  "per_row_cost_yuan": 0.03,
+  "estimated_cost_yuan": 0.45999999999999996,
+  "resolved_count": 10,
+  "commodity_count": 9,
+  "stock_index_count": 1,
+  "unresolved": [
+    "EC:集运欧线",
+    "IF:沪深300",
+    "IC:中证500",
+    "IM:中证1000",
+    "STAR50:科创50",
+    "GEM50:创业板50"
+  ],
+  "doc_version_entries": 12,
+  "change_log_latest": [
+    {
+      "date": "2026-07-15",
+      "change": "大类资产：增加“香港ETF、美国ETF、加密币”品种。"
+    },
+    {
+      "date": "2026-07-12",
+      "change": "大类资产：增加“现金”品种。"
+    },
+    {
+      "date": "2026-07-12",
+      "change": "规范文档更新：补充 API 定位与引用规范。"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "source": "知识星球·趋势小程序",
+  "data_date": "2026-08-31",
+  "status": "ok",
+  "sample_count": 14,
+  "topic_count": 2,
+  "comment_count": 12,
+  "nick_count": 2,
+  "bullish_count": 0,
+  "bearish_count": 1,
+  "neutral_count": 13,
+  "sentiment_score": -100,
+  "sentiment_label": "样本不足",
+  "confidence": "低",
+  "community_summary": "当日样本14条：偏多0、偏空1、中性13；按方向词加权后为样本不足，置信度低。",
+  "nick_summary": "乌鲁木齐开始跌了，平转寒 好像买到最高点了 目前的打算是明年割肉；全国房产趋势更新到8/30 深圳趋势彻底歇了， 上海高总价也歇了。 全国趋势陆唯一火种就是上海老破小（除香港）。 昨天出了房地产新政。 未来七天趋势反应比较关键，下周一见分晓。",
+  "evidence": [
+    {
+      "sentiment": "bearish",
+      "excerpt": "乌鲁木齐开始跌了，平转寒 好像买到最高点了 目前的打算是明年割肉"
+    },
+    {
+      "sentiment": "neutral",
+      "excerpt": "最后两个图真好，一目了然，金融资产也有这个图吗？可以自己生成吗？"
+    },
+    {
+      "sentiment": "neutral",
+      "excerpt": "真知行合一"
+    }
+  ],
+  "methodology": "普通样本权重1，Nick样本权重2；只按当日帖子和评论中的显式风险偏好词计分，不代表全市场情绪。",
+  "error": ""
+}

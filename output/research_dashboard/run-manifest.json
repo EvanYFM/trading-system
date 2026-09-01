@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "runId": "20260831-20260831T174432+0800",
+  "generatedAt": "2026-08-31T17:44:32+08:00",
+  "latestDate": "20260831",
+  "snapshotCount": 30,
+  "snapshotDates": [
+    "20260831",
+    "20260828",
+    "20260827",
+    "20260826",
+    "20260825",
+    "20260824",
+    "20260821",
+    "20260820",
+    "20260819",
+    "20260818",
+    "20260817",
+    "20260814",
+    "20260813",
+    "20260812",
+    "20260811",
+    "20260810",
+    "20260807",
+    "20260806",
+    "20260805",
+    "20260804",
+    "20260803",
+    "20260731",
+    "20260730",
+    "20260729",
+    "20260728",
+    "20260727",
+    "20260724",
+    "20260723",
+    "20260722",
+    "20260721"
+  ],
+  "sourceFiles": {
+    "trendSourceFile": "trend_temperature_20260831.csv",
+    "quoteSourceFile": "sina_quhe_main_quotes_20260831.csv",
+    "thsSourceFile": "ths_main_quotes_20260831.csv",
+    "basisSourceFile": "futures_basis_history_20260831.csv",
+    "warehouseSourceFile": "eastmoney_warehouse_receipts_20260831.csv",
+    "mysteelFundamentalSourceFile": ""
+  },
+  "outputs": [
+    "index.html",
+    "styles.css",
+    "app.js",
+    "data/dashboard.json"
+  ]
+}

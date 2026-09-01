@@ -1,0 +1,41 @@
+{
+  "source": "知识星球·趋势小程序",
+  "data_date": "2026-07-22",
+  "status": "ok",
+  "sample_count": 19,
+  "topic_count": 8,
+  "comment_count": 11,
+  "nick_count": 5,
+  "bullish_count": 2,
+  "bearish_count": 1,
+  "neutral_count": 16,
+  "sentiment_score": 50,
+  "sentiment_label": "风险偏好偏高",
+  "confidence": "中",
+  "community_summary": "当日样本19条：偏多2、偏空1、中性16；按方向词加权后为风险偏好偏高，置信度中。",
+  "nick_summary": "目前是做不到的，后面会考虑上线；“最好用Agent评选”昨晚统计结果",
+  "evidence": [
+    {
+      "sentiment": "bearish",
+      "excerpt": "你得看，那是减仓信号"
+    },
+    {
+      "sentiment": "bullish",
+      "excerpt": "根据趋势可以买入了，但etf 场内溢价，需要规避溢价吗？例如最近的豆粕。"
+    },
+    {
+      "sentiment": "bullish",
+      "excerpt": "和你的ai说：再研究一下怎么打开，尝试修复试试"
+    },
+    {
+      "sentiment": "neutral",
+      "excerpt": "workbuddy 有多少是付费的🤔"
+    },
+    {
+      "sentiment": "neutral",
+      "excerpt": "聂总，请问这是什么问题呀"
+    }
+  ],
+  "methodology": "普通样本权重1，Nick样本权重2；只按当日帖子和评论中的显式风险偏好词计分，不代表全市场情绪。",
+  "error": ""
+}
