@@ -1,0 +1,29 @@
+{
+  "source": "知识星球·趋势小程序",
+  "data_date": "2026-09-01",
+  "status": "degraded",
+  "sample_count": 11,
+  "topic_count": 2,
+  "comment_count": 9,
+  "nick_count": 1,
+  "bullish_count": 0,
+  "bearish_count": 0,
+  "neutral_count": 11,
+  "sentiment_score": 0,
+  "sentiment_label": "样本不足",
+  "confidence": "低",
+  "community_summary": "当日样本11条：偏多0、偏空0、中性11；按方向词加权后为样本不足，置信度低。",
+  "nick_summary": "我将睡个觉，睡醒发文吹红利。",
+  "evidence": [
+    {
+      "sentiment": "neutral",
+      "excerpt": "反指又来了[撇嘴]"
+    },
+    {
+      "sentiment": "neutral",
+      "excerpt": "别睡啊等着看呢"
+    }
+  ],
+  "methodology": "普通样本权重1，Nick样本权重2；只按当日帖子和评论中的显式风险偏好词计分，不代表全市场情绪。",
+  "error": "zsxq-cli failed: { \"ok\": false, \"error\": { \"type\": \"network\", \"message\": \"call get_topic_comments: MCP transport: Post \\\"https://mcp.zsxq.com/topic/mcp\\\": read tcp 127.0.0.1:11116-\\u003e127.0.0.1:7890: wsarecv: An existing connection was forcibly closed by the remote host.\", \"hint\": \"check your netw"
+}
