@@ -1,0 +1,699 @@
+{
+  "source": "月度复盘md",
+  "sourceFile": "C:\\Users\\29266\\Desktop\\月度投资复盘.md",
+  "year": 2026,
+  "note": "金额口径：'2W5'=25000，'15W'=150000。归因字段沿用原表列名。",
+  "months": [
+    {
+      "month": "2026-03",
+      "label": "3月",
+      "pnlText": "亏损15W",
+      "pnl": -150000.0
+    },
+    {
+      "month": "2026-04",
+      "label": "4月",
+      "pnlText": "亏损2W5",
+      "pnl": -25000.0
+    },
+    {
+      "month": "2026-05",
+      "label": "5月",
+      "pnlText": "亏损5000",
+      "pnl": -5000.0
+    },
+    {
+      "month": "2026-06",
+      "label": "6月",
+      "pnlText": "亏损9.5W",
+      "pnl": -95000.0
+    },
+    {
+      "month": "2026-07",
+      "label": "7月",
+      "pnlText": "亏损6000",
+      "pnl": -6000.0
+    },
+    {
+      "month": "2026-08",
+      "label": "8月",
+      "pnlText": "亏损2W4",
+      "pnl": -24000.0
+    }
+  ],
+  "trades": [
+    {
+      "id": "md-t028",
+      "source": "月度复盘md",
+      "month": "2026-06",
+      "variety": "沪金",
+      "symbol": "AU",
+      "contract": null,
+      "strike": "1000",
+      "instrumentType": "期权",
+      "optionType": "call",
+      "moneyness": null,
+      "direction": null,
+      "pnlText": "",
+      "pnl": null,
+      "attribution": {
+        "是否按系统入场": "否",
+        "是否按计划止损": "否",
+        "是否提前止盈": "否",
+        "是否情绪化": "是（追高）",
+        "是否临时改逻辑": "是"
+      },
+      "events": [],
+      "raw": "call AU 1000，30"
+    },
+    {
+      "id": "md-t029",
+      "source": "月度复盘md",
+      "month": "2026-06",
+      "variety": "沪金",
+      "symbol": "AU",
+      "contract": null,
+      "strike": "1000",
+      "instrumentType": "期权",
+      "optionType": "call",
+      "moneyness": null,
+      "direction": null,
+      "pnlText": "",
+      "pnl": null,
+      "attribution": {
+        "是否按系统入场": "是",
+        "是否按计划止损": "否",
+        "是否提前止盈": "否",
+        "是否情绪化": "是（应该等跌到位再买）",
+        "是否临时改逻辑": "是"
+      },
+      "events": [],
+      "raw": "call AU 1000，19"
+    },
+    {
+      "id": "md-t030",
+      "source": "月度复盘md",
+      "month": "2026-06",
+      "variety": "沪金",
+      "symbol": "AU",
+      "contract": null,
+      "strike": "1000",
+      "instrumentType": "期权",
+      "optionType": "call",
+      "moneyness": null,
+      "direction": null,
+      "pnlText": "",
+      "pnl": null,
+      "attribution": {
+        "是否按系统入场": "是",
+        "是否按计划止损": "否",
+        "是否提前止盈": "否",
+        "是否情绪化": "否",
+        "是否临时改逻辑": "是"
+      },
+      "events": [],
+      "raw": "call AU 1000,9"
+    },
+    {
+      "id": "md-t031",
+      "source": "月度复盘md",
+      "month": "2026-06",
+      "variety": "沪金",
+      "symbol": "AU",
+      "contract": null,
+      "strike": "1000",
+      "instrumentType": "期权",
+      "optionType": "call",
+      "moneyness": null,
+      "direction": null,
+      "pnlText": "",
+      "pnl": null,
+      "attribution": {
+        "是否按系统入场": "是",
+        "是否按计划止损": "否",
+        "是否提前止盈": "否",
+        "是否情绪化": "否",
+        "是否临时改逻辑": "是"
+      },
+      "events": [],
+      "raw": "call AU 1000,7.9"
+    },
+    {
+      "id": "md-t032",
+      "source": "月度复盘md",
+      "month": "2026-06",
+      "variety": "沪金",
+      "symbol": "AU",
+      "contract": null,
+      "strike": "1000",
+      "instrumentType": "期权",
+      "optionType": "call",
+      "moneyness": null,
+      "direction": null,
+      "pnlText": "6W",
+      "pnl": -60000.0,
+      "attribution": {
+        "是否按系统入场": "是",
+        "是否按计划止损": "否",
+        "是否提前止盈": "否",
+        "是否情绪化": "是",
+        "是否临时改逻辑": "是"
+      },
+      "events": [
+        {
+          "type": "close",
+          "action": "清仓",
+          "price": 2.7,
+          "note": ""
+        }
+      ],
+      "raw": "call AU 1000,6.8   成本：14.68 跌到2.7清仓，亏损-82%，6W"
+    },
+    {
+      "id": "md-t033",
+      "source": "月度复盘md",
+      "month": "2026-06",
+      "variety": "苯乙烯",
+      "symbol": "EB",
+      "contract": null,
+      "strike": null,
+      "instrumentType": "期权",
+      "optionType": "call",
+      "moneyness": null,
+      "direction": null,
+      "pnlText": "1W",
+      "pnl": -10000.0,
+      "attribution": {
+        "是否按系统入场": "是",
+        "是否按计划止损": "否",
+        "是否提前止盈": "否",
+        "是否情绪化": "是",
+        "是否临时改逻辑": "是"
+      },
+      "events": [],
+      "raw": "call eb,亏损1W"
+    },
+    {
+      "id": "md-t034",
+      "source": "月度复盘md",
+      "month": "2026-06",
+      "variety": "沪金",
+      "symbol": "AU",
+      "contract": "AU904",
+      "strike": null,
+      "instrumentType": "期权",
+      "optionType": "call",
+      "moneyness": null,
+      "direction": null,
+      "pnlText": "1W",
+      "pnl": -10000.0,
+      "attribution": {
+        "是否按系统入场": "是",
+        "是否按计划止损": "否",
+        "是否提前止盈": "否",
+        "是否情绪化": "是",
+        "是否临时改逻辑": "是"
+      },
+      "events": [],
+      "raw": "call AU904 put AG13000 亏损1W"
+    },
+    {
+      "id": "md-t035",
+      "source": "月度复盘md",
+      "month": "2026-06",
+      "variety": "沪银",
+      "symbol": "AG",
+      "contract": null,
+      "strike": "13000",
+      "instrumentType": "期权",
+      "optionType": "call",
+      "moneyness": null,
+      "direction": null,
+      "pnlText": "1W",
+      "pnl": -10000.0,
+      "attribution": {
+        "是否按系统入场": "是",
+        "是否按计划止损": "否",
+        "是否提前止盈": "否",
+        "是否情绪化": "是",
+        "是否临时改逻辑": "是"
+      },
+      "events": [],
+      "raw": "call AU904 put AG13000 亏损1W"
+    },
+    {
+      "id": "md-t036",
+      "source": "月度复盘md",
+      "month": "2026-06",
+      "variety": "焦煤",
+      "symbol": "JM",
+      "contract": null,
+      "strike": "1300",
+      "instrumentType": "期权",
+      "optionType": "put",
+      "moneyness": null,
+      "direction": null,
+      "pnlText": "亏损5000",
+      "pnl": -5000.0,
+      "attribution": {
+        "是否按系统入场": "是",
+        "是否按计划止损": "否",
+        "是否提前止盈": "否",
+        "是否情绪化": "是",
+        "是否临时改逻辑": "是"
+      },
+      "events": [],
+      "raw": "PUT JM 1300 亏损5000"
+    },
+    {
+      "id": "md-t037",
+      "source": "月度复盘md",
+      "month": "2026-07",
+      "variety": "原油",
+      "symbol": "SC",
+      "contract": null,
+      "strike": null,
+      "instrumentType": "期权",
+      "optionType": "call",
+      "moneyness": null,
+      "direction": null,
+      "pnlText": "亏损6000",
+      "pnl": -6000.0,
+      "attribution": {
+        "判断错？": "N",
+        "时机错？": "Y",
+        "仓位错？": "Y",
+        "工具错？": "Y"
+      },
+      "events": [],
+      "raw": "call SC,亏损6000"
+    },
+    {
+      "id": "md-t038",
+      "source": "月度复盘md",
+      "month": "2026-08",
+      "variety": "焦煤",
+      "symbol": "JM",
+      "contract": "JM2701",
+      "strike": null,
+      "instrumentType": null,
+      "optionType": null,
+      "moneyness": null,
+      "direction": "空",
+      "pnlText": "1.2W",
+      "pnl": -12000.0,
+      "attribution": {
+        "判断错？": "Y(听朋友建议做空）",
+        "时机错？": "Y",
+        "仓位错？": "Y",
+        "工具错？": "N",
+        "执行错？": "Y"
+      },
+      "events": [
+        {
+          "type": "open",
+          "action": "开仓",
+          "price": 1400.0,
+          "note": "开仓过早"
+        },
+        {
+          "type": "add",
+          "action": "加仓",
+          "price": 1450.0,
+          "note": "亏损加仓，不应该"
+        },
+        {
+          "type": "add",
+          "action": "加仓",
+          "price": 1500.0,
+          "note": "亏损加仓，不应该"
+        },
+        {
+          "type": "close",
+          "action": "止损",
+          "price": 1500.0,
+          "note": ""
+        },
+        {
+          "type": "close",
+          "action": "止损",
+          "price": 1555.0,
+          "note": ""
+        }
+      ],
+      "raw": "做空 JM2701,亏损1.2W。   1400开仓（开仓过早）   1450加仓（亏损加仓，不应该）   1500加仓（亏损加仓，不应该）   最终1500、1555止损。"
+    },
+    {
+      "id": "md-t039",
+      "source": "月度复盘md",
+      "month": "2026-08",
+      "variety": "焦煤",
+      "symbol": "JM",
+      "contract": "JM2610",
+      "strike": null,
+      "instrumentType": null,
+      "optionType": null,
+      "moneyness": null,
+      "direction": "空",
+      "pnlText": "1.2W",
+      "pnl": -12000.0,
+      "attribution": {
+        "判断错？": "Y(听朋友建议做空）",
+        "时机错？": "Y",
+        "仓位错？": "N",
+        "工具错？": "Y",
+        "执行错？": "Y"
+      },
+      "events": [],
+      "raw": "做空 JM2610，亏损1.2W"
+    },
+    {
+      "id": "md-t040",
+      "source": "月度复盘md",
+      "month": "2026-08",
+      "variety": "沪金",
+      "symbol": "AU",
+      "contract": null,
+      "strike": "1000",
+      "instrumentType": "期权",
+      "optionType": "call",
+      "moneyness": null,
+      "direction": null,
+      "pnlText": "盈利4000",
+      "pnl": 4000.0,
+      "attribution": {
+        "判断错？": "N",
+        "时机错？": "N",
+        "仓位错？": "N",
+        "工具错？": "N",
+        "执行错？": "Y(过早止盈，应该从盘面看技术面没有跌破支撑位，一直拿着，不然后续可以赚更多）"
+      },
+      "events": [],
+      "raw": "call AU 1000，盈利4000"
+    }
+  ],
+  "narratives": [
+    {
+      "id": "md-n001",
+      "source": "月度复盘md",
+      "month": "2026-03",
+      "date": "",
+      "variety": "",
+      "symbol": null,
+      "pnlText": "15W",
+      "pnl": -150000.0,
+      "text": "3月（亏损15W）"
+    },
+    {
+      "id": "md-n002",
+      "source": "月度复盘md",
+      "month": "2026-03",
+      "date": "2026-03-25",
+      "variety": "沪银",
+      "symbol": "AG",
+      "pnlText": "5W5",
+      "pnl": -55000.0,
+      "text": "AG权到期日3.25（注意临近末日提前3天走）亏损5W5"
+    },
+    {
+      "id": "md-n003",
+      "source": "月度复盘md",
+      "month": "2026-03",
+      "date": "2026-03-11",
+      "variety": "沪银",
+      "symbol": "AG",
+      "pnlText": "",
+      "pnl": null,
+      "text": "3.11 call AG 1244加了一手，后面跌到1000以下再加。"
+    },
+    {
+      "id": "md-n004",
+      "source": "月度复盘md",
+      "month": "2026-03",
+      "date": "2026-03-13",
+      "variety": "沪银",
+      "symbol": "AG",
+      "pnlText": "",
+      "pnl": null,
+      "text": "3.13 AG目前有4手，均价1060，但价格已经跌到600了。"
+    },
+    {
+      "id": "md-n005",
+      "source": "月度复盘md",
+      "month": "2026-03",
+      "date": "2026-03-16",
+      "variety": "沪银",
+      "symbol": "AG",
+      "pnlText": "",
+      "pnl": null,
+      "text": "3.16 AG目前价格要跌到300了。准备300加仓一手，将均价平均到900。"
+    },
+    {
+      "id": "md-n006",
+      "source": "月度复盘md",
+      "month": "2026-03",
+      "date": "2026-03-17",
+      "variety": "",
+      "symbol": null,
+      "pnlText": "5W5",
+      "pnl": -55000.0,
+      "text": "3.17 跌到200，清仓了5手call，亏损5W5。"
+    },
+    {
+      "id": "md-n007",
+      "source": "月度复盘md",
+      "month": "2026-03",
+      "date": "2026-03-09",
+      "variety": "原油",
+      "symbol": "SC",
+      "pnlText": "3W",
+      "pnl": -30000.0,
+      "text": "3.9夜盘继续参与SC 700 PUT，导致亏损7100，累计做了三次put，合计亏损接近3W。（说明自己不要逆势，在海峡未解封前一切利空都是诱空）"
+    },
+    {
+      "id": "md-n008",
+      "source": "月度复盘md",
+      "month": "2026-03",
+      "date": "2026-03-10",
+      "variety": "原油",
+      "symbol": "SC",
+      "pnlText": "6W",
+      "pnl": -60000.0,
+      "text": "3.10还是加了05 SC 800 call，赌一波后面继续上涨。亏损6W"
+    },
+    {
+      "id": "md-n009",
+      "source": "月度复盘md",
+      "month": "2026-03",
+      "date": "",
+      "variety": "原油",
+      "symbol": "SC",
+      "pnlText": "8W",
+      "pnl": -80000.0,
+      "text": "跑了后夜盘又高位入场了短call 26块，还是太冲动了，后面越跌越加到4手，最后5块离场。以后谨慎对待末日期权，适合拿3000以下刮彩票，我一下买了8W，结果最后一天SC下跌，导致亏损6W。"
+    },
+    {
+      "id": "md-n010",
+      "source": "月度复盘md",
+      "month": "2026-03",
+      "date": "2026-03-23",
+      "variety": "原油",
+      "symbol": "SC",
+      "pnlText": "亏损3000",
+      "pnl": -3000.0,
+      "text": "3.23 夜盘1手 call SC940 35（买贵了，开盘5分钟内情绪溢价太高，应该等之后情绪回落）亏损3000"
+    },
+    {
+      "id": "md-n011",
+      "source": "月度复盘md",
+      "month": "2026-03",
+      "date": "2026-01-05",
+      "variety": "",
+      "symbol": null,
+      "pnlText": "5W",
+      "pnl": 50000.0,
+      "text": "油价、运价主要受汇率、VLCC运价）、战争情绪的影响，在战争初期尽量不要单腿期权策略，如果想轻仓试试，可以双开call/put深度虚值，赌波动率的上升。（1-5W参与）"
+    },
+    {
+      "id": "md-n012",
+      "source": "月度复盘md",
+      "month": "2026-04",
+      "date": "",
+      "variety": "",
+      "symbol": null,
+      "pnlText": "2W5",
+      "pnl": -25000.0,
+      "text": "4月（亏损2W5）"
+    },
+    {
+      "id": "md-n013",
+      "source": "月度复盘md",
+      "month": "2026-04",
+      "date": "2026-04-08",
+      "variety": "甲醇",
+      "symbol": "MA",
+      "pnlText": "亏损9275",
+      "pnl": -9275.0,
+      "text": "2026.4.8 MA、EG开call虚3-4,10-15手。亏损9275元"
+    },
+    {
+      "id": "md-n014",
+      "source": "月度复盘md",
+      "month": "2026-04",
+      "date": "",
+      "variety": "甲醇",
+      "symbol": "MA",
+      "pnlText": "",
+      "pnl": null,
+      "text": "MA还有3天到期，EG还有7天到期。最好不要大仓位参与末日行情。"
+    },
+    {
+      "id": "md-n015",
+      "source": "月度复盘md",
+      "month": "2026-04",
+      "date": "",
+      "variety": "焦煤",
+      "symbol": "JM",
+      "pnlText": "",
+      "pnl": null,
+      "text": "焦煤2509：1214价格多一手，看超跌反。入场位置在15分中枢顶部，不太好，其实后面又跌回中枢震荡。"
+    },
+    {
+      "id": "md-n016",
+      "source": "月度复盘md",
+      "month": "2026-04",
+      "date": "2026-04-14",
+      "variety": "豆二",
+      "symbol": "B",
+      "pnlText": "赚540",
+      "pnl": 540.0,
+      "text": "4.14夜盘上涨回撤止盈，赚540.![](https://cdn.nlark.com/yuque/0/2026/png/53404785/1776174012231-4816b959-9c29-4940-b390-e5ab51a1cbe6.png)"
+    },
+    {
+      "id": "md-n017",
+      "source": "月度复盘md",
+      "month": "2026-04",
+      "date": "2026-06-10",
+      "variety": "苯乙烯",
+      "symbol": "EB",
+      "pnlText": "",
+      "pnl": null,
+      "text": "call EB06-10000一手。因为期货震荡偏多，期权波动率在下降，低波买入。"
+    },
+    {
+      "id": "md-n018",
+      "source": "月度复盘md",
+      "month": "2026-04",
+      "date": "",
+      "variety": "苯乙烯",
+      "symbol": "EB",
+      "pnlText": "亏损20",
+      "pnl": -20.0,
+      "text": "夜盘EB下跌，继续加多4手，目前亏损20%。"
+    },
+    {
+      "id": "md-n019",
+      "source": "月度复盘md",
+      "month": "2026-04",
+      "date": "2026-04-20",
+      "variety": "棉花",
+      "symbol": "CF",
+      "pnlText": "盈利900",
+      "pnl": 900.0,
+      "text": "4.20早盘平掉，盈利900元。![](https://cdn.nlark.com/yuque/0/2026/png/53404785/1776664108745-bc7cf1d2-05ff-48a8-87e6-5a51be96467c.png)"
+    },
+    {
+      "id": "md-n020",
+      "source": "月度复盘md",
+      "month": "2026-04",
+      "date": "2026-04-20",
+      "variety": "沪金",
+      "symbol": "AU",
+      "pnlText": "亏损16000",
+      "pnl": -16000.0,
+      "text": "4.20 早盘call AU 1080 1手。22.22. 6.5平仓，亏损16000"
+    },
+    {
+      "id": "md-n021",
+      "source": "月度复盘md",
+      "month": "2026-05",
+      "date": "",
+      "variety": "",
+      "symbol": null,
+      "pnlText": "亏损5000",
+      "pnl": -5000.0,
+      "text": "5月  （亏损5000）"
+    },
+    {
+      "id": "md-n022",
+      "source": "月度复盘md",
+      "month": "2026-05",
+      "date": "2026-05-06",
+      "variety": "沪金",
+      "symbol": "AU",
+      "pnlText": "1.5W",
+      "pnl": 15000.0,
+      "text": "5.6 call AU 1000 1手。34.44。5.7 49.4平掉，赚1.5W"
+    },
+    {
+      "id": "md-n023",
+      "source": "月度复盘md",
+      "month": "2026-05",
+      "date": "2026-05-07",
+      "variety": "沪金",
+      "symbol": "AU",
+      "pnlText": "亏损4000",
+      "pnl": -4000.0,
+      "text": "5.7 双开AU 1032和1048，做多波动率，结果遇到震荡，最终平掉，亏损4000。"
+    },
+    {
+      "id": "md-n024",
+      "source": "月度复盘md",
+      "month": "2026-05",
+      "date": "2026-05-13",
+      "variety": "沪金",
+      "symbol": "AU",
+      "pnlText": "1.6W",
+      "pnl": -16000.0,
+      "text": "5.13 call AU1040 3手。5.15平掉，亏损1.6W![](https://cdn.nlark.com/yuque/0/2026/png/53404785/1778811701750-4f116d84-7462-4b04-ad56-1c70f0201411.png)"
+    },
+    {
+      "id": "md-n025",
+      "source": "月度复盘md",
+      "month": "2026-05",
+      "date": "",
+      "variety": "碳酸锂",
+      "symbol": "LC",
+      "pnlText": "亏损3000",
+      "pnl": -3000.0,
+      "text": "日内短线put碳酸锂，结果本应买到低位的筹码缺止损出局，后面不断趁着冲高加多3次，前两次盈利都没有止盈，打保本后才止盈。最后一次直接买在最高位，导致亏损3000。"
+    },
+    {
+      "id": "md-n026",
+      "source": "月度复盘md",
+      "month": "2026-05",
+      "date": "",
+      "variety": "PVC",
+      "symbol": "V",
+      "pnlText": "1W6",
+      "pnl": -16000.0,
+      "text": "FOMO金价超预期补涨，看到白银不断上涨，金价补涨，受到大V和群内消息影响，认为金价还会补涨，于是冲高时跟随做多，导致买在高位，下跌后又持续接盘，导致买了3手高位call，刚好白银涨幅过高后开启大幅调整，带动金价下跌破位，进入2h下跌通道线，亏损1W6。"
+    },
+    {
+      "id": "md-n027",
+      "source": "月度复盘md",
+      "month": "2026-05",
+      "date": "",
+      "variety": "",
+      "symbol": null,
+      "pnlText": "亏损5000",
+      "pnl": -5000.0,
+      "text": "fomo金价超预期下跌，put2手1000，结果超跌后反弹，亏损5000."
+    }
+  ],
+  "count": {
+    "months": 6,
+    "trades": 13,
+    "narratives": 27
+  }
+}

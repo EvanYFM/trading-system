@@ -924,13 +924,20 @@ def main() -> None:
     }
 
     TARGET_DIR.mkdir(parents=True, exist_ok=True)
-    for asset in ("index.html", "styles.css", "app.js"):
+    for asset in ("index.html", "styles.css", "app.js", "history-store.js"):
         shutil.copy2(SOURCE_DIR / asset, TARGET_DIR / asset)
+    imported_source = SOURCE_DIR / "data" / "imported"
+    if imported_source.is_dir():
+        imported_target = TARGET_DIR / "data" / "imported"
+        imported_target.mkdir(parents=True, exist_ok=True)
+        for item in imported_source.glob("*.json"):
+            shutil.copy2(item, imported_target / item.name)
     build_version = datetime.now().strftime("%Y%m%d%H%M%S")
     index_path = TARGET_DIR / "index.html"
     index_html = index_path.read_text(encoding="utf-8")
     index_html = index_html.replace('href="styles.css"', f'href="styles.css?v={build_version}"')
     index_html = index_html.replace('src="app.js"', f'src="app.js?v={build_version}"')
+    index_html = index_html.replace('src="history-store.js"', f'src="history-store.js?v={build_version}"')
     index_path.write_text(index_html, encoding="utf-8")
     data_dir = TARGET_DIR / "data"
     data_dir.mkdir(exist_ok=True)

@@ -17,6 +17,9 @@ const state = {
   decisionSector: "all",
   decisionSymbol: "all",
   decisionPage: 1,
+  history: null,
+  // state.historySymbol 已被「历史回看」页面占用，此处必须用独立字段名
+  historyJournalSymbol: null,
   ctaQuery: "",
   ctaSector: "all",
   ctaDirection: "all",
@@ -724,6 +727,122 @@ function renderDecisionView() {
 
 const CTA_FACTOR_LABELS = {trend: "量价趋势", seat: "席位存量", position: "席位边际", carry: "基差与仓单", option: "期权偏度"};
 
+/* ===================== 品种历史操作回看 ===================== */
+
+const HISTORY_SOURCE_LABELS = {"交易日志Excel": "Excel 日志", "月度复盘md": "月度复盘", "工作台决策": "工作台"};
+const HISTORY_EVENT_LABELS = {open: "开仓", add: "加仓", reduce: "减仓", close: "平仓", other: "操作"};
+
+function historySourceBadge(source) {
+  return HISTORY_SOURCE_LABELS[source] || source || "";
+}
+
+function historyInstrumentText(item) {
+  const parts = [];
+  if (item.instrumentType) parts.push(item.instrumentType);
+  if (item.optionType) parts.push(item.optionType.toUpperCase());
+  if (item.contract) parts.push(item.contract);
+  else if (item.strike) parts.push(`行权价 ${item.strike}`);
+  if (item.moneyness) parts.push(item.moneyness);
+  if (item.direction) parts.push(item.direction === "空" ? "做空" : "做多");
+  return parts.join(" · ");
+}
+
+function historyPnlText(item) {
+  if (!item.executed) {
+    if (item.strategyPnlText) return {text: `策略方收益：${item.strategyPnlText}`, cls: "neutral-text"};
+    return {text: item.kind === "trade" ? "" : "仅观察（未执行）", cls: "neutral-text"};
+  }
+  if (item.myPnl != null) return {text: `${formatSigned(item.myPnl, 0)} 元`, cls: signClass(item.myPnl)};
+  if (item.pnlText) return {text: item.pnlText, cls: "neutral-text"};
+  if (item.batchFlag) return {text: "批次记录，盈亏未拆分到单品种", cls: "neutral-text"};
+  return {text: "", cls: ""};
+}
+
+function historyEventChain(events) {
+  if (!events || !events.length) return "";
+  return `<div class="history-event-chain"><span class="history-chain-title">操作序列</span>${events.map((event) => `<span class="history-event history-event-${escapeHtml(event.type)}"><b>${escapeHtml(HISTORY_EVENT_LABELS[event.type] || event.action)}</b>${event.price != null ? `<strong>${escapeHtml(String(event.price))}</strong>` : ""}${event.note ? `<i>${escapeHtml(event.note)}</i>` : ""}</span>`).join('<span class="history-event-arrow">→</span>')}</div>`;
+}
+
+function historyRatingDots(ratings) {
+  if (!ratings || !Object.keys(ratings).length) return "";
+  const cls = (value) => value.includes("利多") || value.includes("偏强") ? "bull-text" : value.includes("利空") || value.includes("偏弱") ? "bear-text" : "neutral-text";
+  const short = (key) => ({技术面: "技术", 基本面: "基本", 资金面: "资金", 政策面: "政策", 情绪面: "情绪", 认知偏差: "认知", 综合评价: "综合"}[key] || key);
+  return `<div class="history-ratings">${Object.entries(ratings).map(([key, value]) => `<span><small>${short(key)}</small><b class="${cls(String(value))}">${escapeHtml(String(value))}</b></span>`).join("")}</div>`;
+}
+
+function historyAttributionRows(attribution) {
+  if (!attribution || !Object.keys(attribution).length) return "";
+  return `<div class="history-attribution"><span class="history-chain-title">执行归因</span>${Object.entries(attribution).map(([key, value]) => `<span class="history-attribution-item"><small>${escapeHtml(key)}</small><b class="${/^Y|是/.test(String(value)) ? "bear-text" : "neutral-text"}">${escapeHtml(String(value)) || "—"}</b></span>`).join("")}</div>`;
+}
+
+function historyNarrativeText(item) {
+  if (item.kind !== "narrative") return "";
+  return `<p class="history-narrative">${escapeHtml(item.text || "")}</p>`;
+}
+
+function renderHistoryEntry(item) {
+  const pnl = historyPnlText(item);
+  const review = item.review || "";
+  const noTrade = item.noTradeReason ? `<p class="history-no-trade">未交易原因：${escapeHtml(item.noTradeReason)}</p>` : "";
+  return `<article class="history-entry ${item.executed ? "is-executed" : "is-observe"}">
+    <header>
+      <span class="history-date">${escapeHtml(item.date || "日期缺失")}${item.dateNote ? `<i title="${escapeHtml(item.dateNote)}">?</i>` : ""}</span>
+      <span class="history-badge history-badge-${escapeHtml(item.kind)}">${item.kind === "trade" ? "交易" : item.kind === "narrative" ? "复盘" : "观察"}</span>
+      <span class="history-badge-source">${escapeHtml(historySourceBadge(item.source))}</span>
+      <span class="history-instrument">${escapeHtml(historyInstrumentText(item))}</span>
+      ${item.strategySource ? `<span class="history-strategy-source">参考来源：${escapeHtml(item.strategySource)}</span>` : ""}
+      <em class="history-exec-flag">${item.executed ? "已执行" : "未执行"}</em>
+    </header>
+    ${pnl.text ? `<div class="history-pnl ${pnl.cls}">${escapeHtml(pnl.text)}</div>` : ""}
+    ${historyEventChain(item.events)}
+    ${historyRatingDots(item.ratings)}
+    ${historyAttributionRows(item.attribution)}
+    ${historyNarrativeText(item)}
+    ${noTrade}
+    ${review ? `<details class="history-review"><summary>复盘与认知偏差原文</summary><p>${escapeHtml(review)}</p></details>` : ""}
+  </article>`;
+}
+
+function renderHistoryView() {
+  const history = state.history;
+  if (!history) return;
+  const observations = history.observations || [];
+  const trades = history.trades || [];
+  const months = history.months || [];
+
+  const executedObs = observations.filter((item) => item.executed);
+  const myPnlTotal = executedObs.reduce((sum, item) => sum + (item.myPnl || 0), 0) + trades.reduce((sum, item) => sum + (item.myPnl || 0), 0);
+  const monthPnlTotal = months.reduce((sum, month) => sum + (month.pnl || 0), 0);
+
+  $("#historySummary").innerHTML = [
+    summaryCard("历史记录", observations.length + trades.length, `Excel ${observations.filter((item) => item.source === "交易日志Excel").length} 条 · 月度复盘 ${trades.length} 笔交易`),
+    summaryCard("已执行", executedObs.length + trades.length, "含开仓、加仓、平仓的真实操作"),
+    summaryCard("观察（未执行）", observations.length - executedObs.length, "参考他人策略或自身观察记录"),
+    summaryCard("已执行盈亏合计", `${formatSigned(myPnlTotal, 0)} 元`, "仅统计本人实际执行记录", myPnlTotal > 0 ? "bull-text" : myPnlTotal < 0 ? "bear-text" : ""),
+    summaryCard("月度复盘合计", `${formatSigned(monthPnlTotal, 0)} 元`, `${months.length} 个月（${escapeHtml(months.map((month) => month.label).join("/"))}）`, monthPnlTotal > 0 ? "bull-text" : monthPnlTotal < 0 ? "bear-text" : ""),
+  ].join("") + (history.errors && history.errors.length ? `<div class="detail-source-notice">部分数据源导入失败：${escapeHtml(history.errors.join("；"))}</div>` : "");
+
+  const groups = {};
+  [...observations, ...trades].forEach((item) => {
+    const key = item.symbol || item.variety || "未知";
+    if (!groups[key]) groups[key] = {key, variety: item.variety || key, symbol: item.symbol || "", items: []};
+    groups[key].items.push(item);
+  });
+  const sorted = Object.values(groups).sort((a, b) => b.items.length - a.items.length || a.variety.localeCompare(b.variety, "zh-CN"));
+  if (!state.historyJournalSymbol || !groups[state.historyJournalSymbol]) state.historyJournalSymbol = sorted[0]?.key || null;
+
+  $("#historySymbolList").innerHTML = sorted.map((group) => {
+    const executedCount = group.items.filter((item) => item.executed).length;
+    return `<button class="history-symbol-item ${group.key === state.historyJournalSymbol ? "is-active" : ""}" data-history-symbol="${escapeHtml(group.key)}"><span><strong>${escapeHtml(group.variety)}</strong><small>${escapeHtml(group.symbol || "无代码")} · ${group.items.length} 条记录</small></span><em>${executedCount}/${group.items.length}</em></button>`;
+  }).join("") || `<div class="detail-empty">没有导入的历史记录。</div>`;
+
+  const group = groups[state.historyJournalSymbol];
+  if (!group) { $("#historyTimeline").innerHTML = `<div class="detail-empty">暂无历史数据。先运行 scripts/import_trading_log_excel.py 与 scripts/import_monthly_review_md.py 生成 data/imported/ 下的 JSON。</div>`; return; }
+  const items = [...group.items].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const executedPnl = items.filter((item) => item.executed).reduce((sum, item) => sum + (item.myPnl || 0), 0);
+  $("#historyTimeline").innerHTML = `<div class="history-timeline-head"><h3>${escapeHtml(group.variety)} ${escapeHtml(group.symbol)}</h3><span>${items.length} 条记录 · ${items.filter((item) => item.executed).length} 次执行 · 已执行盈亏 <b class="${signClass(executedPnl)}">${formatSigned(executedPnl, 0)} 元</b></span></div>${items.map(renderHistoryEntry).join("")}`;
+}
+
 function renderMetal4d(row) {
   const framework = row.metal4d;
   if (!framework) return "";
@@ -769,6 +888,7 @@ function renderAll() {
   renderHistory();
   renderStatus();
   renderDecisionView();
+  renderHistoryView();
   renderCta();
 }
 
@@ -778,7 +898,7 @@ function switchView(view) {
   $$(".view").forEach((panel) => panel.classList.toggle("is-active", panel.id === `view-${view}`));
   if (view === "detail") renderDetailWorkspace();
   if (view === "history") renderHistory();
-  if (view === "decisions") renderDecisionView();
+  if (view === "decisions") { renderDecisionView(); renderHistoryView(); }
   if (view === "cta") renderCta();
 }
 
@@ -836,6 +956,8 @@ function bindEvents() {
     if (createDecision) { upsertDecision(createDecision.dataset.createDecision, "observe"); switchView("decisions"); window.scrollTo({top: 0, behavior: "smooth"}); }
     const deleteDecision = event.target.closest("[data-delete-decision]");
     if (deleteDecision) { state.decisions = state.decisions.filter((entry) => entry.id !== deleteDecision.dataset.deleteDecision); state.activeDecisionId = null; saveDecisions(); renderDecisionView(); }
+    const historySymbol = event.target.closest("[data-history-symbol]");
+    if (historySymbol) { state.historyJournalSymbol = historySymbol.dataset.historySymbol; renderHistoryView(); }
   });
   $("#dateSelect").addEventListener("change", (event) => setDate(event.target.value));
   $("#symbolFilter").addEventListener("change", (event) => { state.symbol = event.target.value; renderInstrumentTable(); });
@@ -869,15 +991,22 @@ function bindEvents() {
 Promise.all([
   fetch("data/dashboard.json", {cache: "no-store"}).then((response) => { if (!response.ok) throw new Error(`HTTP ${response.status}`); return response.json(); }),
   fetch("run-manifest.json", {cache: "no-store"}).then((response) => response.ok ? response.json() : null),
+  typeof HistoryStore !== "undefined" ? HistoryStore.init().catch((error) => ({observations: [], trades: [], narratives: [], months: [], errors: [String(error.message || error)]})) : Promise.resolve(null),
 ])
-  .then(([data, manifest]) => {
+  .then(([data, manifest, history]) => {
     state.data = data;
     state.manifest = manifest;
     state.decisions = loadDecisions();
     state.date = data.latestDate;
+    state.history = history || {observations: [], trades: [], narratives: [], months: [], errors: []};
     state.activeSymbol = data.snapshots[data.latestDate].tripleResonance[0]?.symbol || data.snapshots[data.latestDate].instruments[0]?.symbol;
     bindEvents();
     renderAll();
+    const viewParams = new URLSearchParams(window.location.search);
+    const viewParam = viewParams.get("view");
+    if (viewParam && ["overview", "detail", "instruments", "cta", "history", "decisions"].includes(viewParam)) switchView(viewParam);
+    const journalParam = viewParams.get("historySymbol");
+    if (journalParam) { state.historyJournalSymbol = journalParam.toUpperCase(); if (state.view === "decisions") renderHistoryView(); }
     $("#app").dataset.ready = "true";
   })
   .catch((error) => {

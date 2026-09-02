@@ -33,6 +33,15 @@ data/
 output/
 tmp/
 
+# 例外：历史复盘导入数据是工作站「品种历史操作回看」的运行依赖，
+# 必须随源码发布，否则前端 fetch 不到 data/imported/*.json。
+# 目录被 data/ 规则整体排除时，必须先取消目录本身的排除，内部例外才生效。
+!web/research_dashboard/data/
+!web/research_dashboard/data/imported/
+!web/research_dashboard/data/imported/*.json
+# output/ 是构建产物目录，新增文件由 scripts/build_research_dashboard.py 生成，
+# 不在此开例外，避免把历史构建产物批量变成待跟踪状态。
+
 # Local application state
 .obsidian/
 .playwright-cli/

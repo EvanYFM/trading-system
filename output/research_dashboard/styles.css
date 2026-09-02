@@ -635,3 +635,174 @@ h1 { margin: 6px 0 0; font-size: 30px; line-height: 1.15; letter-spacing: 0; }
   .event-timeline { grid-template-columns: 1fr; }
   .temperature-scale { grid-template-columns: repeat(7, minmax(32px, 1fr)); overflow-x: auto; }
 }
+
+/* ===================== 品种历史操作回看 ===================== */
+.history-summary { margin-bottom: 22px; }
+.history-layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 18px; align-items: start; }
+.history-symbol-list { display: grid; gap: 4px; position: sticky; top: 16px; max-height: calc(100vh - 96px); overflow: auto; }
+.history-symbol-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); text-align: left; }
+.history-symbol-item:hover { border-color: var(--line-strong); }
+.history-symbol-item.is-active { border-color: var(--line-strong); box-shadow: inset 3px 0 0 var(--amber); }
+.history-symbol-item strong { display: block; font-size: 13px; }
+.history-symbol-item small { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; }
+.history-symbol-item em { font: 600 11px/1 ui-monospace, monospace; color: var(--muted); font-style: normal; white-space: nowrap; }
+.history-timeline { display: grid; gap: 10px; min-width: 0; }
+.history-timeline-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 4px 2px 8px; border-bottom: 2px solid var(--line-strong); }
+.history-timeline-head h3 { margin: 0; font-size: 18px; }
+.history-timeline-head span { color: var(--muted); font-size: 12px; }
+.history-timeline-head b { font-size: 13px; }
+.history-entry { padding: 14px 16px; border: 1px solid var(--line); border-left-width: 3px; border-radius: var(--radius); background: var(--surface); }
+.history-entry.is-executed { border-left-color: var(--bull); }
+.history-entry.is-observe { border-left-color: var(--line); background: var(--surface-subtle); }
+.history-entry > header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.history-date { font: 600 12px/1 ui-monospace, monospace; }
+.history-date i { margin-left: 4px; padding: 0 4px; border: 1px solid var(--line); border-radius: 50%; font-style: normal; font-size: 10px; color: var(--amber); cursor: help; }
+.history-badge { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+.history-badge-observation { background: var(--amber-soft); color: var(--amber); }
+.history-badge-trade { background: var(--bull-soft); color: var(--bull); }
+.history-badge-narrative { background: var(--bear-soft); color: var(--bear); }
+.history-badge-source { padding: 2px 8px; border: 1px dashed var(--line); border-radius: 999px; font-size: 11px; color: var(--muted); }
+.history-instrument { font-size: 12px; color: var(--ink); }
+.history-strategy-source { font-size: 11px; color: var(--blue); }
+.history-exec-flag { margin-left: auto; font: 600 11px/1 ui-monospace, monospace; font-style: normal; }
+.is-executed .history-exec-flag { color: var(--bull); }
+.is-observe .history-exec-flag { color: var(--muted); }
+.history-pnl { margin-top: 8px; font: 700 15px/1.2 ui-monospace, monospace; }
+.history-event-chain { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; margin-top: 10px; }
+.history-chain-title { align-self: center; font-size: 11px; color: var(--muted); }
+.history-event { display: grid; gap: 1px; padding: 5px 9px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-subtle); font-size: 11px; }
+.history-event b { font-size: 11px; color: var(--muted); font-weight: 600; }
+.history-event strong { font: 700 13px/1 ui-monospace, monospace; }
+.history-event i { font-size: 10px; color: var(--amber); font-style: normal; }
+.history-event-open strong { color: var(--bull); }
+.history-event-close strong { color: var(--bear); }
+.history-event-add strong { color: var(--amber); }
+.history-event-arrow { align-self: center; color: var(--muted); font-size: 12px; }
+.history-ratings { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.history-ratings span { display: grid; gap: 1px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface-subtle); }
+.history-ratings small { font-size: 10px; color: var(--muted); }
+.history-ratings b { font-size: 11px; }
+.history-attribution { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; margin-top: 10px; }
+.history-attribution-item { display: grid; gap: 1px; padding: 4px 8px; border-left: 2px solid var(--line); }
+.history-attribution-item small { font-size: 10px; color: var(--muted); }
+.history-attribution-item b { font-size: 11px; }
+.history-narrative { margin: 10px 0 0; font-size: 12px; line-height: 1.7; color: var(--ink); }
+.history-no-trade { margin: 10px 0 0; font-size: 12px; color: var(--amber); }
+.history-review { margin-top: 10px; }
+.history-review summary { cursor: pointer; font-size: 11px; color: var(--blue); }
+.history-review p { margin: 8px 0 0; font-size: 12px; line-height: 1.7; white-space: pre-wrap; }
+@media (max-width: 1100px) { .history-layout { grid-template-columns: 1fr; } .history-symbol-list { position: static; max-height: 240px; } }
+
+/* ===================== 品种历史操作回看 ===================== */
+.history-summary { margin-bottom: 22px; }
+.history-layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 18px; align-items: start; }
+.history-symbol-list { display: grid; gap: 4px; position: sticky; top: 16px; max-height: calc(100vh - 96px); overflow: auto; }
+.history-symbol-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); text-align: left; }
+.history-symbol-item:hover { border-color: var(--line-strong); }
+.history-symbol-item.is-active { border-color: var(--line-strong); box-shadow: inset 3px 0 0 var(--amber); }
+.history-symbol-item strong { display: block; font-size: 13px; }
+.history-symbol-item small { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; }
+.history-symbol-item em { font: 600 11px/1 ui-monospace, monospace; color: var(--muted); font-style: normal; white-space: nowrap; }
+.history-timeline { display: grid; gap: 10px; min-width: 0; }
+.history-timeline-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 4px 2px 8px; border-bottom: 2px solid var(--line-strong); }
+.history-timeline-head h3 { margin: 0; font-size: 18px; }
+.history-timeline-head span { color: var(--muted); font-size: 12px; }
+.history-timeline-head b { font-size: 13px; }
+.history-entry { padding: 14px 16px; border: 1px solid var(--line); border-left-width: 3px; border-radius: var(--radius); background: var(--surface); }
+.history-entry.is-executed { border-left-color: var(--bull); }
+.history-entry.is-observe { border-left-color: var(--line); background: var(--surface-subtle); }
+.history-entry > header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.history-date { font: 600 12px/1 ui-monospace, monospace; }
+.history-date i { margin-left: 4px; padding: 0 4px; border: 1px solid var(--line); border-radius: 50%; font-style: normal; font-size: 10px; color: var(--amber); cursor: help; }
+.history-badge { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+.history-badge-observation { background: var(--amber-soft); color: var(--amber); }
+.history-badge-trade { background: var(--bull-soft); color: var(--bull); }
+.history-badge-narrative { background: var(--bear-soft); color: var(--bear); }
+.history-badge-source { padding: 2px 8px; border: 1px dashed var(--line); border-radius: 999px; font-size: 11px; color: var(--muted); }
+.history-instrument { font-size: 12px; color: var(--ink); }
+.history-strategy-source { font-size: 11px; color: var(--blue); }
+.history-exec-flag { margin-left: auto; font: 600 11px/1 ui-monospace, monospace; font-style: normal; }
+.is-executed .history-exec-flag { color: var(--bull); }
+.is-observe .history-exec-flag { color: var(--muted); }
+.history-pnl { margin-top: 8px; font: 700 15px/1.2 ui-monospace, monospace; }
+.history-event-chain { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; margin-top: 10px; }
+.history-chain-title { align-self: center; font-size: 11px; color: var(--muted); }
+.history-event { display: grid; gap: 1px; padding: 5px 9px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-subtle); font-size: 11px; }
+.history-event b { font-size: 11px; color: var(--muted); font-weight: 600; }
+.history-event strong { font: 700 13px/1 ui-monospace, monospace; }
+.history-event i { font-size: 10px; color: var(--amber); font-style: normal; }
+.history-event-open strong { color: var(--bull); }
+.history-event-close strong { color: var(--bear); }
+.history-event-add strong { color: var(--amber); }
+.history-event-arrow { align-self: center; color: var(--muted); font-size: 12px; }
+.history-ratings { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.history-ratings span { display: grid; gap: 1px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface-subtle); }
+.history-ratings small { font-size: 10px; color: var(--muted); }
+.history-ratings b { font-size: 11px; }
+.history-attribution { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; margin-top: 10px; }
+.history-attribution-item { display: grid; gap: 1px; padding: 4px 8px; border-left: 2px solid var(--line); }
+.history-attribution-item small { font-size: 10px; color: var(--muted); }
+.history-attribution-item b { font-size: 11px; }
+.history-narrative { margin: 10px 0 0; font-size: 12px; line-height: 1.7; color: var(--ink); }
+.history-no-trade { margin: 10px 0 0; font-size: 12px; color: var(--amber); }
+.history-review { margin-top: 10px; }
+.history-review summary { cursor: pointer; font-size: 11px; color: var(--blue); }
+.history-review p { margin: 8px 0 0; font-size: 12px; line-height: 1.7; white-space: pre-wrap; }
+@media (max-width: 1100px) { .history-layout { grid-template-columns: 1fr; } .history-symbol-list { position: static; max-height: 240px; } }
+
+/* ===================== 品种历史操作回看 ===================== */
+.history-summary { margin-bottom: 22px; }
+.history-layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 18px; align-items: start; }
+.history-symbol-list { display: grid; gap: 4px; position: sticky; top: 16px; max-height: calc(100vh - 96px); overflow: auto; }
+.history-symbol-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); text-align: left; }
+.history-symbol-item:hover { border-color: var(--line-strong); }
+.history-symbol-item.is-active { border-color: var(--line-strong); box-shadow: inset 3px 0 0 var(--amber); }
+.history-symbol-item strong { display: block; font-size: 13px; }
+.history-symbol-item small { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; }
+.history-symbol-item em { font: 600 11px/1 ui-monospace, monospace; color: var(--muted); font-style: normal; white-space: nowrap; }
+.history-timeline { display: grid; gap: 10px; min-width: 0; }
+.history-timeline-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 4px 2px 8px; border-bottom: 2px solid var(--line-strong); }
+.history-timeline-head h3 { margin: 0; font-size: 18px; }
+.history-timeline-head span { color: var(--muted); font-size: 12px; }
+.history-timeline-head b { font-size: 13px; }
+.history-entry { padding: 14px 16px; border: 1px solid var(--line); border-left-width: 3px; border-radius: var(--radius); background: var(--surface); }
+.history-entry.is-executed { border-left-color: var(--bull); }
+.history-entry.is-observe { border-left-color: var(--line); background: var(--surface-subtle); }
+.history-entry > header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.history-date { font: 600 12px/1 ui-monospace, monospace; }
+.history-date i { margin-left: 4px; padding: 0 4px; border: 1px solid var(--line); border-radius: 50%; font-style: normal; font-size: 10px; color: var(--amber); cursor: help; }
+.history-badge { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+.history-badge-observation { background: var(--amber-soft); color: var(--amber); }
+.history-badge-trade { background: var(--bull-soft); color: var(--bull); }
+.history-badge-narrative { background: var(--bear-soft); color: var(--bear); }
+.history-badge-source { padding: 2px 8px; border: 1px dashed var(--line); border-radius: 999px; font-size: 11px; color: var(--muted); }
+.history-instrument { font-size: 12px; color: var(--ink); }
+.history-strategy-source { font-size: 11px; color: var(--blue); }
+.history-exec-flag { margin-left: auto; font: 600 11px/1 ui-monospace, monospace; font-style: normal; }
+.is-executed .history-exec-flag { color: var(--bull); }
+.is-observe .history-exec-flag { color: var(--muted); }
+.history-pnl { margin-top: 8px; font: 700 15px/1.2 ui-monospace, monospace; }
+.history-event-chain { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; margin-top: 10px; }
+.history-chain-title { align-self: center; font-size: 11px; color: var(--muted); }
+.history-event { display: grid; gap: 1px; padding: 5px 9px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-subtle); font-size: 11px; }
+.history-event b { font-size: 11px; color: var(--muted); font-weight: 600; }
+.history-event strong { font: 700 13px/1 ui-monospace, monospace; }
+.history-event i { font-size: 10px; color: var(--amber); font-style: normal; }
+.history-event-open strong { color: var(--bull); }
+.history-event-close strong { color: var(--bear); }
+.history-event-add strong { color: var(--amber); }
+.history-event-arrow { align-self: center; color: var(--muted); font-size: 12px; }
+.history-ratings { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.history-ratings span { display: grid; gap: 1px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface-subtle); }
+.history-ratings small { font-size: 10px; color: var(--muted); }
+.history-ratings b { font-size: 11px; }
+.history-attribution { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; margin-top: 10px; }
+.history-attribution-item { display: grid; gap: 1px; padding: 4px 8px; border-left: 2px solid var(--line); }
+.history-attribution-item small { font-size: 10px; color: var(--muted); }
+.history-attribution-item b { font-size: 11px; }
+.history-narrative { margin: 10px 0 0; font-size: 12px; line-height: 1.7; color: var(--ink); }
+.history-no-trade { margin: 10px 0 0; font-size: 12px; color: var(--amber); }
+.history-review { margin-top: 10px; }
+.history-review summary { cursor: pointer; font-size: 11px; color: var(--blue); }
+.history-review p { margin: 8px 0 0; font-size: 12px; line-height: 1.7; white-space: pre-wrap; }
+@media (max-width: 1100px) { .history-layout { grid-template-columns: 1fr; } .history-symbol-list { position: static; max-height: 240px; } }

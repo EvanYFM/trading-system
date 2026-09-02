@@ -176,10 +176,20 @@
           <section class="decision-list-shell"><h3>决策记录</h3><div id="decisionList"></div></section>
           <section id="decisionEditor" class="decision-editor"></section>
         </div>
+        <div class="section-heading top-heading">
+          <div><span class="section-index">12</span><h2>品种历史操作回看</h2></div>
+          <p>导入的 Excel 交易日志与月度复盘按品种聚合；同一品种的开仓、加仓、减仓、平仓串成时间线</p>
+        </div>
+        <div id="historySummary" class="summary-strip history-summary"></div>
+        <div class="history-layout">
+          <aside id="historySymbolList" class="history-symbol-list" aria-label="历史品种列表"></aside>
+          <div id="historyTimeline" class="history-timeline"></div>
+        </div>
       </section>
     </main>
   </div>
   <div id="loadingState" class="loading-state">正在装载历史快照…</div>
-  <script src="app.js?v=20260811b" defer></script>
+  <script src="history-store.js?v=20260901a" defer></script>
+  <script src="app.js?v=20260901a" defer></script>
 </body>
 </html>
