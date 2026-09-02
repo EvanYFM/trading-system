@@ -645,10 +645,6 @@ function renderStatus() {
     <section class="status-block"><h3>行情、趋势与基本面</h3><div class="status-list"><div class="status-line"><span>当日收盘行情</span><strong>${summary.quoteFreshCount || 0} / ${summary.instrumentCount}</strong></div><div class="status-line"><span>当日趋势品种</span><strong>${summary.trendFreshCount} / ${summary.instrumentCount}</strong></div><div class="status-line"><span>期现基差覆盖</span><strong>${summary.basisCoveredCount || 0} 个</strong></div><div class="status-line"><span>仓单覆盖</span><strong>${summary.warehouseCoveredCount || 0} 个</strong></div><div class="status-line"><span>股指独立观察</span><strong>${snapshot.stockIndices.length} 个</strong></div></div></section>`;
 }
 
-function decisionChoiceLabel(choice) {
-  return ({accept: "接受", reject: "拒绝", observe: "观察"})[choice] || "待确认";
-}
-
 function orderDecisionSignals(items) {
   const bullish = items.filter((item) => numeric(item.amountSignal) > 0).sort((a, b) => numeric(b.amountSignal) - numeric(a.amountSignal));
   const bearish = items.filter((item) => numeric(item.amountSignal) < 0).sort((a, b) => numeric(a.amountSignal) - numeric(b.amountSignal));
@@ -656,29 +652,63 @@ function orderDecisionSignals(items) {
   return [...bullish.slice(0, 5), ...bearish.slice(0, 5), ...[...bullish.slice(5), ...bearish.slice(5), ...neutral].sort((a, b) => Math.abs(numeric(b.amountSignal)) - Math.abs(numeric(a.amountSignal)))];
 }
 
-function upsertDecision(symbol, choice) {
+function upsertDecision(symbol) {
   const item = currentSnapshot().instruments.find((entry) => entry.symbol === symbol);
   if (!item) return;
   const id = `${state.date}-${symbol}`;
   let record = state.decisions.find((entry) => entry.id === id);
   if (!record) {
     record = {
-      id, reportDate: state.date, symbol, variety: item.variety, sector: item.sector, choice,
+      id, reportDate: state.date, symbol, variety: item.variety, sector: item.sector,
       runId: state.manifest?.runId || state.date, createdAt: new Date().toISOString(),
       amountSignal: item.amountSignal, handsSignal: item.handsSignal,
       close: item.quote?.close ?? null, changePct: item.quote?.changePct ?? null,
-      trend: item.trend?.temperature || "", mainContradiction: "", trigger: "", invalidation: "",
-      brokerRanking: item.brokerRanking,
-      tradeStatus: "no_trade", tradeLogRef: "", noTradeReason: "", exitResult: "",
-      problemType: "pending", seeRight: "pending", doRight: "pending", doWell: "pending", reviewNote: "",
+      trend: item.trend?.temperature || "", brokerRanking: item.brokerRanking,
+      tradeStatus: "no_trade", direction: "", mainContradiction: "",
+      trigger: "", positionPct: "", invalidation: "", closeNote: "", pnl: "",
+      attribution: {}, reviewNote: "",
     };
     state.decisions.push(record);
-  } else {
-    record.choice = choice;
   }
   state.activeDecisionId = id;
   saveDecisions();
   renderDecisionView();
+}
+
+function decisionStatusLabel(status) {
+  return ({no_trade: "未交易", open: "持仓中", closed: "已平仓"})[status] || "未交易";
+}
+
+/* 保存复盘时同步写入品种历史操作回看（IndexedDB + 内存缓存），保证下方时间线即时更新 */
+function syncDecisionToHistory(record) {
+  if (typeof HistoryStore === "undefined") return;
+  const dateText = record.reportDate ? `${record.reportDate.slice(0, 4)}-${record.reportDate.slice(4, 6)}-${record.reportDate.slice(6, 8)}` : "";
+  const observation = {
+    id: `ws-${record.id}`,
+    source: "工作台日志",
+    kind: "observation",
+    date: dateText,
+    variety: record.variety || "",
+    symbol: record.symbol || "",
+    contract: null, strike: null,
+    instrumentType: null, optionType: null, moneyness: null,
+    direction: record.direction || null,
+    strategySource: "自己",
+    executed: record.tradeStatus !== "no_trade",
+    tradeStatus: record.tradeStatus,
+    positionPct: record.positionPct || "",
+    myPnl: record.pnl === "" || record.pnl == null ? null : numeric(record.pnl),
+    pnlRatio: null,
+    strategyPnlText: "",
+    noTradeReason: "",
+    stopLossTakeProfit: record.invalidation || "",
+    trigger: record.trigger || "",
+    ratings: {},
+    attribution: record.attribution || {},
+    review: [record.mainContradiction, record.closeNote, record.reviewNote].filter(Boolean).join("\n"),
+    raw: "",
+  };
+  HistoryStore.putObservation(observation);
 }
 
 function renderDecisionView() {
@@ -694,33 +724,37 @@ function renderDecisionView() {
   const pageSignals = signals.slice((state.decisionPage - 1) * 10, state.decisionPage * 10);
   $("#decisionSignals").innerHTML = signals.length ? pageSignals.map((item) => {
     const record = state.decisions.find((entry) => entry.id === `${state.date}-${item.symbol}`);
-    return `<article class="decision-signal ${dirClass(item.amountSignal)}"><div><strong>${escapeHtml(item.variety)} ${escapeHtml(item.symbol)}</strong><small>${formatAmount(item.amountSignal)} · ${formatHands(item.handsSignal)} 手</small></div><div class="decision-choices">${[["accept","接受"],["reject","拒绝"],["observe","观察"]].map(([value, label]) => `<button class="${record?.choice === value ? "is-active" : ""}" data-decision-choice="${value}" data-decision-symbol="${escapeHtml(item.symbol)}">${label}</button>`).join("")}</div></article>`;
+    const status = record ? decisionStatusLabel(record.tradeStatus) : "未记录";
+    const statusCls = record?.tradeStatus === "open" ? "bull-text" : record?.tradeStatus === "closed" ? "bear-text" : "neutral-text";
+    return `<button class="decision-signal ${dirClass(item.amountSignal)}" data-open-decision="${escapeHtml(item.symbol)}"><div><strong>${escapeHtml(item.variety)} ${escapeHtml(item.symbol)}</strong><small>${formatAmount(item.amountSignal)} · ${formatHands(item.handsSignal)} 手</small></div><em class="decision-signal-status ${statusCls}">${status}</em></button>`;
   }).join("") + (pageCount > 1 ? `<nav class="decision-pagination" aria-label="决策品种分页">${Array.from({length: pageCount}, (_, index) => `<button class="${state.decisionPage === index + 1 ? "is-active" : ""}" data-decision-page="${index + 1}">${index + 1}</button>`).join("")}</nav>` : "") : `<div class="detail-empty">当前筛选条件下没有品种。</div>`;
 
   const records = [...state.decisions].sort((a, b) => b.reportDate.localeCompare(a.reportDate) || a.symbol.localeCompare(b.symbol));
-  $("#decisionList").innerHTML = records.length ? records.map((record) => `<button class="decision-list-item ${record.id === state.activeDecisionId ? "is-active" : ""}" data-edit-decision="${escapeHtml(record.id)}"><span><strong>${escapeHtml(record.variety)} ${escapeHtml(record.symbol)}</strong><small>${formatDate(record.reportDate)} · ${decisionChoiceLabel(record.choice)}</small></span><em>${record.tradeStatus === "closed" ? "已退出" : record.tradeStatus === "open" ? "持仓中" : "未交易"}</em></button>`).join("") : `<div class="detail-empty">尚无人工确认记录。</div>`;
+  $("#decisionList").innerHTML = records.length ? records.map((record) => `<button class="decision-list-item ${record.id === state.activeDecisionId ? "is-active" : ""}" data-edit-decision="${escapeHtml(record.id)}"><span><strong>${escapeHtml(record.variety)} ${escapeHtml(record.symbol)}</strong><small>${formatDate(record.reportDate)}${record.direction ? ` · ${record.direction === "空" ? "做空" : "做多"}` : ""}</small></span><em>${decisionStatusLabel(record.tradeStatus)}</em></button>`).join("") : `<div class="detail-empty">尚无日志记录，点上方任一品种开始。</div>`;
 
   const record = state.decisions.find((entry) => entry.id === state.activeDecisionId);
   if (!record) {
-    $("#decisionEditor").innerHTML = `<div class="detail-empty">先对一个工作站信号选择“接受 / 拒绝 / 观察”。</div>`;
+    $("#decisionEditor").innerHTML = `<div class="detail-empty">点击上方任一品种，开始写当天的交易日志。</div>`;
     return;
   }
   const snapshotItem = state.data.snapshots[record.reportDate]?.instruments.find((item) => item.symbol === record.symbol);
   const ranking = record.brokerRanking || snapshotItem?.brokerRanking || {netLong: [], netShort: []};
   const option = (value, label, current) => `<option value="${value}" ${current === value ? "selected" : ""}>${label}</option>`;
+  const attrField = (key, label) => `<label>${label}<select name="attr_${key}">${option("", "—", (record.attribution || {})[label])}${option("Y", "Y", (record.attribution || {})[label])}${option("N", "N", (record.attribution || {})[label])}</select></label>`;
+  const attribution = record.attribution || {};
   $("#decisionEditor").innerHTML = `<form id="decisionForm"><header><div><small>${formatDate(record.reportDate)} · ${escapeHtml(record.runId)}</small><h3>${escapeHtml(record.variety)} ${escapeHtml(record.symbol)}</h3></div><div class="decision-market-facts"><strong class="${signClass(record.amountSignal)}">${formatAmount(record.amountSignal)}</strong><strong class="${record.changePct == null ? "" : signClass(record.changePct)}">${record.changePct == null ? "涨跌 暂无" : `${formatSigned(record.changePct, 2)}%`}</strong></div></header>
     <div class="decision-facts"><span>手数 ${formatHands(record.handsSignal)}</span><span>收盘 ${formatPrice(record.close)}</span><span>趋势 ${escapeHtml(record.trend || "暂无")}</span></div>
     <details class="decision-evidence"><summary>查看当日席位证据</summary><div class="seat-rank-grid decision-ranks"><div class="seat-rank-list"><div class="seat-rank-title bull-text">净多席位 ${ranking.netLong.length}/5 <span>${rankingDominance(ranking.netLong)}</span></div>${rankRows(ranking.netLong, "bull-text", "暂无净多席位")}</div><div class="seat-rank-list"><div class="seat-rank-title bear-text">净空席位 ${ranking.netShort.length}/5 <span>${rankingDominance(ranking.netShort)}</span></div>${rankRows(ranking.netShort, "bear-text", "暂无净空席位")}</div></div></details>
     <div class="decision-form-grid">
-      <label>人工确认<select name="choice">${option("accept","接受",record.choice)}${option("reject","拒绝",record.choice)}${option("observe","观察",record.choice)}</select></label>
-      <label>交易状态<select name="tradeStatus">${option("no_trade","未交易",record.tradeStatus)}${option("open","持仓中",record.tradeStatus)}${option("closed","已退出",record.tradeStatus)}</select></label>
+      <label>交易状态<select name="tradeStatus">${option("no_trade","未交易",record.tradeStatus)}${option("open","持仓中",record.tradeStatus)}${option("closed","已平仓",record.tradeStatus)}</select></label>
+      <label>方向<select name="direction">${option("", "未定", record.direction)}${option("多", "做多", record.direction)}${option("空", "做空", record.direction)}</select></label>
       <label class="wide">核心逻辑<textarea name="mainContradiction" rows="2" placeholder="为什么值得做，最关键的支撑和反向证据是什么">${escapeHtml(record.mainContradiction)}</textarea></label>
       <label>入场触发<input name="trigger" value="${escapeHtml(record.trigger)}" placeholder="价格或技术条件"></label>
+      <label>仓位（占总仓位比例）<input name="positionPct" value="${escapeHtml(record.positionPct)}" placeholder="如 30%"></label>
       <label>失效 / 止损<input name="invalidation" value="${escapeHtml(record.invalidation)}" placeholder="错在哪里退出"></label>
-      <label>交易日志编号或链接<input name="tradeLogRef" value="${escapeHtml(record.tradeLogRef)}" placeholder="手工日志中的编号、文件路径或链接"></label>
-      <label>未交易原因<input name="noTradeReason" value="${escapeHtml(record.noTradeReason)}"></label>
-      <label>结果<textarea name="exitResult" rows="2" placeholder="盈亏不是唯一结果，记录是否按计划执行">${escapeHtml(record.exitResult)}</textarea></label>
-      <label>主要来源<select name="problemType">${option("pending","待复盘",record.problemType)}${option("judgment","判断",record.problemType)}${option("timing","时机",record.problemType)}${option("position","仓位",record.problemType)}${option("execution","执行",record.problemType)}${option("emotion","情绪",record.problemType)}${option("data","数据 / 证据",record.problemType)}${option("no_issue","无明显问题",record.problemType)}</select></label>
+      <label>平仓<textarea name="closeNote" rows="2" placeholder="平仓过程与是否按计划执行">${escapeHtml(record.closeNote)}</textarea></label>
+      <label>盈亏（元，选填）<input name="pnl" type="number" step="any" value="${escapeHtml(String(record.pnl ?? ""))}" placeholder="亏损填负数"></label>
+      <div class="decision-attr-grid wide"><span class="decision-attr-title">执行归因（复盘）</span>${attrField("judgment","判断错？")}${attrField("timing","时机错？")}${attrField("position","仓位错？")}${attrField("tool","工具错？")}${attrField("execution","执行错？")}</div>
       <label class="wide">最大错误与下一条规则<textarea name="reviewNote" rows="3" placeholder="最大错误：&#10;下一次只改：">${escapeHtml(record.reviewNote)}</textarea></label>
     </div><p id="decisionFormMessage" class="form-message" aria-live="polite"></p><div class="decision-form-actions"><button class="decision-save" type="submit">保存复盘</button><button class="decision-delete" type="button" data-delete-decision="${escapeHtml(record.id)}">删除</button></div></form>`;
 }
@@ -744,6 +778,7 @@ function historyInstrumentText(item) {
   else if (item.strike) parts.push(`行权价 ${item.strike}`);
   if (item.moneyness) parts.push(item.moneyness);
   if (item.direction) parts.push(item.direction === "空" ? "做空" : "做多");
+  if (item.positionPct) parts.push(`仓位 ${item.positionPct}`);
   return parts.join(" · ");
 }
 
@@ -946,14 +981,14 @@ function bindEvents() {
       $$("[data-direction]").forEach((button) => button.classList.toggle("is-active", button === direction));
       renderInstrumentTable();
     }
-    const choice = event.target.closest("[data-decision-choice]");
-    if (choice) upsertDecision(choice.dataset.decisionSymbol, choice.dataset.decisionChoice);
+    const openDecision = event.target.closest("[data-open-decision]");
+    if (openDecision) upsertDecision(openDecision.dataset.openDecision);
     const decisionPage = event.target.closest("[data-decision-page]");
     if (decisionPage) { state.decisionPage = numeric(decisionPage.dataset.decisionPage); renderDecisionView(); }
     const editDecision = event.target.closest("[data-edit-decision]");
     if (editDecision) { state.activeDecisionId = editDecision.dataset.editDecision; renderDecisionView(); }
     const createDecision = event.target.closest("[data-create-decision]");
-    if (createDecision) { upsertDecision(createDecision.dataset.createDecision, "observe"); switchView("decisions"); window.scrollTo({top: 0, behavior: "smooth"}); }
+    if (createDecision) { upsertDecision(createDecision.dataset.createDecision); switchView("decisions"); window.scrollTo({top: 0, behavior: "smooth"}); }
     const deleteDecision = event.target.closest("[data-delete-decision]");
     if (deleteDecision) { state.decisions = state.decisions.filter((entry) => entry.id !== deleteDecision.dataset.deleteDecision); state.activeDecisionId = null; saveDecisions(); renderDecisionView(); }
     const historySymbol = event.target.closest("[data-history-symbol]");
@@ -979,12 +1014,19 @@ function bindEvents() {
     if (!record) return;
     const values = Object.fromEntries(new FormData(event.target));
     const message = $("#decisionFormMessage");
-    if (values.tradeStatus === "no_trade" && !values.noTradeReason.trim()) { message.textContent = "未交易必须记录原因。"; return; }
-    if (["open", "closed"].includes(values.tradeStatus) && !values.tradeLogRef.trim()) { message.textContent = "产生交易后必须关联交易日志。"; return; }
-    if (values.tradeStatus === "closed" && !values.exitResult.trim()) { message.textContent = "已退出交易必须填写退出结果。"; return; }
-    Object.assign(record, values, {updatedAt: new Date().toISOString()});
+    const attribution = {};
+    [["judgment", "判断错？"], ["timing", "时机错？"], ["position", "仓位错？"], ["tool", "工具错？"], ["execution", "执行错？"]].forEach(([key, label]) => {
+      if (values[`attr_${key}`]) attribution[label] = values[`attr_${key}`];
+    });
+    if (values.tradeStatus === "closed" && !values.closeNote.trim()) { message.textContent = "已平仓必须填写平仓记录。"; return; }
+    if (values.tradeStatus === "closed" && !values.reviewNote.trim()) { message.textContent = "已平仓必须写最大错误与下一条规则。"; return; }
+    Object.assign(record, values, {attribution, updatedAt: new Date().toISOString()});
+    delete record.attr_judgment; delete record.attr_timing; delete record.attr_position; delete record.attr_tool; delete record.attr_execution;
     saveDecisions();
+    syncDecisionToHistory(record);
     renderDecisionView();
+    renderHistoryView();
+    if (message) message.textContent = "";
   });
 }
 

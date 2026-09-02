@@ -806,3 +806,25 @@ h1 { margin: 6px 0 0; font-size: 30px; line-height: 1.15; letter-spacing: 0; }
 .history-review summary { cursor: pointer; font-size: 11px; color: var(--blue); }
 .history-review p { margin: 8px 0 0; font-size: 12px; line-height: 1.7; white-space: pre-wrap; }
 @media (max-width: 1100px) { .history-layout { grid-template-columns: 1fr; } .history-symbol-list { position: static; max-height: 240px; } }
+
+/* 决策信号卡（交易日志版） */
+button.decision-signal { width: 100%; text-align: left; font: inherit; color: inherit; }
+.decision-signal { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.decision-signal em.decision-signal-status { font-style: normal; font-size: 12px; font-weight: 600; white-space: nowrap; }
+/* 执行归因（复盘）五项 */
+.decision-attr-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; background: var(--surface-subtle); }
+.decision-attr-grid label { display: grid; gap: 4px; font-size: 11px; color: var(--muted); }
+.decision-attr-grid select { border: 1px solid var(--line); background: var(--surface); border-radius: 3px; padding: 5px 6px; }
+.decision-attr-title { grid-column: 1 / -1; font-size: 12px; font-weight: 600; color: var(--ink); }
+@media (max-width: 900px) { .decision-attr-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* 决策信号卡（交易日志版） */
+button.decision-signal { width: 100%; text-align: left; font: inherit; color: inherit; }
+.decision-signal { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.decision-signal em.decision-signal-status { font-style: normal; font-size: 12px; font-weight: 600; white-space: nowrap; }
+/* 执行归因（复盘）五项 */
+.decision-attr-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; background: var(--surface-subtle); }
+.decision-attr-grid label { display: grid; gap: 4px; font-size: 11px; color: var(--muted); }
+.decision-attr-grid select { border: 1px solid var(--line); background: var(--surface); border-radius: 3px; padding: 5px 6px; }
+.decision-attr-title { grid-column: 1 / -1; font-size: 12px; font-weight: 600; color: var(--ink); }
+@media (max-width: 900px) { .decision-attr-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
