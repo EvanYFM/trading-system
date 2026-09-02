@@ -23,7 +23,7 @@ from import_trading_log_excel import (  # 复用同一套品种映射，保证�
 )
 
 SRC = r"C:\Users\29266\Desktop\月度投资复盘.md"
-OUT = r"C:\Users\29266\WorkBuddy\已有网站优化\trading-system\data\imported\monthly_review_md.json"
+OUT = r"C:\Users\29266\WorkBuddy\已有网站优化\trading-system-fresh\web\research_dashboard\data\imported\monthly_review_md.json"
 YEAR = 2026  # 本文档为 2026 年复盘
 
 TAG_RE = re.compile(r"<[^>]+>")

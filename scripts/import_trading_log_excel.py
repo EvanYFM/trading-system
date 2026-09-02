@@ -13,7 +13,7 @@ import re
 from openpyxl import load_workbook
 
 SRC = r"C:\Users\29266\Desktop\交易日志-20251031至20251113.xlsx"
-OUT = r"C:\Users\29266\WorkBuddy\已有网站优化\trading-system\data\imported\trading_log_excel.json"
+OUT = r"C:\Users\29266\WorkBuddy\已有网站优化\trading-system-fresh\web\research_dashboard\data\imported\trading_log_excel.json"
 
 # 品种中文名 -> 标准代码
 VARIETY_CODE = {
