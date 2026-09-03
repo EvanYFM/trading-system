@@ -1006,6 +1006,8 @@ function bindEvents() {
     if (historySymbol) { state.historyJournalSymbol = historySymbol.dataset.historySymbol; renderHistoryView(); }
   });
   $("#exportUserJournalBtn")?.addEventListener("click", exportUserJournal);
+  $("#cloudSyncBtn")?.addEventListener("click", cloudSyncAction);
+  renderCloudSyncStatus();
   $("#dateSelect").addEventListener("change", (event) => setDate(event.target.value));
   $("#symbolFilter").addEventListener("change", (event) => { state.symbol = event.target.value; renderInstrumentTable(); });
   $("#searchInput").addEventListener("input", (event) => { state.query = event.target.value; renderInstrumentTable(); });
@@ -1087,4 +1089,43 @@ function exportUserJournal() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
   flash(`✓ 已导出 ${data.count} 条到下载文件夹`);
+}
+
+/* 「🔐 云端同步」：配置 Token / 立即同步。
+   Token 为 GitHub fine-grained PAT（只授权 futures-journal-data 的 Contents 读写），
+   存 localStorage，不进 git；与 digital-garden 的同步模型一致。
+   首次配置后立即做一次全量推送，把本地历史复盘（Excel/md 导入 + 已写复盘）落到私有仓。 */
+function cloudSyncAction() {
+  if (typeof JournalSync === "undefined" || typeof HistoryStore === "undefined") return;
+  if (!JournalSync.hasToken()) {
+    const input = window.prompt("粘贴 GitHub fine-grained Token（仅授权 futures-journal-data 仓库 Contents 读写）。\nToken 只保存在本机浏览器，不会进入代码或公开仓库：");
+    if (!input || !input.trim()) return;
+    JournalSync.setToken(input.trim());
+  }
+  const btn = document.getElementById("cloudSyncBtn");
+  const status = document.getElementById("cloudSyncStatus");
+  if (btn) { btn.textContent = "⏳ 同步中…"; btn.disabled = true; }
+  HistoryStore.pushToCloud()
+    .then((result) => {
+      renderCloudSyncStatus();
+      if (btn) { btn.textContent = "🔐 云端同步"; btn.disabled = false; }
+      if (result.local) {
+        if (status) status.textContent = "（未配置 Token，仅本地）";
+      } else {
+        const count = (result.data.observations || []).length + (result.data.trades || []).length;
+        if (status) status.textContent = `✓ 已同步 ${count} 条`;
+        renderHistoryView();
+      }
+    })
+    .catch((error) => {
+      if (btn) { btn.textContent = "🔐 云端同步"; btn.disabled = false; }
+      if (status) status.textContent = `✗ ${error.message}`;
+      if (/Token 无效/.test(String(error.message))) JournalSync.setToken("");
+    });
+}
+
+function renderCloudSyncStatus() {
+  const status = document.getElementById("cloudSyncStatus");
+  if (!status || typeof JournalSync === "undefined") return;
+  status.textContent = JournalSync.hasToken() ? "● 已连接私有数据仓" : "○ 未连接（仅本地）";
 }

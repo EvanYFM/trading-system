@@ -208,23 +208,39 @@ const HistoryStore = (() => {
     let mdTrades = [];
     let mdNarratives = [];
     let userItems = [];
+    /* 静态导入文件（Excel/md/user_journal）只存在于本地开发环境；公开站点上
+       个人数据被排除出部署仓，404 是正常态，静默处理。个人数据的主存储是
+       私有数据仓（futures-journal-data/journal.json），见下方云端拉取。 */
     try {
       const excel = await fetchJson("data/imported/trading_log_excel.json");
       excelItems = (excel.observations || []).map(normalizeExcelObservation);
-    } catch (error) { errors.push(`Excel 导入：${error.message}`); }
+    } catch (error) { if (!/HTTP 404/.test(String(error.message || ""))) errors.push(`Excel 导入：${error.message}`); }
     try {
       const md = await fetchJson("data/imported/monthly_review_md.json");
       months = md.months || [];
       mdTrades = (md.trades || []).map(normalizeMdTrade);
       mdNarratives = (md.narratives || []).map(normalizeMdNarrative);
-    } catch (error) { errors.push(`月度复盘导入：${error.message}`); }
-    /* 用户工作台导出的复盘（GitHub 上的 data/imported/user_journal.json）；
-       首次部署没有这个文件是正常的，404 不算错 */
+    } catch (error) { if (!/HTTP 404/.test(String(error.message || ""))) errors.push(`月度复盘导入：${error.message}`); }
     try {
       const user = await fetchJson("data/imported/user_journal.json");
       userItems = (user.observations || []).map((item) => ({...item, source: "工作台日志"}));
     } catch (error) {
-      if (!String(error.message || "").includes("HTTP 404")) errors.push(`用户复盘导入：${error.message}`);
+      if (!/HTTP 404/.test(String(error.message || ""))) errors.push(`用户复盘导入：${error.message}`);
+    }
+
+    /* 云端个人数据：有 Token 时拉取私有仓 journal.json（历史导入 + 各设备新写复盘），
+       与本地合并；保存复盘时会自动推回私有仓（见 putObservation） */
+    let remoteItems = [];
+    let cloudMonths = [];
+    if (typeof JournalSync !== "undefined" && JournalSync.hasToken()) {
+      try {
+        const remote = await JournalSync.pullJournal();
+        if (remote && remote.data) {
+          remoteItems = [...(remote.data.observations || []), ...(remote.data.trades || []), ...(remote.data.narratives || [])];
+          if (!months.length) months = remote.data.months || [];
+          cloudMonths = remote.data.months || [];
+        }
+      } catch (error) { errors.push(`云端复盘拉取：${error.message}`); }
     }
 
     if (db) {
@@ -243,7 +259,7 @@ const HistoryStore = (() => {
       ? await withTimeout(getAll(STORES.observations), 4000, "IndexedDB 读取超时").catch(() => [])
       : [];
     const merged = {};
-    [...excelItems, ...mdNarratives, ...mdTrades, ...userItems, ...legacy, ...migrateLocalStorageDecisions()].forEach((item) => {
+    [...excelItems, ...mdNarratives, ...mdTrades, ...userItems, ...remoteItems, ...legacy, ...migrateLocalStorageDecisions()].forEach((item) => {
       merged[item.id] = item;
     });
 
@@ -251,19 +267,48 @@ const HistoryStore = (() => {
       observations: Object.values(merged).filter((item) => item.kind !== "trade"),
       trades: Object.values(merged).filter((item) => item.kind === "trade"),
       narratives: mdNarratives,
-      months,
+      months: months.length ? months : cloudMonths,
     };
     cache.errors = errors;
     return cache;
   }
 
-  /* 工作台保存复盘时调用：写入 IndexedDB 并同步内存缓存，时间线即时可见 */
+  /* 全量个人数据负载（供云端首次同步 / 手动同步使用） */
+  function localPayload() {
+    return {observations: cache.observations, trades: cache.trades, narratives: cache.narratives, months: cache.months};
+  }
+
+  /* 推送本地个人数据到私有仓（pull -> merge -> push），返回合并后全量 */
+  function pushToCloud() {
+    if (typeof JournalSync === "undefined" || !JournalSync.hasToken()) {
+      return Promise.resolve({local: true, data: localPayload()});
+    }
+    return JournalSync.syncJournal(localPayload()).then((result) => {
+      /* 远端可能有本地没有的记录（其他设备写的），并入缓存 */
+      const remote = result.data || {};
+      const incoming = [...(remote.observations || []), ...(remote.trades || [])];
+      incoming.forEach((item) => {
+        if (item && item.id && !cache.observations.some((o) => o.id === item.id) && !cache.trades.some((t) => t.id === item.id)) {
+          if (item.kind === "trade") cache.trades.push(item); else cache.observations.push(item);
+          if (db) putMany(STORES.observations, [item]).catch(() => {});
+        }
+      });
+      if ((remote.months || []).length && !cache.months.length) cache.months = remote.months;
+      return result;
+    });
+  }
+
+  /* 工作台保存复盘时调用：写入 IndexedDB 并同步内存缓存，时间线即时可见；
+     有 Token 时后台自动同步到私有数据仓（fire-and-forget，不阻塞 UI） */
   function putObservation(observation) {
     if (!observation || !observation.id) return;
-    cache.observations = cache.observations.filter((item) => item.id !== observation.id);
-    cache.observations.push(observation);
-    if (!db) return;
-    putMany(STORES.observations, [observation]).catch(() => {});
+    const stamped = {...observation, updated: Date.now()};
+    cache.observations = cache.observations.filter((item) => item.id !== stamped.id);
+    cache.observations.push(stamped);
+    if (db) putMany(STORES.observations, [stamped]).catch(() => {});
+    if (typeof JournalSync !== "undefined" && JournalSync.hasToken()) {
+      JournalSync.syncJournal({observations: [stamped], trades: [], narratives: [], months: []}).catch(() => {});
+    }
   }
 
   /* 导出：只包含本地工作台新写的 observation（source=工作台日志），
@@ -280,5 +325,5 @@ const HistoryStore = (() => {
     };
   }
 
-  return {init, cache: () => cache, putObservation, exportUserJournal};
+  return {init, cache: () => cache, putObservation, exportUserJournal, pushToCloud, hasCloudToken: () => typeof JournalSync !== "undefined" && JournalSync.hasToken()};
 })();

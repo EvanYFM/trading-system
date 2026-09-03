@@ -179,7 +179,9 @@
         <div class="section-heading top-heading">
           <div><span class="section-index">12</span><h2>品种历史操作回看</h2></div>
           <div class="history-heading-actions">
-            <button id="exportUserJournalBtn" class="history-export-btn" type="button" title="把你在工作台新写的复盘导出为 JSON，发给 agent 合并后推送 GitHub">📤 导出我的复盘</button>
+            <span id="cloudSyncStatus" class="history-sync-status" title="私有数据仓同步状态"></span>
+            <button id="cloudSyncBtn" class="history-export-btn" type="button" title="配置或使用 GitHub Token，把复盘同步到私有数据仓（跨设备）">🔐 云端同步</button>
+            <button id="exportUserJournalBtn" class="history-export-btn" type="button" title="备用通道：把工作台新写的复盘导出为 JSON">📤 导出备份</button>
           </div>
           <p>导入的 Excel 交易日志与月度复盘按品种聚合；同一品种的开仓、加仓、减仓、平仓串成时间线</p>
         </div>
@@ -192,7 +194,8 @@
     </main>
   </div>
   <div id="loadingState" class="loading-state">正在装载历史快照…</div>
-  <script src="history-store.js?v=20260901a" defer></script>
-  <script src="app.js?v=20260901a" defer></script>
+  <script src="history-store.js?v=20260903a" defer></script>
+  <script src="journal-sync.js?v=20260903a" defer></script>
+  <script src="app.js?v=20260903a" defer></script>
 </body>
 </html>

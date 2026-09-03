@@ -839,3 +839,5 @@ button.decision-signal { width: 100%; text-align: left; font: inherit; color: in
 .history-plan span { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; align-items: baseline; }
 .history-plan small { font-size: 10px; color: var(--muted); }
 .history-plan b { font-size: 12px; font-weight: 500; line-height: 1.6; }
+
+.history-sync-status { font-size: 11px; color: var(--muted); align-self: center; }
