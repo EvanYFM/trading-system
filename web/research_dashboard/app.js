@@ -815,6 +815,16 @@ function historyNarrativeText(item) {
   return `<p class="history-narrative">${escapeHtml(item.text || "")}</p>`;
 }
 
+/* 工作台日志的入场触发 / 仓位 / 止损失效（Excel 与 md 记录没有这些字段，自动跳过） */
+function historyPlanRows(item) {
+  const rows = [];
+  if (item.trigger) rows.push(["入场触发", item.trigger]);
+  if (item.positionPct) rows.push(["仓位", item.positionPct]);
+  if (item.stopLossTakeProfit) rows.push(["止损 / 失效", item.stopLossTakeProfit]);
+  if (!rows.length) return "";
+  return `<div class="history-plan">${rows.map(([label, value]) => `<span><small>${label}</small><b>${escapeHtml(value)}</b></span>`).join("")}</div>`;
+}
+
 function renderHistoryEntry(item) {
   const pnl = historyPnlText(item);
   const review = item.review || "";
@@ -828,6 +838,7 @@ function renderHistoryEntry(item) {
       ${item.strategySource ? `<span class="history-strategy-source">参考来源：${escapeHtml(item.strategySource)}</span>` : ""}
       <em class="history-exec-flag">${item.executed ? "已执行" : "未执行"}</em>
     </header>
+    ${historyPlanRows(item)}
     ${pnl.text ? `<div class="history-pnl ${pnl.cls}">${escapeHtml(pnl.text)}</div>` : ""}
     ${historyEventChain(item.events)}
     ${historyRatingDots(item.ratings)}

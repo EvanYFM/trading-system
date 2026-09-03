@@ -834,3 +834,8 @@ button.decision-signal { width: 100%; text-align: left; font: inherit; color: in
 .history-export-btn { padding: 6px 12px; border: 1px solid var(--amber); background: var(--surface); color: var(--amber); border-radius: var(--radius); font-size: 12px; cursor: pointer; }
 .history-export-btn:hover:not(:disabled) { background: var(--amber-soft); }
 .history-export-btn:disabled { opacity: .6; cursor: default; }
+
+.history-plan { display: grid; gap: 4px; margin-top: 10px; padding: 8px 10px; border-left: 2px solid var(--blue); background: var(--surface-subtle); }
+.history-plan span { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; align-items: baseline; }
+.history-plan small { font-size: 10px; color: var(--muted); }
+.history-plan b { font-size: 12px; font-weight: 500; line-height: 1.6; }

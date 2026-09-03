@@ -1,0 +1,42 @@
+{
+  "source": "工作台日志",
+  "note": "用户在工作台写的复盘，由 scripts/merge_user_journal.py 合并后随 git 发布",
+  "updatedAt": "2026-09-03T11:54:53+08:00",
+  "count": 1,
+  "observations": [
+    {
+      "id": "ws-20260901-JM",
+      "source": "工作台日志",
+      "kind": "observation",
+      "date": "2026-09-01",
+      "variety": "焦煤",
+      "symbol": "JM",
+      "contract": null,
+      "strike": null,
+      "instrumentType": null,
+      "optionType": null,
+      "moneyness": null,
+      "direction": "空",
+      "strategySource": "自己",
+      "executed": true,
+      "tradeStatus": "closed",
+      "positionPct": "1手，50%仓位",
+      "myPnl": -12000,
+      "pnlRatio": null,
+      "strategyPnlText": "",
+      "noTradeReason": "",
+      "stopLossTakeProfit": "焦煤现货持续提价，期货盘面形成升水结构，导致存在逼仓可能，近月更容易被逼仓，应该设置亏损点位为20-30点。",
+      "trigger": "1580开空",
+      "ratings": {},
+      "attribution": {
+        "判断错？": "Y",
+        "时机错？": "Y",
+        "仓位错？": "N",
+        "工具错？": "Y",
+        "执行错？": "Y"
+      },
+      "review": "朋友告诉我可以开空了，就尝试开空了1手。\n否，持续死扛亏损，亏损比例超100%\n最大错误：亏损死扛，没有严格止损，尤其是期货。\n下一条规则：期货交易严格设置止损位，到点就离场。如果还有机会后续再回来交易。\n按照自己的交易逻辑和计划进行，不要跟别人的交易做。",
+      "raw": ""
+    }
+  ]
+}
