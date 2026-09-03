@@ -56,7 +56,7 @@
 - 研究工作站的商品收盘价与当日涨跌幅统一由 `scripts/fetch_sina_quhe_main_quotes.py` 获取：优先使用曲合期货同日主力行情，并用新浪财经同日主力合约日线/实时收盘校验，写入 `data/sina_quhe_main_quotes_YYYYMMDD.csv`。当日源缺失时只允许回退到新浪同日精确合约，不得沿用旧日行情，也不得用趋势动物 `priceIndex` 或 `return1d` 替代收盘行情。
 - 研究工作站技术面脚本为 `scripts/fetch_eastmoney_technical_snapshot.py`，当前默认抓取沪银 `AG`、焦煤 `JM`、燃料油 `FU`、生猪 `LH`、碳酸锂 `LC`、鸡蛋 `JD`。脚本必须优先使用报告日行情文件中的主力合约，日线只展示 MA5/20/60；15 分钟与 60 分钟使用成交量、持仓量、包含处理、分型、简化笔和最近中枢，统一判断“偏多 / 中枢震荡 / 偏空”。增仓同向比减仓同向权重更高；支撑压力从 MA5/20/60 和有效中枢边界中选择最近位置。页面必须把行情事实、规则判断和数据限制分列；当前主力合约历史不得表述为复权连续合约，简化缠论不得表述为严格背驰或一、二、三类买卖点。品种详情顶部保留品种/代码搜索与板块筛选，不再显示重复的侧栏重点观察列表。技术判断只用于执行层交叉验证，不得覆盖基本面和资金面结论。
 - 研究工作站基本面统一由 `scripts/fetch_research_dashboard_market_context.py` 生成主力期现基差和交易所仓单历史，供给、需求、现金成本与产业库存的逐品种来源计划位于 `config/fundamental_sources.json`。网页只能把实际抓取数值展示为事实；公开摘要、手动来源、待授权和缺失必须分开标记，不得从资讯叙述反推连续序列或把“当期无记录”写成零。
-- `sites/research_dashboard/` 是研究工作站的私有 Sites 部署包装，仅同步 `output/research_dashboard/` 到 `public/dashboard/`；不得在部署层复制资金计算。日常期货数据更新只构建并验证本地 HTTP 工作站，不自动同步、推送或发布 Sites。每周六 12:00 只提醒用户是否执行一次私有部署；必须等待用户明确确认后才发布，访问权限只允许所有者，公开或共享仍需另行明确批准。
+- 日常期货数据更新先构建并验证本地 HTTP 工作站；用户未要求“仅本地”时，再把公开安全的静态产物同步到公开仓 `EvanYFM/futures-workstation` 触发 GitHub Pages。公开仓不得包含 `data/imported/`、`user_journal.json`、交易记录、Token、Cookie、密钥或账户状态。`sites/research_dashboard/` 不再属于每日发布链路；完整双仓步骤见 `docs/daily-data-update-handoff.md`。
 - 保证金金额口径日报优先读取 API 生成的 `data/trend_temperature_YYYYMMDD.csv`，否则才读取 `data/trend_temperature_latest.csv`；必须新增“趋势温度与资金共振”模块。仅纳入 `温/热/沸/凉/寒/冻`，过滤 `平`。`温/凉`为左侧预警，`热/寒`为右侧确认，`沸/冻`为极端警戒；用三方净金额 `内资 + 外资 - 家人` 对照趋势方向，标注资金顺势、逆势或未验证，并后台保留 `trend_temperature_used.csv`。趋势动物 API 直接事实与资金解读必须分列；文档未定义单位的字段按原值展示。
 - 每次更新主力趋势表格并输出结果后，同时汇总最近 3 个交易日的强共振品种：一类是内资、外资同向；另一类是内资、外资同向且家人反向后同向。若同一强共振品种连续 2 天及以上出现，必须单独提醒用户。
 

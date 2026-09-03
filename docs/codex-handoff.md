@@ -43,7 +43,7 @@
 - `scripts/generate_futures_report.py` 仅保留为基础函数来源和手动排查脚本。
 - 趋势优先使用报告日有效的 API 快照；若用户提供当日截图，只转录截图可确认的温度、强度和阶段，不把截图行情当作收盘行情。
 
-最新可核对工作站快照：`output/research_dashboard/data/snapshots/20260902.json`；本地网页为 `output/research_dashboard/index.html`。当前只做本地验收，不自动提交、推送或同步 Sites。
+最新可核对工作站快照：`output/research_dashboard/data/snapshots/20260902.json`；本地网页为 `output/research_dashboard/index.html`。线上发布目标为公开仓 `EvanYFM/futures-workstation` 的 GitHub Pages；个人交易记录不进入公开仓，Sites 不再属于每日发布链路。
 
 ## Stable Decisions
 
@@ -1010,3 +1010,9 @@ $env:REPORT_DATE="YYYYMMDD"; python scripts/generate_margin_weighted_seat_report
 - 奇货可查席位抓取支持向品种持仓页传入历史日期，不再受品种概览滚动影响；同日底表 1,728 行、64 个源品种。工作站 59 个商品均有精确主力合约净多前五与净空前五，共 295 + 295 条席位证据。
 - 同花顺截图底表 64 行；OpenVLab 截图可确认 54 行，其余缺失不沿用旧日。保证金覆盖 59/59、主力行情 59/59、重点技术面 6/6，CTA 共 63 个标的。
 - 本地快照 `data/snapshots/20260902.json` 已通过 HTTP 200 验收；每日完整操作清单已整理到 `docs/daily-data-update-handoff.md`。
+
+## 2026-09-03 GitHub Pages 发布链路校正
+
+- 公开站点实际监听 `EvanYFM/futures-workstation`，私有开发仓 `EvanYFM/trading-system` 的推送不会触发线上更新。
+- 每日工作流改为本地 HTTP 验收后同步两个仓库；公开仓只接收静态代码与市场数据，明确排除个人复盘、交易记录和 `data/imported/user_journal.json`。
+- `docs/daily-data-update-handoff.md` 已补充公开仓同步、敏感信息检查和 Pages 线上验收步骤；Sites 不再属于每日发布链路。

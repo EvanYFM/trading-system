@@ -1,12 +1,12 @@
 # 期货工作站每日数据更新 Handoff
 
-面向接手本项目的 Agent。目标是生成一个可核验的本地交易日快照；缺失不伪造，截图未提供时不沿用旧日值。
+面向接手本项目的 Agent。目标是生成一个可核验的本地交易日快照，并在验收后把公开安全的静态产物发布到 GitHub Pages；缺失不伪造，截图未提供时不沿用旧日值。
 
 ## 交付边界
 
-- 默认只更新本地 HTTP 工作站，不发布 Sites。
-- 用户明确要求“先本地验收”时，不提交、不推送 GitHub。用户确认后才合并这几日数据与代码改动。
-- 不修改或覆盖用户在“交易与决策”板块的内容；人工交易记录保存在浏览器本地存储，构建脚本不得清空。
+- 默认先更新并验收本地 HTTP 工作站，再同步私有开发仓 `EvanYFM/trading-system` 和公开部署仓 `EvanYFM/futures-workstation`；不再发布 Sites。
+- 用户明确要求“先本地验收”或“仅本地”时，不提交、不推送 GitHub；用户确认后再继续双仓同步。
+- 不修改或覆盖用户在“交易与决策”板块的内容。个人复盘、交易记录、浏览器存储导出和 `data/imported/user_journal.json` 只能进入私有数据仓，不得进入公开部署仓。
 - 所有日期按北京时间 `Asia/Shanghai`，`REPORT_DATE` 使用 `YYYYMMDD`。
 
 ## 1. 开始前
@@ -15,7 +15,7 @@
 
 - 工作树干净：执行 `git fetch origin main`、`git pull --rebase origin main`。
 - 已有待用户验收的本地改动：先比较 `origin/main` 与本地差异，不得覆盖、丢弃或为 rebase 临时混入用户修改；本轮继续仅本地更新，并在交付时明确未同步远端。
-- 永远不提交 `data/`、`output/`、`tmp/`、登录态、Cookie、密钥或缓存。
+- 原始 `data/`、日报目录、`tmp/`、登录态、Cookie、密钥或缓存不提交。私有开发仓只明确提交代码、文档以及工作站需要跟踪的目标快照；公开部署仓只接收下文列出的静态文件。
 
 ## 2. 当日输入
 
@@ -39,7 +39,7 @@
 在项目根目录运行：
 
 ```powershell
-$py="C:\Users\29266\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe"
+$py=(Get-Command python -ErrorAction Stop).Source
 $env:PYTHONUTF8="1"
 $env:REPORT_DATE="YYYYMMDD"
 
@@ -109,15 +109,17 @@ python -c "import functools,http.server; H=http.server.SimpleHTTPRequestHandler;
 
 最后用 HTTP 读取 `/data/snapshots/YYYYMMDD.json`，确认状态 200、日期、59 个商品和 63 个 CTA 标的；再让用户打开页面验收。
 
-## 6. 用户确认后再同步 GitHub
+## 6. 本地验收后同步 GitHub 与 Pages
 
-只有用户明确说“可以推送”后执行：
+用户没有要求“仅本地”时，本地验收通过后执行；若用户要求先看页面，则等待用户确认：
 
-1. 再次获取 `origin/main`，先审查远端“交易与决策”改动。
-2. 把本地数据链路改动重放到最新远端，不覆盖用户页面。
-3. 重建目标日期并重跑席位硬复核、测试和 HTTP 验收。
-4. 只暂存项目代码、测试和文档；`data/`、`output/`、`tmp/` 不进 Git。
-5. 提交并推送 `origin/main`，报告 commit hash；Sites 仍需用户另行明确确认。
+1. 在私有开发仓再次执行 `git fetch origin main`、`git pull --rebase origin main`，先审查远端“交易与决策”改动。
+2. 把本地数据链路改动重放到最新远端，不覆盖用户页面；重建目标日期并重跑席位硬复核、测试和 HTTP 验收。
+3. 私有开发仓只暂存本次代码、测试、文档，以及 `dashboard.json`、`run-manifest.json` 和目标 `snapshots/YYYYMMDD.json`；提交并推送 `origin/main`。
+4. 获取公开仓 `EvanYFM/futures-workstation` 的最新 `main`。只同步 `index.html`、`app.js`、`styles.css`、`history-store.js`、`journal-sync.js`、`run-manifest.json`、`data/dashboard.json` 和 `data/snapshots/`；同步本 Handoff 到公开仓 `docs/`。
+5. 发布前检查公开仓不含 `data/imported/`、`user_journal.json`、交易记录、Token、Cookie、密钥、账户状态和本机路径。不得整目录复制 `output/research_dashboard/data/`。
+6. 提交并推送公开仓 `main`，等待 GitHub Pages 状态为 `built`，再读取线上 `data/dashboard.json` 与目标快照，确认最新日期、59 个商品、63 个 CTA、净多 295 和净空 295。
+7. 报告私有仓与公开仓两个 commit hash、Pages 地址和线上验收结果。Sites 不再属于每日发布链路。
 
 ## 交付摘要模板
 
@@ -128,4 +130,6 @@ python -c "import functools,http.server; H=http.server.SimpleHTTPRequestHandler;
 - 行情 / 保证金 / 技术：
 - 同花顺 / OpenVLab 截图覆盖：
 - 测试与 HTTP：
-- GitHub / Sites：未提交、未推送、未发布（或写明用户已授权的结果）
+- 私有开发仓：commit / push 状态
+- 公开部署仓与 Pages：commit / 最新日期 / HTTP 验收
+- Sites：不发布
