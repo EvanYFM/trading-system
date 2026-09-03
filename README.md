@@ -155,12 +155,19 @@ $env:REPORT_DATE="YYYYMMDD"; python scripts/generate_option_vol_report.py
 ```powershell
 $py="C:\Users\29266\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe"
 $env:REPORT_DATE="YYYYMMDD"
+& $py scripts\generate_institutional_seat_report.py
+& $py scripts\generate_margin_weighted_seat_report.py
+& $py scripts\fetch_eastmoney_main_quotes.py
 & $py scripts\fetch_sina_quhe_main_quotes.py
+& $py scripts\fetch_research_dashboard_market_context.py
+& $py scripts\fetch_eastmoney_technical_snapshot.py
 & $py scripts\build_research_dashboard.py
 & $py -m http.server 8788 --bind 127.0.0.1 --directory output\research_dashboard
 ```
 
 浏览器打开 `http://127.0.0.1:8788/`。当前 MVP 包含总览、历史日期切换、品种详情、品种全景、CTA 评分和历史回看；总览中的强共振卡可直接进入对应品种详情。CTA 与工作站共用日期快照，按量价、席位存量、席位边际、基差仓单和期权偏度的可用权重重算，并把 `IH/IF/IC/IM` 单列为“股指”板块。行情采集会先校验奇货可查商品概览是否仍保留报告日的完整精确截面：匹配时同步保存主连行情与主力席位，不匹配才回退报告日精确日线。构建前强制复核同日 `qhkch_main_position_rows_YYYYMMDD.csv`：每个工作站商品必须同时具备精确主力合约的净多前五和净空前五，否则构建失败并列出缺失品种，不再用样本席位底表静默补位。趋势动物只提供趋势温度和强度，行情与趋势事实分列。页面只消费已生成底表，不改变三方计算逻辑。行情、趋势或截图来源日期与报告日不一致时会明确标记为非当日或不采用。
+
+完整的每日执行、截图补录、席位复核、本地 HTTP 验收和延后推送规则见 `docs/daily-data-update-handoff.md`。
 
 主要输出：
 

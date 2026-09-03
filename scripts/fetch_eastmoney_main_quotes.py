@@ -9,6 +9,7 @@ import json
 import os
 import random
 import re
+import subprocess
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
@@ -66,16 +67,26 @@ def get_json(url: str, params: dict[str, object]) -> dict:
 
 
 def get_text(url: str) -> str:
+    last_error: Exception | None = None
     for attempt in range(MAX_ATTEMPTS):
         request = Request(url, headers={"User-Agent": USER_AGENT})
         try:
             with urlopen(request, timeout=30) as response:
                 return response.read().decode("utf-8")
-        except (HTTPError, URLError, TimeoutError, http.client.RemoteDisconnected):
+        except (HTTPError, URLError, TimeoutError, OSError, http.client.RemoteDisconnected) as exc:
+            last_error = exc
             if attempt + 1 == MAX_ATTEMPTS:
-                raise
+                break
             time.sleep((0.6 * (2 ** attempt)) + random.uniform(0.0, 0.25))
-    raise RuntimeError("HTML request retry loop ended unexpectedly.")
+
+    curl = subprocess.run(
+        ["curl.exe", "-sS", "-L", "--retry", "2", "--retry-delay", "1", "-A", USER_AGENT, url],
+        capture_output=True,
+        timeout=45,
+    )
+    if curl.returncode == 0 and curl.stdout:
+        return curl.stdout.decode("utf-8", errors="replace")
+    raise RuntimeError(curl.stderr.decode("utf-8", errors="replace").strip() or str(last_error))
 
 
 def symbol_from_contract(contract: str) -> str:
@@ -174,12 +185,16 @@ def merge_existing_ok_rows(csv_path: Path, rows: list[dict[str, object]]) -> lis
     ]
 
 
-def parse_qhkch_overview(page: str, report_date: str) -> tuple[dict[str, dict[str, object]], list[dict[str, object]]]:
-    report_iso = datetime.strptime(report_date, "%Y%m%d").strftime("%Y-%m-%d")
+def parse_qhkch_market_rows(page: str) -> list[dict[str, object]]:
     market_match = re.search(r"let varietyMarketRows\s*=\s*(\[.*?\]);", page, re.S)
     if not market_match:
-        return {}, []
-    market_rows = json.loads(market_match.group(1))
+        return []
+    return json.loads(market_match.group(1))
+
+
+def parse_qhkch_overview(page: str, report_date: str) -> tuple[dict[str, dict[str, object]], list[dict[str, object]]]:
+    report_iso = datetime.strptime(report_date, "%Y%m%d").strftime("%Y-%m-%d")
+    market_rows = parse_qhkch_market_rows(page)
     market = {
         str(row.get("symbol", "")).upper(): row
         for row in market_rows
@@ -280,15 +295,20 @@ def parse_qhkch_position_page(page: str, symbol: str) -> list[dict[str, object]]
     return result
 
 
-def fetch_qhkch_position_rows(market: dict[str, dict[str, object]]) -> list[dict[str, object]]:
+def fetch_qhkch_position_rows(market: dict[str, dict[str, object]], report_date: str = "") -> list[dict[str, object]]:
     targets = {
         symbol: row for symbol, row in market.items()
         if symbol not in {"IC", "IF", "IH", "IM", "T", "TF", "TL", "TS", "CS"} and row.get("url")
     }
     rows: list[dict[str, object]] = []
+    report_iso = datetime.strptime(report_date, "%Y%m%d").strftime("%Y-%m-%d") if report_date else ""
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         futures = {
-            executor.submit(get_text, urljoin(QHKCH_OVERVIEW_URL, str(row["url"]))): symbol
+            executor.submit(
+                get_text,
+                urljoin(QHKCH_OVERVIEW_URL, str(row["url"]))
+                + (("&" if "?" in str(row["url"]) else "?") + urlencode({"date": report_iso}) if report_iso else ""),
+            ): symbol
             for symbol, row in targets.items()
         }
         for future in as_completed(futures):
@@ -310,11 +330,18 @@ def main() -> None:
     events: list[dict[str, object]] = []
     position_rows: list[dict[str, object]] = []
     try:
-        market, events = parse_qhkch_overview(get_text(QHKCH_OVERVIEW_URL), report_date)
+        qhkch_page = get_text(QHKCH_OVERVIEW_URL)
+        market, events = parse_qhkch_overview(qhkch_page, report_date)
+        position_targets = {
+            str(row.get("symbol", "")).upper(): row
+            for row in parse_qhkch_market_rows(qhkch_page)
+            if row.get("url")
+        }
     except (HTTPError, URLError, TimeoutError, http.client.RemoteDisconnected, UnicodeDecodeError, json.JSONDecodeError):
         market = {}
-    if market:
-        position_rows = fetch_qhkch_position_rows(market)
+        position_targets = {}
+    if position_targets:
+        position_rows = fetch_qhkch_position_rows(position_targets, report_date)
     rows = [quote_from_qhkch(contract, market.get(str(contract["symbol"]), {})) for contract in contracts]
     missing = [row for row in rows if not valid_quote_row(row)]
     if missing:

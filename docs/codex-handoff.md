@@ -43,7 +43,7 @@
 - `scripts/generate_futures_report.py` 仅保留为基础函数来源和手动排查脚本。
 - 趋势优先使用报告日有效的 API 快照；若用户提供当日截图，只转录截图可确认的温度、强度和阶段，不把截图行情当作收盘行情。
 
-最新可核对工作站快照：`output/research_dashboard/data/snapshots/20260821.json`；本地网页为 `output/research_dashboard/index.html`。当前不自动同步 Sites。
+最新可核对工作站快照：`output/research_dashboard/data/snapshots/20260902.json`；本地网页为 `output/research_dashboard/index.html`。当前只做本地验收，不自动提交、推送或同步 Sites。
 
 ## Stable Decisions
 
@@ -1003,3 +1003,10 @@ $env:REPORT_DATE="YYYYMMDD"; python scripts/generate_margin_weighted_seat_report
 - 已先同步 `origin/main` 后更新 2026-09-01 快照：奇货可查席位底表 1,747 行、65 个源品种；工作站 59 个商品均通过当日净多前五与净空前五席位完整性闸门。
 - 同花顺期货通截图补充 66 行当日行情、10/20/30 日涨幅、持仓、日增仓与资金流；工作站只消费其支持范围内的 59 个商品，未提供的期权截面不沿用历史数据。
 - 47 项测试通过；本地静态站点快照 `data/snapshots/20260901.json` 返回 HTTP 200（59 个商品）。旧 8788 服务响应异常且未强制终止，已在 8789 启动经验证的独立本地 HTTP 服务。
+
+## 2026-09-02 本地工作站数据更新
+
+- 已从最新 `origin/main` 基线生成 2026-09-02 快照；按用户要求仅保留本地，未提交、未推送、未发布 Sites。
+- 奇货可查席位抓取支持向品种持仓页传入历史日期，不再受品种概览滚动影响；同日底表 1,728 行、64 个源品种。工作站 59 个商品均有精确主力合约净多前五与净空前五，共 295 + 295 条席位证据。
+- 同花顺截图底表 64 行；OpenVLab 截图可确认 54 行，其余缺失不沿用旧日。保证金覆盖 59/59、主力行情 59/59、重点技术面 6/6，CTA 共 63 个标的。
+- 本地快照 `data/snapshots/20260902.json` 已通过 HTTP 200 验收；每日完整操作清单已整理到 `docs/daily-data-update-handoff.md`。

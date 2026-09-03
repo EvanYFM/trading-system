@@ -86,6 +86,14 @@ class EastmoneyQuoteFetchTests(unittest.TestCase):
                 with (Path(directory) / "data" / "qhkch_main_position_rows_20260821.csv").open("r", encoding="utf-8-sig", newline="") as handle:
                     self.assertEqual("jm2701", next(csv.DictReader(handle))["contract"])
 
+    def test_previous_day_position_fetch_uses_historical_date(self):
+        market = {"JM": {"symbol": "jm", "url": "/variety/position?variety=%E7%84%A6%E7%85%A4"}}
+        page = '<option value="jm2701" selected>焦煤2701</option>'
+        with patch.object(quotes, "get_text", return_value=page) as get_text:
+            quotes.fetch_qhkch_position_rows(market, "20260902")
+
+        self.assertIn("date=2026-09-02", get_text.call_args.args[0])
+
 
 if __name__ == "__main__":
     unittest.main()
