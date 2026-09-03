@@ -828,3 +828,9 @@ button.decision-signal { width: 100%; text-align: left; font: inherit; color: in
 .decision-attr-grid select { border: 1px solid var(--line); background: var(--surface); border-radius: 3px; padding: 5px 6px; }
 .decision-attr-title { grid-column: 1 / -1; font-size: 12px; font-weight: 600; color: var(--ink); }
 @media (max-width: 900px) { .decision-attr-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* 导出按钮 */
+.history-heading-actions { display: flex; align-items: center; gap: 8px; }
+.history-export-btn { padding: 6px 12px; border: 1px solid var(--amber); background: var(--surface); color: var(--amber); border-radius: var(--radius); font-size: 12px; cursor: pointer; }
+.history-export-btn:hover:not(:disabled) { background: var(--amber-soft); }
+.history-export-btn:disabled { opacity: .6; cursor: default; }

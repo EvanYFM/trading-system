@@ -994,6 +994,7 @@ function bindEvents() {
     const historySymbol = event.target.closest("[data-history-symbol]");
     if (historySymbol) { state.historyJournalSymbol = historySymbol.dataset.historySymbol; renderHistoryView(); }
   });
+  $("#exportUserJournalBtn")?.addEventListener("click", exportUserJournal);
   $("#dateSelect").addEventListener("change", (event) => setDate(event.target.value));
   $("#symbolFilter").addEventListener("change", (event) => { state.symbol = event.target.value; renderInstrumentTable(); });
   $("#searchInput").addEventListener("input", (event) => { state.query = event.target.value; renderInstrumentTable(); });
@@ -1054,3 +1055,25 @@ Promise.all([
   .catch((error) => {
     $("#loadingState").textContent = `数据装载失败：${error.message}。请通过本地 HTTP 服务打开。`;
   });
+
+/* 「📤 导出我的复盘」按钮：把工作台新写的 observation（source=工作台日志）打包成 JSON 下载。
+   用途：本地 IndexedDB 推不到 GitHub，你下载后发给 agent，agent 追加到
+   data/imported/user_journal.json 并 push，下次刷新页面自动加载。 */
+function exportUserJournal() {
+  if (typeof HistoryStore === "undefined") return;
+  const data = HistoryStore.exportUserJournal();
+  const btn = document.getElementById("exportUserJournalBtn");
+  const flash = (text) => { if (!btn) return; const original = btn.textContent; btn.textContent = text; btn.disabled = true; setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 2000); };
+  if (!data.count) { flash("暂无新复盘可导出"); return; }
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const stamp = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `user_journal_${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  flash(`✓ 已导出 ${data.count} 条到下载文件夹`);
+}

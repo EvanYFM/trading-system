@@ -207,6 +207,7 @@ const HistoryStore = (() => {
     let excelItems = [];
     let mdTrades = [];
     let mdNarratives = [];
+    let userItems = [];
     try {
       const excel = await fetchJson("data/imported/trading_log_excel.json");
       excelItems = (excel.observations || []).map(normalizeExcelObservation);
@@ -217,6 +218,14 @@ const HistoryStore = (() => {
       mdTrades = (md.trades || []).map(normalizeMdTrade);
       mdNarratives = (md.narratives || []).map(normalizeMdNarrative);
     } catch (error) { errors.push(`月度复盘导入：${error.message}`); }
+    /* 用户工作台导出的复盘（GitHub 上的 data/imported/user_journal.json）；
+       首次部署没有这个文件是正常的，404 不算错 */
+    try {
+      const user = await fetchJson("data/imported/user_journal.json");
+      userItems = (user.observations || []).map((item) => ({...item, source: "工作台日志"}));
+    } catch (error) {
+      if (!String(error.message || "").includes("HTTP 404")) errors.push(`用户复盘导入：${error.message}`);
+    }
 
     if (db) {
       try {
@@ -234,7 +243,7 @@ const HistoryStore = (() => {
       ? await withTimeout(getAll(STORES.observations), 4000, "IndexedDB 读取超时").catch(() => [])
       : [];
     const merged = {};
-    [...excelItems, ...mdNarratives, ...mdTrades, ...legacy, ...migrateLocalStorageDecisions()].forEach((item) => {
+    [...excelItems, ...mdNarratives, ...mdTrades, ...userItems, ...legacy, ...migrateLocalStorageDecisions()].forEach((item) => {
       merged[item.id] = item;
     });
 
@@ -257,5 +266,19 @@ const HistoryStore = (() => {
     putMany(STORES.observations, [observation]).catch(() => {});
   }
 
-  return {init, cache: () => cache, putObservation};
+  /* 导出：只包含本地工作台新写的 observation（source=工作台日志），
+     不含静态 Excel/md 导入项，避免推送时重复。Agent 收到后追加到
+     data/imported/user_journal.json，下次刷新页面自动展示 */
+  function exportUserJournal() {
+    const items = cache.observations.filter((item) => item.source === "工作台日志");
+    return {
+      exportedAt: new Date().toISOString(),
+      generator: "trading-system research_dashboard",
+      version: 1,
+      count: items.length,
+      observations: items,
+    };
+  }
+
+  return {init, cache: () => cache, putObservation, exportUserJournal};
 })();
