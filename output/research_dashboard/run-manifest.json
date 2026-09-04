@@ -1,10 +1,12 @@
 {
   "schemaVersion": 1,
-  "runId": "20260902-20260903T163729+0800",
-  "generatedAt": "2026-09-03T16:37:29+08:00",
-  "latestDate": "20260902",
+  "runId": "20260904-20260904T182739+0800",
+  "generatedAt": "2026-09-04T18:27:39+08:00",
+  "latestDate": "20260904",
   "snapshotCount": 30,
   "snapshotDates": [
+    "20260904",
+    "20260903",
     "20260902",
     "20260901",
     "20260831",
@@ -32,16 +34,14 @@
     "20260730",
     "20260729",
     "20260728",
-    "20260727",
-    "20260724",
-    "20260723"
+    "20260727"
   ],
   "sourceFiles": {
     "trendSourceFile": "trend_temperature_20260901.csv",
-    "quoteSourceFile": "sina_quhe_main_quotes_20260902.csv",
-    "thsSourceFile": "ths_main_quotes_20260902.csv",
-    "basisSourceFile": "futures_basis_history_20260902.csv",
-    "warehouseSourceFile": "eastmoney_warehouse_receipts_20260902.csv",
+    "quoteSourceFile": "sina_quhe_main_quotes_20260904.csv",
+    "thsSourceFile": "ths_main_quotes_20260904.csv",
+    "basisSourceFile": "futures_basis_history_20260904.csv",
+    "warehouseSourceFile": "eastmoney_warehouse_receipts_20260904.csv",
     "mysteelFundamentalSourceFile": ""
   },
   "outputs": [

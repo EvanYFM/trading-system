@@ -17,7 +17,7 @@
 ## Git Collaboration Baseline
 
 - 主项目使用 GitHub 私有仓库，默认分支为 `main`。
-- `output/`、`data/`、`tmp/`、依赖目录、缓存、本地应用状态和敏感环境文件不进入主项目仓库。
+- 原始 `data/`、日报目录、`tmp/`、依赖、缓存、本地应用状态和敏感环境文件不进入主项目仓库；仅经验证的工作站静态产物与目标日期快照按每日 Handoff 明确暂存。
 - `sites/research_dashboard/` 保留为 Sites 平台自己的独立部署仓库；主项目 GitHub 跟踪 `web/research_dashboard/`、构建脚本、报告逻辑和项目文档，不嵌套提交 Sites 的 `.git` 历史。
 - 每次较大修改完成后：运行验证、检查 diff、只暂存本次改动、提交并推送 `origin/main`，向用户报告 commit hash。
 
@@ -43,7 +43,7 @@
 - `scripts/generate_futures_report.py` 仅保留为基础函数来源和手动排查脚本。
 - 趋势优先使用报告日有效的 API 快照；若用户提供当日截图，只转录截图可确认的温度、强度和阶段，不把截图行情当作收盘行情。
 
-最新可核对工作站快照：`output/research_dashboard/data/snapshots/20260902.json`；本地网页为 `output/research_dashboard/index.html`。线上发布目标为公开仓 `EvanYFM/futures-workstation` 的 GitHub Pages；个人交易记录不进入公开仓，Sites 不再属于每日发布链路。
+最新可核对工作站快照：`output/research_dashboard/data/snapshots/20260904.json`；本地网页为 `output/research_dashboard/index.html`。线上发布目标为公开仓 `EvanYFM/futures-workstation` 的 GitHub Pages；个人交易记录不进入公开仓，Sites 不再属于每日发布链路。
 
 ## Stable Decisions
 
@@ -1016,3 +1016,11 @@ $env:REPORT_DATE="YYYYMMDD"; python scripts/generate_margin_weighted_seat_report
 - 公开站点实际监听 `EvanYFM/futures-workstation`，私有开发仓 `EvanYFM/trading-system` 的推送不会触发线上更新。
 - 每日工作流改为本地 HTTP 验收后同步两个仓库；公开仓只接收静态代码与市场数据，明确排除个人复盘、交易记录和 `data/imported/user_journal.json`。
 - `docs/daily-data-update-handoff.md` 已补充公开仓同步、敏感信息检查和 Pages 线上验收步骤；Sites 不再属于每日发布链路。
+
+## 2026-09-04 工作站数据更新
+
+- 已从最新 `origin/main` 基线依次生成 2026-09-03、2026-09-04 两个交易日快照；9 月 4 日奇货可查已披露当日主力席位，因此两日均进入数据层。
+- 奇货可查主力席位底表分别为 1,727 行和 1,735 行；两日 59 个工作站商品均通过精确主力合约净多前五、净空前五硬闸门，各为 295 + 295 条，缺失品种 0。
+- 2026-09-03 未提供截图，不继承旧日期截图字段；2026-09-04 同花顺截图转录 84 行，精确合约匹配后 53 个工作站商品采用；OpenVLab 只保留 45 条字段完整记录，进入 39 个 CTA 标的，其余保持缺失。
+- 两日保证金覆盖 59/59、主力行情 59/59、重点技术面 6/6、CTA 63。HTTP 已验证两个快照均返回 200，最新日期为 20260904。
+- 奇货可查抓取单测 6/6 与 JavaScript 语法检查通过；完整测试 48 项中 46 项通过，2 项仍是“交易与决策”改版后的旧断言，不回滚用户页面来迁就旧测试。

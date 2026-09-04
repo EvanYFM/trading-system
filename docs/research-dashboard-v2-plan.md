@@ -5,7 +5,7 @@
 ## 当前结论
 
 - V2 先做静态、只读研究工作站，不立即购买云服务器。
-- 当前日报 CSV、历史快照和静态页面可以直接部署到腾讯云 COS 或阿里云 OSS。
+- 当前日报 CSV、历史快照和静态页面发布到公开仓 `EvanYFM/futures-workstation` 的 GitHub Pages；个人复盘与交易记录不进入公开仓。
 - 只有在加入账号权限、服务端定时抓取、数据库查询、私有数据或 API 代理后，才需要轻量应用服务器。
 - 长图候选版已经合并到 `output/research_dashboard/index.html`，并将每日数据固化到 `output/research_dashboard/data/snapshots/YYYYMMDD.json`；`output/research_dashboard_v2_mockup/index.html` 仅保留为早期设计参考。
 - 当前网页仍消费两份正式日报生成的 CSV。停用日报前，必须先把抓取、计算和质量校验抽成共享数据任务，再让网页直接消费共享 CSV/JSON；不能直接删除日报脚本或其数据目录。
@@ -31,7 +31,7 @@
 
 ### 阶段 A：静态评审版
 
-- 本地构建 HTML/JSON/CSV，部署到 COS 或 OSS。
+- 本地构建并验收 HTML/JSON/CSV，再同步公开安全的静态产物到 GitHub Pages。
 - 无登录、无服务端、无数据库；公开桶中不得包含账号、Cookie、API Key 或私有原始数据。
 - 中国内地自定义域名需要备案；未备案时可先本地或临时测试地址评审。
 
