@@ -148,7 +148,7 @@ $env:REPORT_DATE="YYYYMMDD"; python scripts/generate_option_vol_report.py
 
 该脚本输出 `output/option_vol_report_YYYYMMDD/report.html`，观察用户关注的商品期权合约，并尝试从 OpenVLab market、行情 light 页面和 volatility analysis 页面读取隐波、实波、偏度、隐波百分位、偏度百分位及 5 日变化。若公开页面只返回动态前端壳或历史接口不可见，报告必须标注抓取状态，不得把截图样例或缺失数据伪装成实时确认数据。
 
-## 本地研究工作站 MVP
+## 研究工作站数据构建
 
 `scripts/build_research_dashboard.py` 将席位、保证金、行情、趋势、技术面和基本面底表合并为只读历史快照，并生成统一网页：
 
@@ -162,12 +162,11 @@ $env:REPORT_DATE="YYYYMMDD"
 & $py scripts\fetch_research_dashboard_market_context.py
 & $py scripts\fetch_eastmoney_technical_snapshot.py
 & $py scripts\build_research_dashboard.py
-& $py -m http.server 8788 --bind 127.0.0.1 --directory output\research_dashboard
 ```
 
-浏览器打开 `http://127.0.0.1:8788/`。当前 MVP 包含总览、历史日期切换、品种详情、品种全景、CTA 评分和历史回看；总览中的强共振卡可直接进入对应品种详情。CTA 与工作站共用日期快照，按量价、席位存量、席位边际、基差仓单和期权偏度的可用权重重算，并把 `IH/IF/IC/IM` 单列为“股指”板块。行情采集会先校验奇货可查商品概览是否仍保留报告日的完整精确截面：匹配时同步保存主连行情与主力席位，不匹配才回退报告日精确日线。构建前强制复核同日 `qhkch_main_position_rows_YYYYMMDD.csv`：每个工作站商品必须同时具备精确主力合约的净多前五和净空前五，否则构建失败并列出缺失品种，不再用样本席位底表静默补位。趋势动物只提供趋势温度和强度，行情与趋势事实分列。页面只消费已生成底表，不改变三方计算逻辑。行情、趋势或截图来源日期与报告日不一致时会明确标记为非当日或不采用。
+当前 MVP 包含总览、历史日期切换、品种详情、品种全景、CTA 评分和历史回看；总览中的强共振卡可直接进入对应品种详情。CTA 与工作站共用日期快照，按量价、席位存量、席位边际、基差仓单和期权偏度的可用权重重算，并把 `IH/IF/IC/IM` 单列为“股指”板块。行情采集会先校验奇货可查商品概览是否仍保留报告日的完整精确截面：匹配时同步保存主连行情与主力席位，不匹配才回退报告日精确日线。构建前强制复核同日 `qhkch_main_position_rows_YYYYMMDD.csv`：每个工作站商品必须同时具备精确主力合约的净多前五和净空前五，否则构建失败并列出缺失品种，不再用样本席位底表静默补位。趋势动物只提供趋势温度和强度，行情与趋势事实分列。页面只消费已生成底表，不改变三方计算逻辑。行情、趋势或截图来源日期与报告日不一致时会明确标记为非当日或不采用。
 
-完整的每日执行、截图补录、席位复核、本地 HTTP 验收和延后推送规则见 `docs/daily-data-update-handoff.md`。
+完整的每日执行、截图补录、席位复核、双仓同步和线上验收规则见 `docs/daily-data-update-handoff.md`。
 
 主要输出：
 
@@ -189,4 +188,4 @@ $env:REPORT_DATE="YYYYMMDD"
 
 原 `output/research_dashboard_v2_mockup/index.html` 的交互概念已经合并进主工作站“品种详情”视图。强共振、板块和核心品种均可进入统一详情，依次展示行情与资金图、证据链摘要、三组存量/边际、席位前五、趋势周期、基本面事实和历史事件。主力期现基差与交易所仓单已按公开源生成历史图；供给、需求、现金成本和产业库存按 `config/fundamental_sources.json` 展示首选来源与授权状态，没有连续数值时保留缺失，不使用概念稿示意数字。
 
-构建时会把每个交易日固化为独立 `snapshots/YYYYMMDD.json`，主页面只汇总快照，因此历史数据不会被次日覆盖。日常更新执行“抓取结构化数据 -> 写入每日快照 -> 构建并验证本地 HTTP 工作站 -> 同步私有开发仓 -> 同步公开部署仓并验证 Pages”；用户明确要求“仅本地”时才停止在本地。两份日报脚本保留为数据生产和对账层，但默认跳过 HTML。期货通和 OpenVLab Legend 截图未提供时明确保留缺失，不沿用旧截图；用户补发对应交易日截图后重建并重新发布同日快照。
+构建时会把每个交易日固化为独立 `snapshots/YYYYMMDD.json`，主页面只汇总快照，因此历史数据不会被次日覆盖。日常更新执行“抓取结构化数据 -> 写入并校验每日快照 -> 同步私有开发仓 -> 同步公开部署仓并在线验证 Pages”，不再生成或启动本地 HTTP 工作站。两份日报脚本保留为数据生产和对账层，但默认跳过 HTML。期货通和 OpenVLab Legend 截图未提供时明确保留缺失，不沿用旧截图；用户补发对应交易日截图后重建并重新发布同日快照。
