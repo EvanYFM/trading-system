@@ -1,9 +1,0 @@
-﻿snapshot_date,symbol,variety,temperature,strength,trend_rank,source,note,tm_id,ticker_symbol,is_trend_right_side,days_since_trend_entry,gain_since_trend_entry,trend_phase_curr,trend_phase_prev,trend_temperature_prev,trend_strength_local_change,return_1d,api_update_dt
-2026-07-10,AU,黄金,凉,58.5,,trend_animal_api,API direct fact,700066,AU2706,False,-16.0,0.028005,寒露,寒露,凉,,-0.000902,2026-07-10 17:59:00
-2026-07-10,AG,白银,凉,60.4,,trend_animal_api,API direct fact,704574,AG2706,,,,,,凉,,0.016889,2026-07-10 17:59:00
-2026-07-10,SN,锡,平,89.6,,trend_animal_api,API direct fact,300158,SN,,,,,,平,,-0.000451,2026-07-10 17:59:00
-2026-07-10,LC,碳酸锂,凉,16.9,,trend_animal_api,API direct fact,308564,lc,,,,,,凉,,-0.009634,2026-07-10 17:59:00
-2026-07-10,JM,焦煤,平,45.5,,trend_animal_api,API direct fact,308549,JM,,,,,,平,,-0.025189,2026-07-10 17:59:00
-2026-07-10,JD,鸡蛋,热,100.0,,trend_animal_api,API direct fact,308545,JD,True,1.0,0.0,立夏,,温,,0.023415,2026-07-10 17:59:00
-2026-07-10,P,棕榈油,凉,66.2,,trend_animal_api,API direct fact,308577,P,,,,,立春,平,,-0.013212,2026-07-10 17:59:00
-2026-07-10,RU,橡胶,凉,46.8,,trend_animal_api,API direct fact,300160,RU,,,,,,凉,,-0.00049,2026-07-10 17:59:00

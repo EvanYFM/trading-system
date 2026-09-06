@@ -1,6 +1,0 @@
-report_date,source_date,symbol,contract,days,implied_vol,realized_vol,skew,iv_percentile,skew_percentile,status,source
-20260821,2026-08-21,AU,2610,33,25.34,20.31,2.37,64,84,OK,OpenVLab截图
-20260821,2026-08-21,AG,2610,33,47.97,40.60,2.89,53,86,OK,OpenVLab截图
-20260821,2026-08-21,JM,2610,26,40.49,34.25,-0.65,64,2,OK,OpenVLab截图
-20260821,2026-08-21,LH,2611,63,21.35,19.16,0.03,38,5,OK,OpenVLab截图
-20260821,2026-08-21,LC,2610,17,37.95,35.06,2.09,26,29,OK,OpenVLab截图
