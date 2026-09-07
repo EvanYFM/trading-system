@@ -20,8 +20,8 @@
 
 必须有报告日和以下数据源：
 
-1. 奇货可查：机构席位、主力合约行情、主力合约净多/净空席位。
-2. 同花顺期货通截图（用户提供时）：收盘、涨跌、10/20/30 日涨幅、持仓、日增减仓、资金流。
+1. 奇货可查：机构席位、主力合约净多/净空席位。
+2. AKShare：主力合约收盘、涨跌、5/10/20/30 日与月涨幅、成交量、持仓和日增减仓；同花顺截图仅补资金流等 AKShare 缺失字段。
 3. OpenVLab Legend 截图（用户提供时）：隐波、实波、偏度、隐波百分位、偏度百分位。
 4. 自动公开源：保证金、曲合/新浪行情、基差、仓单、六个重点品种技术面。
 5. 趋势动物与知识星球仅在安全登录态或密钥可用时更新；不可用就标记缺失，不继承旧日。
@@ -44,6 +44,7 @@ $env:REPORT_DATE="YYYYMMDD"
 
 & $py scripts\generate_institutional_seat_report.py
 & $py scripts\generate_margin_weighted_seat_report.py
+& $py scripts\fetch_akshare_main_quotes.py
 & $py scripts\fetch_eastmoney_main_quotes.py
 & $py scripts\fetch_sina_quhe_main_quotes.py
 & $py scripts\fetch_research_dashboard_market_context.py
@@ -106,6 +107,6 @@ node --check web\research_dashboard\app.js
 
 ## 交接状态
 
-数据已更新至：2026-09-04
+数据已更新至：2026-09-07
 
 后续每日只修改这一日期，不追加逐日过程记录；异常、缺失或发布失败才单独说明。

@@ -160,6 +160,7 @@ $py="C:\Users\29266\.cache\codex-runtimes\codex-primary-runtime\dependencies\pyt
 $env:REPORT_DATE="YYYYMMDD"
 & $py scripts\generate_institutional_seat_report.py
 & $py scripts\generate_margin_weighted_seat_report.py
+& $py scripts\fetch_akshare_main_quotes.py
 & $py scripts\fetch_eastmoney_main_quotes.py
 & $py scripts\fetch_sina_quhe_main_quotes.py
 & $py scripts\fetch_research_dashboard_market_context.py
@@ -178,7 +179,8 @@ $env:REPORT_DATE="YYYYMMDD"
 - `output/research_dashboard/data/snapshots/YYYYMMDD.json`
 - `data/eastmoney_main_quotes_YYYYMMDD.csv`
 - `data/eastmoney_main_quotes_status_YYYYMMDD.json`
-- `data/ths_main_quotes_YYYYMMDD.csv`（有用户截图时的 10/20/30 日涨幅、增减仓与资金流）
+- `data/akshare_main_quotes_YYYYMMDD.csv`（收盘、涨跌、5/10/20/30 日与月涨幅、成交量、持仓及日增减仓）
+- `data/ths_main_quotes_YYYYMMDD.csv`（同花顺截图仅补 AKShare 缺失的资金流等字段）
 - `data/openvlab_option_factors_YYYYMMDD.csv`（有用户截图时的期权截面）
 
 ### 长图版候选工作流
