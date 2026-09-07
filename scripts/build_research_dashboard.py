@@ -943,6 +943,14 @@ def main() -> None:
     data_dir.mkdir(exist_ok=True)
     with (data_dir / "dashboard.json").open("w", encoding="utf-8") as handle:
         json.dump(payload, handle, ensure_ascii=False, separators=(",", ":"))
+    # 首屏加速：页面先拉这份几 KB 的 meta + 最新日快照，其余历史快照由 app.js 按需补载
+    meta_payload = {
+        "generatedAt": payload["generatedAt"],
+        "dates": payload["dates"],
+        "latestDate": payload["latestDate"],
+    }
+    with (data_dir / "dashboard-meta.json").open("w", encoding="utf-8") as handle:
+        json.dump(meta_payload, handle, ensure_ascii=False, separators=(",", ":"))
     latest_summary = snapshots[payload["latestDate"]]["summary"]
     manifest = {
         "schemaVersion": 1,
