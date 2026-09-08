@@ -1,0 +1,21 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Python 脚本语法检查
+        run: |
+          set -e
+          python3 -m py_compile scripts/*.py
+          echo "✓ $(ls scripts/*.py | wc -l) 个脚本语法通过"

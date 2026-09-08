@@ -935,9 +935,10 @@ def main() -> None:
     build_version = datetime.now().strftime("%Y%m%d%H%M%S")
     index_path = TARGET_DIR / "index.html"
     index_html = index_path.read_text(encoding="utf-8")
-    index_html = index_html.replace('href="styles.css"', f'href="styles.css?v={build_version}"')
-    index_html = index_html.replace('src="app.js"', f'src="app.js?v={build_version}"')
-    index_html = index_html.replace('src="history-store.js"', f'src="history-store.js?v={build_version}"')
+    # 版本戳：正则容忍 ./ 前缀与既有 ?v=（旧写法精确匹配 'src="app.js"'，
+    # 对实际引用 './app.js?v=...' 全部静默失效，戳永远停在首次手写值）
+    index_html = re.sub(r'(href="(?:\./)?styles(?:-v2)?\.css)(?:\?v=[^"]*)?"', rf'\1?v={build_version}"', index_html)
+    index_html = re.sub(r'(src="(?:\./)?(?:app|history-store|journal-sync)\.js)(?:\?v=[^"]*)?"', rf'\1?v={build_version}"', index_html)
     index_path.write_text(index_html, encoding="utf-8")
     data_dir = TARGET_DIR / "data"
     data_dir.mkdir(exist_ok=True)
