@@ -99,8 +99,8 @@ node --check web\research_dashboard\app.js
 
 1. 在私有开发仓再次执行 `git fetch origin main`、`git pull --rebase origin main`，先审查远端“交易与决策”改动。
 2. 把本地数据链路改动重放到最新远端，不覆盖用户页面；重建目标日期并重跑席位硬复核、快照校验和测试。
-3. 私有开发仓只暂存本次代码、测试、文档，以及 `dashboard.json`、`run-manifest.json` 和目标 `snapshots/YYYYMMDD.json`；提交并推送 `origin/main`。
-4. 获取公开仓 `EvanYFM/futures-workstation` 的最新 `main`。只同步 `index.html`、`app.js`、`styles.css`、`history-store.js`、`journal-sync.js`、`run-manifest.json`、`data/dashboard.json` 和 `data/snapshots/`；同步本 Handoff 到公开仓 `docs/`。
+3. 私有开发仓只暂存本次代码、测试、文档，以及 `dashboard.json`、`data/dashboard-meta.json`（最新日期列表，首页启动靠它选日期，漏了页面会停在旧日期）、`run-manifest.json` 和目标 `snapshots/YYYYMMDD.json`；提交并推送 `origin/main`。
+4. 获取公开仓 `EvanYFM/futures-workstation` 的最新 `main`。只同步 `index.html`、`app.js`、`styles-v2.css`、`history-store.js`、`journal-sync.js`、`favicon.svg`、`404.html`、`robots.txt`、`run-manifest.json`、`data/dashboard-meta.json`、`data/dashboard.json` 和 `data/snapshots/`；同步本 Handoff 到公开仓 `docs/`。
 5. 发布前检查公开仓不含 `data/imported/`、`user_journal.json`、交易记录、Token、Cookie、密钥、账户状态和本机路径。不得整目录复制 `output/research_dashboard/data/`。
 6. 提交并推送公开仓 `main`，等待 GitHub Pages 状态为 `built`，再读取线上 `data/dashboard.json` 与目标快照，确认最新日期、59 个商品、63 个 CTA、净多 295 和净空 295。
 7. 报告私有仓与公开仓两个 commit hash、Pages 地址和线上验收结果。Sites 不再属于每日发布链路。
