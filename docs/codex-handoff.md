@@ -43,7 +43,7 @@
 - `scripts/generate_futures_report.py` 仅保留为基础函数来源和手动排查脚本。
 - 趋势优先使用报告日有效的 API 快照；若用户提供当日截图，只转录截图可确认的温度、强度和阶段，不把截图行情当作收盘行情。
 
-数据已更新至：2026-09-04。线上发布目标为公开仓 `EvanYFM/futures-workstation` 的 GitHub Pages；个人交易记录不进入公开仓，本地 HTTP 工作站和 Sites 均不属于每日发布链路。
+数据已更新至：2026-09-09。线上发布目标为公开仓 `EvanYFM/futures-workstation` 的 GitHub Pages；个人交易记录不进入公开仓，本地 HTTP 工作站和 Sites 均不属于每日发布链路。
 
 ## Stable Decisions
 
