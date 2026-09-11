@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "runId": "20260911-20260911T170256+0800",
+  "generatedAt": "2026-09-11T17:02:56+08:00",
+  "latestDate": "20260911",
+  "snapshotCount": 2,
+  "snapshotDates": [
+    "20260911",
+    "20260910"
+  ],
+  "sourceFiles": {
+    "trendSourceFile": "",
+    "quoteSourceFile": "sina_quhe_main_quotes_20260911.csv",
+    "thsSourceFile": "ths_main_quotes_20260911.csv",
+    "basisSourceFile": "futures_basis_history_20260911.csv",
+    "warehouseSourceFile": "eastmoney_warehouse_receipts_20260911.csv",
+    "mysteelFundamentalSourceFile": ""
+  },
+  "outputs": [
+    "index.html",
+    "styles.css",
+    "app.js",
+    "data/dashboard.json"
+  ]
+}
