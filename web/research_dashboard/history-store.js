@@ -258,10 +258,14 @@ const HistoryStore = (() => {
     const legacy = db
       ? await withTimeout(getAll(STORES.observations), 4000, "IndexedDB 读取超时").catch(() => [])
       : [];
+    /* 合并:同 id 按 updated 时间戳新者胜(与云端 mergeJournal 一致),杜绝旧数据覆盖新修订 */
     const merged = {};
-    [...excelItems, ...mdNarratives, ...mdTrades, ...userItems, ...remoteItems, ...legacy, ...migrateLocalStorageDecisions()].forEach((item) => {
-      merged[item.id] = item;
-    });
+    const putMerged = (item) => {
+      if (!item || !item.id) return;
+      const prev = merged[item.id];
+      if (!prev || Number(item.updated || 0) >= Number(prev.updated || 0)) merged[item.id] = item;
+    };
+    [...excelItems, ...mdNarratives, ...mdTrades, ...userItems, ...remoteItems, ...legacy, ...migrateLocalStorageDecisions()].forEach(putMerged);
 
     cache = {
       observations: Object.values(merged).filter((item) => item.kind !== "trade"),
@@ -284,6 +288,8 @@ const HistoryStore = (() => {
       return Promise.resolve({local: true, data: localPayload()});
     }
     return JournalSync.syncJournal(localPayload()).then((result) => {
+      unsynced = 0;
+      lastPushAt = new Date().toLocaleTimeString("zh-CN", {hour: "2-digit", minute: "2-digit"});
       /* 远端可能有本地没有的记录（其他设备写的），并入缓存 */
       const remote = result.data || {};
       const incoming = [...(remote.observations || []), ...(remote.trades || [])];
@@ -298,17 +304,34 @@ const HistoryStore = (() => {
     });
   }
 
+  /* 云同步状态追踪:失败计数(供状态栏显示" N 条待同步")+ 最近成功推送时间 */
+  let unsynced = 0;
+  let lastPushAt = "";
+
   /* 工作台保存复盘时调用：写入 IndexedDB 并同步内存缓存，时间线即时可见；
-     有 Token 时后台自动同步到私有数据仓（fire-and-forget，不阻塞 UI） */
+     有 Token 时后台自动同步到私有数据仓；失败计入待同步数(状态栏可见),不再静默 */
   function putObservation(observation) {
-    if (!observation || !observation.id) return;
+    if (!observation || !observation.id) {
+      console.warn("[HistoryStore] putObservation 忽略了缺 id 的记录（静默丢弃会掩盖数据丢失）", observation);
+      return;
+    }
     const stamped = {...observation, updated: Date.now()};
     cache.observations = cache.observations.filter((item) => item.id !== stamped.id);
     cache.observations.push(stamped);
-    if (db) putMany(STORES.observations, [stamped]).catch(() => {});
+    if (db) putMany(STORES.observations, [stamped]).catch((error) => {
+      console.warn("[HistoryStore] IndexedDB 写入失败（重启后该记录可能丢失，建议导出备份）", error);
+    });
     if (typeof JournalSync !== "undefined" && JournalSync.hasToken()) {
-      JournalSync.syncJournal({observations: [stamped], trades: [], narratives: [], months: []}).catch(() => {});
+      unsynced += 1;
+      JournalSync.syncJournal({observations: [stamped], trades: [], narratives: [], months: []})
+        .then(() => { unsynced = Math.max(0, unsynced - 1); lastPushAt = new Date().toLocaleTimeString("zh-CN", {hour: "2-digit", minute: "2-digit"}); if (typeof renderCloudSyncStatus === "function") renderCloudSyncStatus(); })
+        .catch(() => { if (typeof renderCloudSyncStatus === "function") renderCloudSyncStatus(); });
     }
+  }
+
+  /* 状态栏查询:待同步条数 + 最近成功推送时间 */
+  function syncState() {
+    return {unsynced: unsynced, lastPushAt: lastPushAt};
   }
 
   /* 导出：只包含本地工作台新写的 observation（source=工作台日志），
@@ -325,5 +348,5 @@ const HistoryStore = (() => {
     };
   }
 
-  return {init, cache: () => cache, putObservation, exportUserJournal, pushToCloud, hasCloudToken: () => typeof JournalSync !== "undefined" && JournalSync.hasToken()};
+  return {init, cache: () => cache, putObservation, exportUserJournal, pushToCloud, syncState, hasCloudToken: () => typeof JournalSync !== "undefined" && JournalSync.hasToken()};
 })();

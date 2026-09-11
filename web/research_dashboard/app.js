@@ -17,6 +17,8 @@ const state = {
   decisionSector: "all",
   decisionSymbol: "all",
   decisionPage: 1,
+  decisionQuery: "",
+  editingObservationId: null,
   history: null,
   // state.historySymbol 已被「历史回看」页面占用，此处必须用独立字段名
   historyJournalSymbol: null,
@@ -92,8 +94,10 @@ function maxAbs(items, getter) {
 }
 
 function renderDateControls() {
-  const options = state.data.dates.map((date) => `<option value="${date}" ${date === state.date ? "selected" : ""}>${formatDate(date)}</option>`).join("");
-  $("#dateSelect").innerHTML = options;
+  /* 日期切换已改为顶栏日历(见 index.html 内联脚本);此处仅同步按钮文本 */
+  const dateText = document.getElementById("dateText");
+  if (dateText && state.date) dateText.textContent = formatDate(state.date);
+  if (typeof window.initCalendar === "function") window.initCalendar(state.data.dates || [], state.date);
 }
 
 function summaryCard(label, value, note, tone = "") {
@@ -157,7 +161,7 @@ function renderTide() {
   }).join("");
 }
 
-/* 04 净持仓分布变化：全商品按当日资金净流入/流出排序取前五（剔除股指/国债） */
+/* 四 净持仓分布变化：全商品按当日资金净流入/流出排序取前五（剔除股指/国债） */
 function renderNetFlowChanges() {
   const items = currentSnapshot().instruments
     .filter((item) => {
@@ -189,8 +193,8 @@ function renderNetFlowChanges() {
   </article>`;
 }
 
-/* 05 席位大资金动向：外资/内资两组，各成员席位前五流多/流空的并集（build 预计算 seatFlow） */
-function seatFlowSide(group, side, cls) {
+/* 五 席位大资金动向：外资/内资两组，各成员席位前五流多/流空的并集（build 预计算 seatFlow） */
+function seatFlowSide(group, side) {
   const list = group?.[side] || [];
   if (!list.length) return `<p class="empty-side">该方向暂无席位入选</p>`;
   return list.map((item) => `<button class="sector-item" data-open-symbol="${escapeHtml(item.symbol)}" aria-label="查看${escapeHtml(item.variety)}详情">
@@ -209,8 +213,8 @@ function renderSeatFlow() {
   const block = (label, group, note) => `<article class="sector-block seatflow-block">
     <div class="sector-title"><strong>${label}</strong><span class="sector-count">${escapeHtml(note)}</span></div>
     <div class="sector-sides">
-      <div class="sector-side"><div class="side-title bull-text">净流多（前五合并）</div>${seatFlowSide(group, "topLong", "bull-text")}</div>
-      <div class="sector-side"><div class="side-title bear-text">净流空（前五合并）</div>${seatFlowSide(group, "topShort", "bear-text")}</div>
+      <div class="sector-side"><div class="side-title bull-text">净流多（前五合并）</div>${seatFlowSide(group, "topLong")}</div>
+      <div class="sector-side"><div class="side-title bear-text">净流空（前五合并）</div>${seatFlowSide(group, "topShort")}</div>
     </div>
   </article>`;
   $("#seatFlowGrid").innerHTML =
@@ -232,13 +236,22 @@ function renderCorePanorama() {
     $("#corePanorama").innerHTML = `<div class="detail-empty">该快照没有可用重点品种。</div>`;
     return;
   }
-  $("#corePanorama").innerHTML = `<div class="panorama-head"><span>板块</span><span>品种 / 行情</span><span>三方净变动</span><span>内资 / 外资 / 家人反向</span><span>趋势与信号</span></div>${groups.map((group) => `<section class="panorama-group"><header>${escapeHtml(group.sector)}</header><div class="panorama-group-rows">${group.items.map((item) => {
+  $("#corePanorama").innerHTML = `<div class="panorama-head panorama-head-v5"><span>板块</span><span>品种 / 行情</span><span class="num">5日</span><span class="num">10日</span><span class="num">30日</span><span>三方净变动</span><span>内资 / 外资 / 家人反向</span><span>趋势与信号</span></div>${groups.map((group) => `<section class="panorama-group"><header>${escapeHtml(group.sector)}</header><div class="panorama-group-rows">${group.items.map((item) => {
     const quote = item.quote;
-    return `<button class="panorama-row" data-open-symbol="${escapeHtml(item.symbol)}">
+    const mf = item.marketFlow || {};
+    const r5 = computeReturn5d(item.symbol);
+    const r10 = mf.return10d;
+    const r30 = mf.return30d;
+    const state = trendStateByReturn(r5);
+    const rCell = (v) => v == null ? `<span class="num gray">—</span>` : `<span class="num ${v > 0 ? "bull-text" : v < 0 ? "bear-text" : "neutral-text"}">${formatSigned(v, 2)}%</span>`;
+    return `<button class="panorama-row panorama-row-v5" data-open-symbol="${escapeHtml(item.symbol)}">
       <span class="panorama-name"><strong>${escapeHtml(item.variety)} ${escapeHtml(item.symbol)}</strong><small>${escapeHtml(item.sector)} · ${escapeHtml(quote?.contract || item.margin.contract || "主力待披露")}</small>${quote ? `<em>${numeric(quote.close).toLocaleString("zh-CN", {maximumFractionDigits:4})} <b class="${signClass(quote.changePct)}">${formatSigned(quote.changePct, 2)}%</b></em>` : `<em>行情暂无</em>`}</span>
+      <span>${rCell(r5)}</span>
+      <span>${rCell(r10)}</span>
+      <span>${rCell(r30)}</span>
       <span class="panorama-signal"><strong class="${signClass(item.amountSignal)}">${formatAmount(item.amountSignal)}</strong><small class="${signClass(item.handsSignal)}">${formatHands(item.handsSignal)} 手 · ${escapeHtml(item.marginalStructure || "边际待判")}</small></span>
       <span>${groupBars(item)}</span>
-      <span class="panorama-tags">${trendChip(item.trend)}<span class="tag ${dirClass(item.amountSignal)}">${escapeHtml(item.resonance.label || item.direction)}</span></span>
+      <span class="panorama-tags">${trendChip(item.trend)}<span class="tag ${dirClass(item.amountSignal)}">${escapeHtml(item.resonance.label || item.direction)}</span><span class="trend-state trend-state-${state.cls}">${escapeHtml(state.label)}</span></span>
     </button>`;
   }).join("")}</div></section>`).join("")}`;
 }
@@ -351,20 +364,27 @@ function renderInstrumentTable() {
   renderSectorFilter();
   const rows = filteredInstruments();
   if (!state.activeSymbol || !rows.some((item) => item.symbol === state.activeSymbol)) state.activeSymbol = rows[0]?.symbol || null;
-  $("#instrumentRows").innerHTML = rows.map((item) => `<tr class="${item.symbol === state.activeSymbol ? "is-active" : ""}" data-symbol="${escapeHtml(item.symbol)}">
+  $("#instrumentRows").innerHTML = rows.map((item) => {
+    const close = item.quote?.close;
+    const dayReturn = item.quote?.changePct;
+    const closeCell = close == null ? `<span class="gray">暂无</span>` : `${numeric(close).toLocaleString("zh-CN", {maximumFractionDigits: 4})}<span class="${dayReturn == null ? "gray" : signClass(dayReturn)}" style="margin-left:6px">${dayReturn == null ? "—" : `${formatSigned(dayReturn, 2)}%`}</span>`;
+    return `<tr class="${item.symbol === state.activeSymbol ? "is-active" : ""}" data-symbol="${escapeHtml(item.symbol)}">
     <td><div class="instrument-name"><button type="button" data-open-detail-symbol="${escapeHtml(item.symbol)}">${escapeHtml(item.variety)}</button><small>${escapeHtml(item.symbol)} · ${escapeHtml(item.sector)}</small></div></td>
+    <td class="num">${closeCell}</td>
     <td class="num ${signClass(item.handsSignal)}">${formatHands(item.handsSignal)}</td>
     <td class="num ${signClass(item.amountSignal)}">${formatAmount(item.amountSignal)}</td>
     <td>${groupBars(item)}</td>
     <td class="trend-cell">${trendChip(item.trend)}</td>
     <td><span class="tag ${dirClass(item.amountSignal)}">${escapeHtml(item.resonance.label || item.direction)}</span></td>
-  </tr>`).join("") || `<tr><td colspan="6" class="detail-empty">当前筛选条件下没有品种。</td></tr>`;
-  renderDetail();
+  </tr>`;
+  }).join("") || `<tr><td colspan="7" class="detail-empty">当前筛选条件下没有品种。</td></tr>`;
 }
 
 function seriesFor(symbol) {
   return state.data.dates.filter((date) => date <= state.date).reverse().map((date) => {
-    const item = state.data.snapshots[date].instruments.find((entry) => entry.symbol === symbol);
+    const snapshot = state.data.snapshots[date];
+    if (!snapshot) return null; /* 历史快照可能尚未由后台补载完成 */
+    const item = snapshot.instruments.find((entry) => entry.symbol === symbol);
     return item ? {
       date,
       hands: item.handsSignal,
@@ -735,20 +755,23 @@ function syncDecisionToHistory(record) {
     trigger: record.trigger || "",
     ratings: {},
     attribution: record.attribution || {},
-    review: [record.mainContradiction, record.closeNote, record.reviewNote].filter(Boolean).join("\n"),
+    review: [record.mainContradiction, record.closeNote, record.reviewNote, record.selfInquiry ? `自我问答：${record.selfInquiry}` : ""].filter(Boolean).join("\n"),
+    selfInquiry: record.selfInquiry || "",
     raw: "",
   };
   HistoryStore.putObservation(observation);
 }
 
 function renderDecisionView() {
+  if (state.editingObservationId) { renderObservationEditor(); return; }
   const instruments = [...currentSnapshot().instruments];
   const sectors = [...new Set(instruments.map((item) => item.sector))].sort();
   $("#decisionSectorFilter").innerHTML = `<option value="all">全部板块</option>${sectors.map((sector) => `<option value="${escapeHtml(sector)}" ${state.decisionSector === sector ? "selected" : ""}>${escapeHtml(sector)}</option>`).join("")}`;
   const sectorItems = instruments.filter((item) => state.decisionSector === "all" || item.sector === state.decisionSector);
   if (state.decisionSymbol !== "all" && !sectorItems.some((item) => item.symbol === state.decisionSymbol)) state.decisionSymbol = "all";
   $("#decisionSymbolFilter").innerHTML = `<option value="all">全部品种</option>${sectorItems.sort((a, b) => a.variety.localeCompare(b.variety, "zh-CN")).map((item) => `<option value="${escapeHtml(item.symbol)}" ${state.decisionSymbol === item.symbol ? "selected" : ""}>${escapeHtml(item.variety)} ${escapeHtml(item.symbol)}</option>`).join("")}`;
-  const signals = orderDecisionSignals(sectorItems.filter((item) => state.decisionSymbol === "all" || item.symbol === state.decisionSymbol));
+  const query = (state.decisionQuery || "").toUpperCase();
+  const signals = orderDecisionSignals(sectorItems.filter((item) => state.decisionSymbol === "all" || item.symbol === state.decisionSymbol)).filter((item) => !query || item.symbol.toUpperCase().includes(query) || (item.variety || "").toUpperCase().includes(query));
   const pageCount = Math.max(1, Math.ceil(signals.length / 10));
   state.decisionPage = Math.min(state.decisionPage, pageCount);
   const pageSignals = signals.slice((state.decisionPage - 1) * 10, state.decisionPage * 10);
@@ -786,7 +809,104 @@ function renderDecisionView() {
       <label>盈亏（元，选填）<input name="pnl" type="number" step="any" value="${escapeHtml(String(record.pnl ?? ""))}" placeholder="亏损填负数"></label>
       <div class="decision-attr-grid wide"><span class="decision-attr-title">执行归因（复盘）</span>${attrField("judgment","判断错？")}${attrField("timing","时机错？")}${attrField("position","仓位错？")}${attrField("tool","工具错？")}${attrField("execution","执行错？")}</div>
       <label class="wide">最大错误与下一条规则<textarea name="reviewNote" rows="3" placeholder="最大错误：&#10;下一次只改：">${escapeHtml(record.reviewNote)}</textarea></label>
+      <label class="wide">自我问答<textarea name="selfInquiry" rows="3" placeholder="这一笔交易中，哪些行为来自市场本身，哪些行为来自我对得失、对错和自我证明的执著？">${escapeHtml(record.selfInquiry || "")}</textarea></label>
     </div><p id="decisionFormMessage" class="form-message" aria-live="polite"></p><div class="decision-form-actions"><button class="decision-save" type="submit">保存复盘</button><button class="decision-delete" type="button" data-delete-decision="${escapeHtml(record.id)}">删除</button></div></form>`;
+}
+
+/* ===================== 历史复盘修订(编辑已有 observation) =====================
+   直接修订 observation 本体(非 decision 体系):保留原记录全部字段,只覆盖复盘相关字段,
+   经 HistoryStore.putObservation 写回(IndexedDB + 私有仓云同步,updated 新者胜)。
+   适用场景:Excel/月度复盘当时没填完整,事后补盈亏、归因、认知偏差等。 */
+function findObservation(id) {
+  return (state.history?.observations || []).find((item) => item.id === id) || null;
+}
+
+function startObservationEdit(id) {
+  if (!findObservation(id)) return;
+  state.editingObservationId = id;
+  switchView("decisions");
+  requestAnimationFrame(() => $("#decisionEditor")?.scrollIntoView({behavior: "smooth", block: "start"}));
+}
+
+function renderObservationEditor() {
+  const item = findObservation(state.editingObservationId);
+  if (!item) { state.editingObservationId = null; renderDecisionView(); return; }
+  const option = (value, label, current) => `<option value="${value}" ${current === value ? "selected" : ""}>${label}</option>`;
+  const tradeStatus = item.tradeStatus || (item.executed ? "closed" : "no_trade");
+  const attr = item.attribution || {};
+  const attrField = (key, label) => `<label>${label}<select name="attr_${key}">${option("", "—", attr[label])}${option("Y", "Y", attr[label])}${option("N", "N", attr[label])}</select></label>`;
+  $("#decisionEditor").innerHTML = `<form id="observationForm" data-obs-id="${escapeHtml(item.id)}">
+    <header><div><small>修订复盘 · ${escapeHtml(item.date || "日期缺失")} · 来源 ${escapeHtml(historySourceBadge(item.source))}</small>
+    <h3>${escapeHtml(item.variety || "")} ${escapeHtml(item.symbol || "")}</h3></div>
+    <div class="decision-market-facts"><em class="decision-signal-status">${item.executed ? "已执行" : "未执行"}</em></div></header>
+    <p class="decision-due">修订只覆盖下面填写的字段,原记录其余信息全部保留;保存后写入本地并同步私有数据仓。</p>
+    <div class="decision-form-grid">
+      <label>交易状态<select name="tradeStatus">${option("no_trade","未交易",tradeStatus)}${option("open","持仓中",tradeStatus)}${option("closed","已平仓",tradeStatus)}</select></label>
+      <label>方向<select name="direction">${option("", "未定", item.direction || "")}${option("多", "做多", item.direction || "")}${option("空", "做空", item.direction || "")}</select></label>
+      <label class="wide">核心逻辑<textarea name="mainContradiction" rows="2" placeholder="为什么值得做,最关键的支撑和反向证据是什么">${escapeHtml(item.mainContradiction || "")}</textarea></label>
+      <label>入场触发<input name="trigger" value="${escapeHtml(item.trigger || "")}" placeholder="价格或技术条件"></label>
+      <label>仓位(占总仓位比例)<input name="positionPct" value="${escapeHtml(item.positionPct || "")}" placeholder="如 30%"></label>
+      <label>失效 / 止损<input name="stopLossTakeProfit" value="${escapeHtml(item.stopLossTakeProfit || "")}" placeholder="错在哪里退出"></label>
+      <label>平仓<textarea name="closeNote" rows="2" placeholder="平仓过程与是否按计划执行">${escapeHtml(item.closeNote || "")}</textarea></label>
+      <label>盈亏(元,选填)<input name="myPnl" type="number" step="any" value="${item.myPnl == null ? "" : escapeHtml(String(item.myPnl))}" placeholder="亏损填负数"></label>
+      <label class="wide">未交易原因<input name="noTradeReason" value="${escapeHtml(item.noTradeReason || "")}"></label>
+      <div class="decision-attr-grid wide"><span class="decision-attr-title">执行归因(复盘)</span>${attrField("judgment","判断错?")}${attrField("timing","时机错?")}${attrField("position","仓位错?")}${attrField("tool","工具错?")}${attrField("execution","执行错?")}</div>
+      <label class="wide">最大错误与下一条规则<textarea name="reviewNote" rows="3" placeholder="最大错误:&#10;下一次只改:">${escapeHtml(item.reviewNote || "")}</textarea></label>
+      <label class="wide">自我问答<textarea name="selfInquiry" rows="3" placeholder="这一笔交易中，哪些行为来自市场本身，哪些行为来自我对得失、对错和自我证明的执著？">${escapeHtml(item.selfInquiry || "")}</textarea></label>
+      <label class="wide">复盘与认知偏差原文<textarea name="review" rows="4">${escapeHtml(item.review || "")}</textarea></label>
+    </div>
+    <p id="observationFormMessage" class="form-message" aria-live="polite"></p>
+    <div class="decision-form-actions"><button class="decision-save" type="submit">保存修订</button>
+    <button class="decision-delete" type="button" data-cancel-observation-edit="1">取消</button></div>
+  </form>`;
+}
+
+function collectKvPairs(form, prefix) {
+  const out = {};
+  const keys = form.querySelectorAll(`input[name="${prefix}_key"]`);
+  keys.forEach((keyInput) => {
+    const key = keyInput.value.trim();
+    const row = keyInput.closest(".obs-kv-row");
+    const valueInput = row?.querySelector(`input[name="${prefix}_value"]`);
+    const value = valueInput ? valueInput.value.trim() : "";
+    if (key && value) out[key] = value;
+  });
+  const newKey = form.querySelector(`input[name="${prefix}_new_key"]`);
+  const newValue = form.querySelector(`input[name="${prefix}_new_value"]`);
+  if (newKey && newValue && newKey.value.trim() && newValue.value.trim()) out[newKey.value.trim()] = newValue.value.trim();
+  return Object.keys(out).length ? out : null;
+}
+
+/* ===================== 5 日涨跌幅与品种状态(运行时计算) ===================== */
+function computeReturn5d(symbol) {
+  const dates = (state.data.dates || []).slice().sort();
+  const curIdx = dates.indexOf(state.date);
+  if (curIdx < 5) return null;
+  const prev = state.data.snapshots[dates[curIdx - 5]];
+  if (!prev) return null;
+  const cur = (currentSnapshot().instruments || []).find((x) => x.symbol === symbol);
+  const prevItem = (prev.instruments || []).find((x) => x.symbol === symbol);
+  const curClose = cur?.quote?.close;
+  const prevClose = prevItem?.quote?.close;
+  if (curClose == null || prevClose == null || prevClose === 0) return null;
+  return Math.round(((curClose - prevClose) / prevClose) * 10000) / 100;
+}
+
+function trendStateByReturn(r5) {
+  if (r5 == null) return { cls: "flat", label: "—" };
+  if (r5 >= 5) return { cls: "ext-up", label: "趋势极强" };
+  if (r5 <= -5) return { cls: "ext-down", label: "趋势极弱" };
+  if (r5 >= 3) return { cls: "up", label: "趋势偏强" };
+  if (r5 <= -3) return { cls: "down", label: "趋势偏弱" };
+  return { cls: "flat", label: "震荡" };
+}
+
+/* 关键事件标签多/空分类 */
+function classifyEvent(text) {
+  const t = String(text || "");
+  if (/空|跌|减|利空|偏弱|下跌/.test(t)) return { tone: "down", flag: "空" };
+  if (/多|涨|增|利多|偏强|上涨/.test(t)) return { tone: "up", flag: "多" };
+  return { tone: "neutral", flag: "" };
 }
 
 const CTA_FACTOR_LABELS = {trend: "量价趋势", seat: "席位存量", position: "席位边际", carry: "基差与仓单", option: "期权偏度"};
@@ -867,6 +987,7 @@ function renderHistoryEntry(item) {
       <span class="history-instrument">${escapeHtml(historyInstrumentText(item))}</span>
       ${item.strategySource ? `<span class="history-strategy-source">参考来源：${escapeHtml(item.strategySource)}</span>` : ""}
       <em class="history-exec-flag">${item.executed ? "已执行" : "未执行"}</em>
+      <button class="history-edit-btn" type="button" data-edit-observation="${escapeHtml(item.id)}" title="修订这条复盘(补填盈亏/归因/认知偏差)">编辑</button>
     </header>
     ${historyPlanRows(item)}
     ${pnl.text ? `<div class="history-pnl ${pnl.cls}">${escapeHtml(pnl.text)}</div>` : ""}
@@ -949,6 +1070,11 @@ function renderCta() {
 }
 
 function renderAll() {
+  /* 初始化交易日历(顶栏日历弹层) */
+  if (typeof window.initCalendar === "function") {
+    const allDates = state.data.dates || [];
+    window.initCalendar(allDates, state.date);
+  }
   renderDateControls();
   renderSummary();
   renderFocus();
@@ -979,6 +1105,7 @@ function switchView(view) {
 }
 
 function setDate(date) {
+  const previousDate = state.date;
   state.date = date;
   state.symbol = "all";
   state.sector = "all";
@@ -986,7 +1113,18 @@ function setDate(date) {
   state.detailQuery = "";
   state.decisionPage = 1;
   state.activeCtaSymbol = null;
-  renderAll();
+  if (state.data.snapshots[date]) { renderAll(); return; }
+  /* 该日快照可能还在后台补载队列里：按需拉取后再渲染，期间复用全屏装载提示 */
+  const loadingEl = document.getElementById("loadingState");
+  if (loadingEl) loadingEl.style.display = "grid";
+  ensureSnapshot(date)
+    .catch(() => {})
+    .then(() => {
+      if (loadingEl) loadingEl.style.display = "";
+      if (state.date !== date) return;
+      if (!state.data.snapshots[date]) { state.date = previousDate; } /* 拉取失败则留在原日期 */
+      renderAll();
+    });
 }
 
 function bindEvents() {
@@ -1034,11 +1172,57 @@ function bindEvents() {
     if (deleteDecision) { state.decisions = state.decisions.filter((entry) => entry.id !== deleteDecision.dataset.deleteDecision); state.activeDecisionId = null; saveDecisions(); renderDecisionView(); }
     const historySymbol = event.target.closest("[data-history-symbol]");
     if (historySymbol) { state.historyJournalSymbol = historySymbol.dataset.historySymbol; renderHistoryView(); }
+    const editObs = event.target.closest("[data-edit-observation]");
+    if (editObs) startObservationEdit(editObs.dataset.editObservation);
+    if (event.target.closest("[data-cancel-observation-edit]")) { state.editingObservationId = null; renderDecisionView(); }
+  });
+  $("#decisionEditor").addEventListener("submit", (event) => {
+    if (event.target.id !== "observationForm") return;
+    event.preventDefault();
+    const item = findObservation(state.editingObservationId);
+    if (!item) return;
+    const form = event.target;
+    const values = Object.fromEntries(new FormData(form));
+    const message = $("#observationFormMessage");
+    const attribution = {};
+    [["judgment", "判断错?"], ["timing", "时机错?"], ["position", "仓位错?"], ["tool", "工具错?"], ["execution", "执行错?"]].forEach(([key, label]) => {
+      if (values[`attr_${key}`]) attribution[label] = values[`attr_${key}`];
+    });
+    const updated = {...item};
+    updated.tradeStatus = values.tradeStatus;
+    updated.executed = values.tradeStatus !== "no_trade";
+    updated.direction = values.direction;
+    updated.mainContradiction = values.mainContradiction.trim();
+    updated.trigger = values.trigger.trim();
+    updated.positionPct = values.positionPct.trim();
+    updated.stopLossTakeProfit = values.stopLossTakeProfit.trim();
+    updated.closeNote = values.closeNote.trim();
+    updated.myPnl = values.myPnl === "" ? null : numeric(values.myPnl);
+    updated.noTradeReason = values.noTradeReason.trim();
+    updated.reviewNote = values.reviewNote.trim();
+    updated.selfInquiry = values.selfInquiry.trim();
+    updated.review = values.review.trim();
+    updated.attribution = Object.keys(attribution).length ? attribution : null;
+    updated.editedAt = new Date().toISOString();
+    if (values.tradeStatus === "closed" && !values.closeNote.trim()) {
+      message.textContent = "已平仓必须填写平仓记录。";
+      return;
+    }
+    if (updated.executed && !updated.review.trim() && updated.myPnl == null) {
+      message.textContent = "已执行记录至少补填盈亏或复盘内容之一。";
+      return;
+    }
+    HistoryStore.putObservation(updated);
+    state.editingObservationId = null;
+    renderDecisionView();
+    renderHistoryView();
+    renderCloudSyncStatus();
+    setTimeout(renderCloudSyncStatus, 2500);
   });
   $("#exportUserJournalBtn")?.addEventListener("click", exportUserJournal);
   $("#cloudSyncBtn")?.addEventListener("click", cloudSyncAction);
   renderCloudSyncStatus();
-  $("#dateSelect").addEventListener("change", (event) => setDate(event.target.value));
+  window.addEventListener("fr:set-date", (event) => setDate(event.detail));
   $("#symbolFilter").addEventListener("change", (event) => { state.symbol = event.target.value; renderInstrumentTable(); });
   $("#searchInput").addEventListener("input", (event) => { state.query = event.target.value; renderInstrumentTable(); });
   $("#sectorFilter").addEventListener("change", (event) => { state.sector = event.target.value; renderInstrumentTable(); });
@@ -1048,6 +1232,7 @@ function bindEvents() {
   $("#historyControls").addEventListener("change", (event) => { if (event.target.id === "historySymbolSelect") { state.historySymbol = event.target.value; renderHistory(); } });
   $("#decisionSectorFilter").addEventListener("change", (event) => { state.decisionSector = event.target.value; state.decisionSymbol = "all"; state.decisionPage = 1; renderDecisionView(); });
   $("#decisionSymbolFilter").addEventListener("change", (event) => { state.decisionSymbol = event.target.value; state.decisionPage = 1; renderDecisionView(); });
+  $("#decisionSearchInput").addEventListener("input", (event) => { state.decisionQuery = event.target.value; state.decisionPage = 1; renderDecisionView(); });
   $("#ctaSearchInput").addEventListener("input", (event) => { state.ctaQuery = event.target.value; renderCta(); });
   $("#ctaSectorFilter").addEventListener("change", (event) => { state.ctaSector = event.target.value; state.activeCtaSymbol = null; renderCta(); });
   $("#ctaDirectionFilter").addEventListener("change", (event) => { state.ctaDirection = event.target.value; state.activeCtaSymbol = null; renderCta(); });
@@ -1074,8 +1259,59 @@ function bindEvents() {
   });
 }
 
+/* 快照懒加载层：启动只拉几 KB 的 meta + 最新日快照即出首屏（原整包 dashboard.json ~24MB）。
+   其余历史快照在首屏渲染后由后台静默补齐（写入 state.data.snapshots，浏览器 HTTP 缓存兜底回访）。 */
+function fetchSnapshot(date) {
+  return fetch(`data/snapshots/${date}.json`).then((response) => {
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.json();
+  });
+}
+const snapshotPending = new Map(); /* 日期 -> 进行中的请求，避免重复拉取 */
+function ensureSnapshot(date) {
+  if (!date || !state.data || state.data.snapshots[date]) return Promise.resolve(state.data?.snapshots[date] || null);
+  if (!snapshotPending.has(date)) {
+    const request = fetchSnapshot(date).then((snapshot) => {
+      state.data.snapshots[date] = snapshot;
+      snapshotPending.delete(date);
+      return snapshot;
+    }).catch((error) => {
+      snapshotPending.delete(date);
+      throw error;
+    });
+    snapshotPending.set(date, request);
+  }
+  return snapshotPending.get(date);
+}
+function preloadHistoricalSnapshots() {
+  /* 并发补载（窗口 4）：最近 5 个交易日先行——序列图/5日涨跌最先可用，其余按新→旧全量补齐；
+     单日失败跳过不打断（与原串行版一致） */
+  const CONCURRENCY = 4;
+  const drain = async (dates) => {
+    let index = 0;
+    const worker = async () => {
+      while (index < dates.length) {
+        const date = dates[index++];
+        try { await ensureSnapshot(date); } catch (error) { /* 失败跳过 */ }
+      }
+    };
+    await Promise.all(Array.from({length: Math.min(CONCURRENCY, dates.length)}, worker));
+  };
+  const missing = (state.data.dates || []).filter((date) => !state.data.snapshots[date]);
+  return drain(missing.slice(0, 5)).then(() => drain(missing.slice(5)));
+}
+const dashboardLoad = fetch("data/dashboard-meta.json", {cache: "no-store"})
+  .then((response) => { if (!response.ok) throw new Error(`HTTP ${response.status}`); return response.json(); })
+  .then((meta) => fetchSnapshot(meta.latestDate).then((snapshot) => ({
+    generatedAt: meta.generatedAt,
+    dates: meta.dates,
+    latestDate: meta.latestDate,
+    snapshots: {[meta.latestDate]: snapshot},
+  })))
+  .catch(() => fetch("data/dashboard.json").then((response) => { if (!response.ok) throw new Error(`HTTP ${response.status}`); return response.json(); })); /* 旧数据无 meta 时回退整包 */
+
 Promise.all([
-  fetch("data/dashboard.json", {cache: "no-store"}).then((response) => { if (!response.ok) throw new Error(`HTTP ${response.status}`); return response.json(); }),
+  dashboardLoad,
   fetch("run-manifest.json", {cache: "no-store"}).then((response) => response.ok ? response.json() : null),
   typeof HistoryStore !== "undefined" ? HistoryStore.init().catch((error) => ({observations: [], trades: [], narratives: [], months: [], errors: [String(error.message || error)]})) : Promise.resolve(null),
 ])
@@ -1093,7 +1329,17 @@ Promise.all([
     if (viewParam && ["overview", "detail", "instruments", "cta", "history", "decisions"].includes(viewParam)) switchView(viewParam);
     const journalParam = viewParams.get("historySymbol");
     if (journalParam) { state.historyJournalSymbol = journalParam.toUpperCase(); if (state.view === "decisions") renderHistoryView(); }
+    /* 打开页面自动双向同步一次私有数据仓(有 Token 时):远端新记录并入、本地新写推上去 */
+    if (JournalSync?.hasToken() && typeof HistoryStore !== "undefined") {
+      renderCloudSyncStatus();
+      HistoryStore.pushToCloud()
+        .then(() => { renderHistoryView(); renderDecisionView(); renderCloudSyncStatus(); })
+        .catch(() => { const el = document.getElementById("cloudSyncStatus"); if (el) el.textContent = "● 同步失败，点右侧按钮重试"; });
+    }
     $("#app").dataset.ready = "true";
+    /* 首屏已出：后台补齐其余历史快照（串行），补完后重渲染一次填充序列图/5日涨跌；
+       decisions 视图含表单，避免重渲染清空输入，留给下次切换视图时自然取数 */
+    preloadHistoricalSnapshots().then(() => { if (state.view !== "decisions") renderAll(); });
   })
   .catch((error) => {
     $("#loadingState").textContent = `数据装载失败：${error.message}。请通过本地 HTTP 服务打开。`;
@@ -1157,5 +1403,9 @@ function cloudSyncAction() {
 function renderCloudSyncStatus() {
   const status = document.getElementById("cloudSyncStatus");
   if (!status || typeof JournalSync === "undefined") return;
-  status.textContent = JournalSync.hasToken() ? "● 已连接私有数据仓" : "○ 未连接（仅本地）";
+  if (!JournalSync.hasToken()) { status.textContent = "○ 未连接（仅本地）"; return; }
+  const st = typeof HistoryStore !== "undefined" && HistoryStore.syncState ? HistoryStore.syncState() : null;
+  if (st && st.unsynced > 0) status.textContent = `● 私有数据仓已连接 · ${st.unsynced} 条待同步（点右侧按钮重试）`;
+  else if (st && st.lastPushAt) status.textContent = `● 已同步 ${st.lastPushAt}`;
+  else status.textContent = "● 已连接私有数据仓";
 }

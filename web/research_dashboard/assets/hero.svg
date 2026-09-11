@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="380" viewBox="0 0 1200 380" role="img" aria-labelledby="fw-title fw-desc">
+  <title id="fw-title">期货研究工作站</title>
+  <desc id="fw-desc">行情、席位、资金、CTA 评分一屏尽览的静态研究工作站，每日固化历史快照。面板展示 2026-09-04 真实快照：59 个品种、板块多空分布与 CTA 评分。</desc>
+
+  <defs>
+    <style>
+      .sans  { font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; }
+      .paper { fill: #e8e4da; }
+      .gray  { fill: #8f8a80; }
+      .up    { fill: #e0563f; }
+      .down  { fill: #2f9e6e; }
+      .dim   { fill: #b8b2a6; }
+    </style>
+  </defs>
+
+  <!-- 深墨底 -->
+  <rect width="1200" height="380" fill="#12100e"/>
+
+  <!-- 左：标题区 -->
+  <g transform="translate(56 0)">
+    <text class="sans gray" x="0" y="64" font-size="15" letter-spacing="0.3em">FUTURES RESEARCH WORKSTATION</text>
+    <text class="sans paper" x="0" y="132" font-size="62" font-weight="700" letter-spacing="0.04em">期货研究工作站</text>
+    <text class="sans dim" x="0" y="186" font-size="22" letter-spacing="0.12em">行情 · 席位 · 资金 · CTA 评分</text>
+
+    <!-- 摘要：真实快照 2026-09-04 -->
+    <g transform="translate(0 232)">
+      <text class="sans up" x="0" y="0" font-size="30" font-weight="700">33</text>
+      <text class="sans gray" x="56" y="0" font-size="17">偏多</text>
+      <text class="sans down" x="150" y="0" font-size="30" font-weight="700">26</text>
+      <text class="sans gray" x="206" y="0" font-size="17">偏空</text>
+      <text class="sans up" x="292" y="0" font-size="30" font-weight="700">14</text>
+      <text class="sans gray" x="348" y="0" font-size="17">强共振</text>
+      <text class="sans gray" x="452" y="0" font-size="17" fill="#6e6a62">·</text>
+      <text class="sans gray" x="472" y="0" font-size="17">59 品种</text>
+    </g>
+
+    <!-- 元信息 -->
+    <line x1="0" y1="292" x2="560" y2="292" stroke="#3a3630" stroke-width="1"/>
+    <text class="sans gray" x="0" y="324" font-size="14" letter-spacing="0.24em">每日快照 · 历史可溯 · GITHUB PAGES</text>
+  </g>
+
+  <!-- 右：板块多空面板（真实数据 2026-09-04） -->
+  <g transform="translate(660 44)">
+    <rect width="484" height="292" rx="12" fill="#1b1916" stroke="#2a2723" stroke-width="1"/>
+    <text class="sans gray" x="22" y="30" font-size="14" letter-spacing="0.18em">板块多空 · 2026-09-04</text>
+
+    <!-- 行模板：板块名 + 多空条 + 计数 -->
+    <g transform="translate(22 0)">
+      <!-- 油脂油料 多4 空0 -->
+      <g transform="translate(0 56)">
+        <text class="sans paper" x="0" y="10" font-size="18">油脂油料</text>
+        <rect x="104" y="0" width="176" height="12" rx="6" fill="#e0563f"/>
+        <rect x="104" y="0" width="0" height="12" rx="6" fill="#2f9e6e"/>
+        <text class="sans up" x="292" y="11" font-size="15" font-weight="700">4</text>
+        <text class="sans down" x="312" y="11" font-size="15" font-weight="700">0</text>
+      </g>
+      <!-- 家人品种 多6 空0 -->
+      <g transform="translate(0 92)">
+        <text class="sans paper" x="0" y="10" font-size="18">家人品种</text>
+        <rect x="104" y="0" width="176" height="12" rx="6" fill="#e0563f"/>
+        <rect x="104" y="0" width="0" height="12" rx="6" fill="#2f9e6e"/>
+        <text class="sans up" x="292" y="11" font-size="15" font-weight="700">6</text>
+        <text class="sans down" x="312" y="11" font-size="15" font-weight="700">0</text>
+      </g>
+      <!-- 谷物饲料 多3 空2 -->
+      <g transform="translate(0 128)">
+        <text class="sans paper" x="0" y="10" font-size="18">谷物饲料</text>
+        <rect x="104" y="0" width="176" height="12" rx="6" fill="#3a3630"/>
+        <rect x="104" y="0" width="106" height="12" rx="6" fill="#e0563f"/>
+        <rect x="210" y="0" width="70" height="12" rx="6" fill="#2f9e6e"/>
+        <text class="sans up" x="292" y="11" font-size="15" font-weight="700">3</text>
+        <text class="sans down" x="312" y="11" font-size="15" font-weight="700">2</text>
+      </g>
+      <!-- 农副软商 多3 空4 -->
+      <g transform="translate(0 164)">
+        <text class="sans paper" x="0" y="10" font-size="18">农副软商</text>
+        <rect x="104" y="0" width="176" height="12" rx="6" fill="#3a3630"/>
+        <rect x="104" y="0" width="76" height="12" rx="6" fill="#e0563f"/>
+        <rect x="180" y="0" width="100" height="12" rx="6" fill="#2f9e6e"/>
+        <text class="sans up" x="292" y="11" font-size="15" font-weight="700">3</text>
+        <text class="sans down" x="312" y="11" font-size="15" font-weight="700">4</text>
+      </g>
+      <!-- 黑色系 多4 空5 -->
+      <g transform="translate(0 200)">
+        <text class="sans paper" x="0" y="10" font-size="18">黑色系</text>
+        <rect x="104" y="0" width="176" height="12" rx="6" fill="#3a3630"/>
+        <rect x="104" y="0" width="78" height="12" rx="6" fill="#e0563f"/>
+        <rect x="182" y="0" width="98" height="12" rx="6" fill="#2f9e6e"/>
+        <text class="sans up" x="292" y="11" font-size="15" font-weight="700">4</text>
+        <text class="sans down" x="312" y="11" font-size="15" font-weight="700">5</text>
+      </g>
+    </g>
+
+    <!-- CTA 评分行 -->
+    <g transform="translate(22 246)">
+      <line x1="0" y1="-8" x2="440" y2="-8" stroke="#2a2723" stroke-width="1"/>
+      <text class="sans gray" x="0" y="12" font-size="14" letter-spacing="0.18em">CTA 评分</text>
+      <text class="sans paper" x="118" y="13" font-size="18">焦煤 JM</text>
+      <text class="sans up" x="228" y="13" font-size="22" font-weight="700">82</text>
+      <rect x="272" y="1" width="54" height="18" rx="9" fill="#e0563f"/>
+      <text class="sans paper" x="299" y="15" font-size="12" text-anchor="middle">强多</text>
+      <text class="sans down" x="344" y="13" font-size="15">+0.66%</text>
+    </g>
+  </g>
+</svg>

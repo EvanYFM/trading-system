@@ -1005,14 +1005,15 @@ def main() -> None:
     }
 
     TARGET_DIR.mkdir(parents=True, exist_ok=True)
-    for asset in ("index.html", "styles.css", "app.js", "history-store.js"):
+    # v2 前端资产（2026-09-11 前端统一：v1 styles.css 已退役，见 docs/daily-data-update-handoff.md）
+    for asset in ("index.html", "styles-v2.css", "app.js", "history-store.js", "journal-sync.js", "favicon.svg", "404.html", "robots.txt"):
         shutil.copy2(SOURCE_DIR / asset, TARGET_DIR / asset)
-    imported_source = SOURCE_DIR / "data" / "imported"
-    if imported_source.is_dir():
-        imported_target = TARGET_DIR / "data" / "imported"
-        imported_target.mkdir(parents=True, exist_ok=True)
-        for item in imported_source.glob("*.json"):
-            shutil.copy2(item, imported_target / item.name)
+    hero_source = SOURCE_DIR / "assets" / "hero.svg"
+    if hero_source.is_dir():
+        shutil.copytree(hero_source, TARGET_DIR / "assets", dirs_exist_ok=True)
+    elif hero_source.is_file():
+        (TARGET_DIR / "assets").mkdir(exist_ok=True)
+        shutil.copy2(hero_source, TARGET_DIR / "assets" / "hero.svg")
     build_version = datetime.now().strftime("%Y%m%d%H%M%S")
     index_path = TARGET_DIR / "index.html"
     index_html = index_path.read_text(encoding="utf-8")

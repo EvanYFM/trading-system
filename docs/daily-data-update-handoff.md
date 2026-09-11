@@ -49,6 +49,7 @@ $env:REPORT_DATE="YYYYMMDD"
 & $py scripts\fetch_sina_quhe_main_quotes.py
 & $py scripts\fetch_research_dashboard_market_context.py
 & $py scripts\fetch_eastmoney_technical_snapshot.py
+& $py scripts\fetch_seat_flow.py
 & $py scripts\build_research_dashboard.py
 ```
 
@@ -110,3 +111,13 @@ node --check web\research_dashboard\app.js
 数据已更新至：2026-09-10
 
 后续每日只修改这一日期，不追加逐日过程记录；异常、缺失或发布失败才单独说明。
+
+## 2026-09-11 前端统一与总览页改造（WorkBuddy 执行记录）
+
+- **v1 退役**：`web/research_dashboard/styles.css`（v1 样式）删除；v2 garden SPA（`index.html` + `styles-v2.css` + `app.js` + `history-store.js` + `journal-sync.js` + `favicon.svg`/`404.html`/`robots.txt`/`assets/hero.svg`）成为唯一前端版本，私有仓 `web/research_dashboard/` 与公开部署仓根目录文件完全一致（以部署仓为准拷回）。
+- **build 资产拷贝更新**：`build_research_dashboard.py` 输出资产改为 v2 清单；`data/imported/` 不再拷入产物（个人数据不进公开链路，与第 6 节一致）。
+- **总览页**：删除「关键商品事件」「板块方向速览」；新增「四 净持仓分布变化」（全商品当日资金净流入/流出前五，剔除股指国债）与「五 席位大资金动向」（外资=高盛/瑞银/摩根大通，内资=国泰君安/东证/永安/中财/东吴；各席位前五流多/流空组内并集，可超五个；品种净变化 = Σ(long_chg) − Σ(short_chg)）。
+- **新数据管线**：每日在第 3 节 `build` 之前运行 `scripts/fetch_seat_flow.py`（抓 8 席位持仓变化 → `data/seat_flow_rows_YYYYMMDD.json`），`build_research_dashboard.py` 的 `build_seat_flow()` 写入 `snapshot.seatFlow`；文件缺失时 `seatFlow=null`，前端显示缺失提示，不回填旧日值。
+- **快照历史**：20260910 快照已回填 `seatFlow`（外资 12 条、内资 17 条）并发布；更早日期无 seatFlow 属正常，前端按缺失处理。
+- **前端真身归属**：自此私有仓 `web/research_dashboard/` 是唯一源码，公开仓是发布产物；每日改前端一律改私有仓 `web/` → build → 按第 4 节清单同步公开仓，禁止直接在公开仓改页面（那次 v2 重构造成的分叉已在本日合并消除）。
+- 对应提交：私有仓 `b64e132`（净流/席位板块管线）、本次前端统一提交；公开仓 `0c6e9d1`、本次同步提交。
