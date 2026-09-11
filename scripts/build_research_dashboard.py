@@ -697,70 +697,59 @@ SEAT_FLOW_TOP_N = 5
 
 
 def build_seat_flow(report_date: str) -> dict[str, object] | None:
-    """席位大资金动向：外资/内资两组，各自汇总成员席位当日净持仓变化的前五流多与前五流空。
+    """席位大资金动向（金额口径，2026-09-11 用户确认）：
 
-    口径（2026-09-11 与用户确认）：
-    - 每席位每品种净变化 = Σ(long_chg) - Σ(short_chg)（多合约合计），剔除股指与国债。
-    - 每席位取净变化前五流多与前五流空；组内对席位入选品种取并集（可超过五个），
-      品种净变化为组内合计，并记录入选席位。
-    - 数据来自 scripts/fetch_seat_flow.py 产出的 data/seat_flow_rows_YYYYMMDD.json；
-      文件或席位缺失时返回 None / 空组，不伪造。
+    - 数据源：奇货可查席位持仓结构页「净实值变化」列（当日席位各品种净流动金额），
+      由 scripts/fetch_seat_flow.py 抓取为 data/seat_flow_amount_YYYYMMDD.json。
+    - 每组（外资/内资）先把成员席位的品种净流动金额相加，再按汇总金额排序取前五净多与前五净空；
+      剔除股指与国债；品种记录参与席位供展示。
+    - 席位数据缺失时不伪造：组内无任何席位则该组为 None。
     """
-    rows_path = ROOT / "data" / f"seat_flow_rows_{report_date}.json"
+    rows_path = ROOT / "data" / f"seat_flow_amount_{report_date}.json"
     payload = read_json(rows_path)
     if not isinstance(payload, dict) or not payload.get("brokers"):
         return None
 
     def group_flow(broker_names: list[str]) -> dict[str, object] | None:
-        per_broker_top: dict[str, dict[str, set[str]]] = {}
-        variety_change: dict[str, float] = {}
+        variety_amount: dict[str, float] = {}
         variety_symbol: dict[str, str] = {}
         variety_brokers: dict[str, set[str]] = defaultdict(set)
+        covered: list[str] = []
         for broker in broker_names:
             rows = payload["brokers"].get(broker) or []
-            variety_net: dict[str, float] = {}
+            if not rows:
+                continue
+            covered.append(broker)
             for row in rows:
                 symbol = str(row.get("symbol") or "").upper()
                 if symbol in SEAT_FLOW_EXCLUDED_SYMBOLS:
                     continue
                 variety = str(row.get("variety") or "")
-                if not variety or "股指" in variety or "国债" in variety:
+                if not variety or "债" in variety or "沪深" in variety or "上证" in variety or "中证" in variety:
                     continue
                 try:
-                    change = float(row.get("long_chg") or 0) - float(row.get("short_chg") or 0)
+                    amount = float(row.get("netValueChange") or 0)
                 except (TypeError, ValueError):
                     continue
-                variety_net[variety] = variety_net.get(variety, 0.0) + change
-                variety_symbol[variety] = symbol
-            if not variety_net:
-                continue
-            ranked = sorted(variety_net.items(), key=lambda kv: kv[1])
-            top_short = [variety for variety, change in ranked[:SEAT_FLOW_TOP_N] if change < 0]
-            top_long = [variety for variety, change in sorted(ranked, key=lambda kv: kv[1], reverse=True)[:SEAT_FLOW_TOP_N] if change > 0]
-            per_broker_top[broker] = {"long": set(top_long), "short": set(top_short)}
-            for variety, change in variety_net.items():
-                variety_change[variety] = variety_change.get(variety, 0.0) + change
-            for variety in set(top_long) | set(top_short):
+                variety_amount[variety] = variety_amount.get(variety, 0.0) + amount
+                if symbol:
+                    variety_symbol[variety] = symbol
                 variety_brokers[variety].add(broker)
-        if not per_broker_top:
+        if not covered:
             return None
-        long_union: set[str] = set()
-        short_union: set[str] = set()
-        for tops in per_broker_top.values():
-            long_union |= tops["long"]
-            short_union |= tops["short"]
+        ranked = sorted(variety_amount.items(), key=lambda kv: kv[1], reverse=True)
 
-        def entry(variety: str) -> dict[str, object]:
+        def entry(variety: str, amount: float) -> dict[str, object]:
             return {
                 "variety": variety,
                 "symbol": variety_symbol.get(variety, ""),
-                "netChange": int(round(variety_change.get(variety, 0.0))),
+                "netAmount": round(amount),
                 "brokers": sorted(variety_brokers.get(variety, set())),
             }
 
-        top_long = sorted((entry(variety) for variety in long_union), key=lambda e: e["netChange"], reverse=True)
-        top_short = sorted((entry(variety) for variety in short_union), key=lambda e: e["netChange"])
-        return {"topLong": top_long, "topShort": top_short, "brokers": sorted(per_broker_top)}
+        top_long = [entry(variety, amount) for variety, amount in ranked if amount > 0][:SEAT_FLOW_TOP_N]
+        top_short = [entry(variety, amount) for variety, amount in reversed(ranked) if amount < 0][:SEAT_FLOW_TOP_N]
+        return {"topLong": top_long, "topShort": top_short, "brokers": covered}
 
     return {
         "date": payload.get("date", report_date),

@@ -194,13 +194,15 @@ function renderNetFlowChanges() {
 }
 
 /* 五 席位大资金动向：外资/内资两组，各成员席位前五流多/流空的并集（build 预计算 seatFlow） */
+/* 席位大资金动向：金额口径（qhkch「净实值变化」，汇总后排序前五） */
 function seatFlowSide(group, side) {
   const list = group?.[side] || [];
   if (!list.length) return `<p class="empty-side">该方向暂无席位入选</p>`;
+  const scale = Math.max(...list.map((item) => Math.abs(item.netAmount || 0)), 1);
   return list.map((item) => `<button class="sector-item" data-open-symbol="${escapeHtml(item.symbol)}" aria-label="查看${escapeHtml(item.variety)}详情">
     <span class="sector-item-name">${escapeHtml(item.variety)} <small>${escapeHtml(item.symbol)}</small><em class="seatflow-brokers">${escapeHtml((item.brokers || []).join(" / "))}</em></span>
-    <span class="sector-meter"><span class="sector-meter-fill ${item.netChange > 0 ? "bull-text" : "bear-text"}" style="width:${Math.max(5, Math.min(100, Math.abs(item.netChange)))}%"></span></span>
-    <strong class="${signClass(item.netChange)}">${formatSigned(item.netChange, 0)} 手</strong>
+    <span class="sector-meter"><span class="sector-meter-fill ${item.netAmount > 0 ? "bull-text" : "bear-text"}" style="width:${Math.max(5, Math.abs(item.netAmount) / scale * 100)}%"></span></span>
+    <strong class="${signClass(item.netAmount)}">${(item.netAmount / 1e8).toLocaleString("zh-CN", {maximumFractionDigits: 2})} 亿</strong>
   </button>`).join("");
 }
 
@@ -211,10 +213,10 @@ function renderSeatFlow() {
     return;
   }
   const block = (label, group, note) => `<article class="sector-block seatflow-block">
-    <div class="sector-title"><strong>${label}</strong><span class="sector-count">${escapeHtml(note)}</span></div>
+    <div class="sector-title"><strong>${label}</strong><span class="sector-count">${escapeHtml((group?.brokers || []).length ? `已覆盖：${(group.brokers || []).join(" / ")}` : note)}</span></div>
     <div class="sector-sides">
-      <div class="sector-side"><div class="side-title bull-text">净流多（前五合并）</div>${seatFlowSide(group, "topLong")}</div>
-      <div class="sector-side"><div class="side-title bear-text">净流空（前五合并）</div>${seatFlowSide(group, "topShort")}</div>
+      <div class="sector-side"><div class="side-title bull-text">净流多前五（汇总金额）</div>${seatFlowSide(group, "topLong")}</div>
+      <div class="sector-side"><div class="side-title bear-text">净流空前五（汇总金额）</div>${seatFlowSide(group, "topShort")}</div>
     </div>
   </article>`;
   $("#seatFlowGrid").innerHTML =

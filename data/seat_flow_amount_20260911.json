@@ -1,0 +1,382 @@
+{
+ "date": "2026-09-11",
+ "fetchedAt": "2026-09-11T17:29:26+08:00",
+ "brokers": {
+  "国泰君安": [
+   {
+    "variety": "沪金",
+    "symbol": "AU",
+    "netValueChange": 1047000000.0000001
+   },
+   {
+    "variety": "三十债",
+    "symbol": "",
+    "netValueChange": 509000000.0
+   },
+   {
+    "variety": "300沪深",
+    "symbol": "",
+    "netValueChange": -73000000.0
+   },
+   {
+    "variety": "50上证",
+    "symbol": "",
+    "netValueChange": 795000000.0
+   },
+   {
+    "variety": "豆粕",
+    "symbol": "M",
+    "netValueChange": -656000000.0
+   },
+   {
+    "variety": "豆油",
+    "symbol": "Y",
+    "netValueChange": 295000000.0
+   },
+   {
+    "variety": "碳酸锂",
+    "symbol": "LC",
+    "netValueChange": 860000000.0
+   },
+   {
+    "variety": "甲醇",
+    "symbol": "MA",
+    "netValueChange": 616000000.0
+   },
+   {
+    "variety": "沪铜",
+    "symbol": "CU",
+    "netValueChange": -3743000000.0
+   },
+   {
+    "variety": "沪锌",
+    "symbol": "ZN",
+    "netValueChange": -200000000.0
+   },
+   {
+    "variety": "沥青",
+    "symbol": "BU",
+    "netValueChange": 143000000.0
+   },
+   {
+    "variety": "菜油",
+    "symbol": "OI",
+    "netValueChange": -7000000.000000001
+   },
+   {
+    "variety": "PP",
+    "symbol": "PP",
+    "netValueChange": 451000000.0
+   },
+   {
+    "variety": "PTA",
+    "symbol": "TA",
+    "netValueChange": 193000000.0
+   },
+   {
+    "variety": "棕榈油",
+    "symbol": "P",
+    "netValueChange": 599000000.0
+   },
+   {
+    "variety": "豆一",
+    "symbol": "A",
+    "netValueChange": -242000000.0
+   },
+   {
+    "variety": "十债",
+    "symbol": "",
+    "netValueChange": 760000000.0
+   },
+   {
+    "variety": "焦煤",
+    "symbol": "JM",
+    "netValueChange": -652000000.0
+   },
+   {
+    "variety": "不锈钢",
+    "symbol": "SS",
+    "netValueChange": -72000000.0
+   },
+   {
+    "variety": "沪铅",
+    "symbol": "PB",
+    "netValueChange": -41000000.0
+   },
+   {
+    "variety": "棉纱",
+    "symbol": "CY",
+    "netValueChange": 33000000.0
+   },
+   {
+    "variety": "双胶纸",
+    "symbol": "",
+    "netValueChange": 5000000.0
+   },
+   {
+    "variety": "苯乙烯",
+    "symbol": "EB",
+    "netValueChange": -391000000.0
+   },
+   {
+    "variety": "粳米",
+    "symbol": "",
+    "netValueChange": 0.0
+   },
+   {
+    "variety": "丙烯",
+    "symbol": "",
+    "netValueChange": 26000000.0
+   },
+   {
+    "variety": "国际铜",
+    "symbol": "BC",
+    "netValueChange": -99000000.0
+   },
+   {
+    "variety": "淀粉",
+    "symbol": "CS",
+    "netValueChange": -25000000.0
+   },
+   {
+    "variety": "燃料油",
+    "symbol": "",
+    "netValueChange": 783000000.0
+   },
+   {
+    "variety": "低硫油",
+    "symbol": "",
+    "netValueChange": 68000000.0
+   },
+   {
+    "variety": "铝合金",
+    "symbol": "",
+    "netValueChange": -14000000.000000002
+   },
+   {
+    "variety": "花生",
+    "symbol": "PK",
+    "netValueChange": -272000000.0
+   },
+   {
+    "variety": "苹果",
+    "symbol": "AP",
+    "netValueChange": -28999999.999999996
+   },
+   {
+    "variety": "工业硅",
+    "symbol": "SI",
+    "netValueChange": 36000000.0
+   },
+   {
+    "variety": "液化气",
+    "symbol": "",
+    "netValueChange": 181000000.0
+   },
+   {
+    "variety": "对二甲苯",
+    "symbol": "PX",
+    "netValueChange": -340000000.0
+   },
+   {
+    "variety": "白糖",
+    "symbol": "SR",
+    "netValueChange": 112000000.00000001
+   },
+   {
+    "variety": "硅铁",
+    "symbol": "SF",
+    "netValueChange": 121000000.0
+   },
+   {
+    "variety": "尿素",
+    "symbol": "UR",
+    "netValueChange": 114999999.99999999
+   },
+   {
+    "variety": "鸡蛋",
+    "symbol": "JD",
+    "netValueChange": -76000000.0
+   },
+   {
+    "variety": "纯苯",
+    "symbol": "BZ",
+    "netValueChange": -69000000.0
+   },
+   {
+    "variety": "豆二",
+    "symbol": "B",
+    "netValueChange": 23000000.0
+   },
+   {
+    "variety": "纸浆",
+    "symbol": "SP",
+    "netValueChange": 27000000.0
+   },
+   {
+    "variety": "瓶片",
+    "symbol": "PR",
+    "netValueChange": 36000000.0
+   },
+   {
+    "variety": "沪锡",
+    "symbol": "SN",
+    "netValueChange": -721000000.0
+   },
+   {
+    "variety": "锰硅",
+    "symbol": "SM",
+    "netValueChange": -11000000.0
+   },
+   {
+    "variety": "菜粕",
+    "symbol": "RM",
+    "netValueChange": 212000000.0
+   },
+   {
+    "variety": "玉米",
+    "symbol": "C",
+    "netValueChange": 156000000.0
+   },
+   {
+    "variety": "塑料",
+    "symbol": "L",
+    "netValueChange": 147000000.0
+   },
+   {
+    "variety": "短纤",
+    "symbol": "PF",
+    "netValueChange": 43000000.0
+   },
+   {
+    "variety": "氧化铝",
+    "symbol": "AO",
+    "netValueChange": -189000000.0
+   },
+   {
+    "variety": "红枣",
+    "symbol": "CJ",
+    "netValueChange": -26000000.0
+   },
+   {
+    "variety": "烧碱",
+    "symbol": "SH",
+    "netValueChange": -293000000.0
+   },
+   {
+    "variety": "合成橡胶",
+    "symbol": "BR",
+    "netValueChange": -15000000.0
+   },
+   {
+    "variety": "乙二醇",
+    "symbol": "EG",
+    "netValueChange": -118000000.0
+   },
+   {
+    "variety": "螺纹钢",
+    "symbol": "RB",
+    "netValueChange": 314000000.0
+   },
+   {
+    "variety": "沪铝",
+    "symbol": "AL",
+    "netValueChange": -454000000.0
+   },
+   {
+    "variety": "500中证",
+    "symbol": "",
+    "netValueChange": -1627000000.0
+   },
+   {
+    "variety": "热卷",
+    "symbol": "HC",
+    "netValueChange": 35000000.0
+   },
+   {
+    "variety": "焦炭",
+    "symbol": "J",
+    "netValueChange": -0.0
+   },
+   {
+    "variety": "棉花",
+    "symbol": "CF",
+    "netValueChange": -149000000.0
+   },
+   {
+    "variety": "天然橡胶",
+    "symbol": "",
+    "netValueChange": -160000000.0
+   },
+   {
+    "variety": "PVC",
+    "symbol": "V",
+    "netValueChange": 263000000.0
+   },
+   {
+    "variety": "多晶硅",
+    "symbol": "PS",
+    "netValueChange": 95000000.0
+   },
+   {
+    "variety": "20号胶",
+    "symbol": "NR",
+    "netValueChange": -269000000.0
+   },
+   {
+    "variety": "纯碱",
+    "symbol": "SA",
+    "netValueChange": 18000000.0
+   },
+   {
+    "variety": "玻璃",
+    "symbol": "FG",
+    "netValueChange": 6000000.0
+   },
+   {
+    "variety": "沪银",
+    "symbol": "AG",
+    "netValueChange": -584000000.0
+   },
+   {
+    "variety": "铁矿石",
+    "symbol": "I",
+    "netValueChange": -272000000.0
+   },
+   {
+    "variety": "生猪",
+    "symbol": "LH",
+    "netValueChange": -314000000.0
+   },
+   {
+    "variety": "沪镍",
+    "symbol": "NI",
+    "netValueChange": -225999999.99999997
+   },
+   {
+    "variety": "1000中证",
+    "symbol": "",
+    "netValueChange": -946000000.0000001
+   },
+   {
+    "variety": "五债",
+    "symbol": "",
+    "netValueChange": 858000000.0
+   },
+   {
+    "variety": "二债",
+    "symbol": "",
+    "netValueChange": -1914000000.0
+   }
+  ]
+ },
+ "failures": [
+  "高盛期货: structure 页面未解析到数据行",
+  "瑞银期货: structure 页面未解析到数据行",
+  "摩根大通: structure 页面未解析到数据行",
+  "东证期货: structure 页面未解析到数据行",
+  "永安期货: structure 页面未解析到数据行",
+  "中财期货: structure 页面未解析到数据行",
+  "东吴期货: structure 页面未解析到数据行"
+ ]
+}
