@@ -61,6 +61,11 @@ def load_base_module():
     if spec is None or spec.loader is None:
         raise RuntimeError("无法加载 scripts/generate_futures_report.py")
     module = importlib.util.module_from_spec(spec)
+    # structure 页面需要 qhkch VIP 登录态：环境变量优先，其次 config/qhkch_cookie.txt（gitignore）
+    if not os.environ.get("QHKCH_COOKIE"):
+        cookie_file = ROOT / "config" / "qhkch_cookie.txt"
+        if cookie_file.is_file():
+            os.environ["QHKCH_COOKIE"] = cookie_file.read_text(encoding="utf-8").strip()
     spec.loader.exec_module(module)
     return module
 
