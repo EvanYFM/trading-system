@@ -139,10 +139,17 @@ node --check web\research_dashboard\app.js
 
 ## 2026-09-11 17:55 席位大资金动向改金额口径（用户确认）
 
-- 口径改为奇货可查席位持仓结构页「净实值变化」金额列（），替代手数×保证金。
--  改抓 structure 页 → ； 每组先汇总成员席位金额再排序取前五净多/净空（不再是手数并集）；前端显示亿元。
-- ⚠️ **structure 页面需要 qhkch VIP 登录态**（ 环境变量，fetch_url 已支持），无 cookie 时除国泰君安（免费样本）外全部「无权访问」。**待用户提供 Cookie 后每日流程需设置 QHKCH_COOKIE 再跑 fetch_seat_flow.py，否则外资组与大部分内资席位缺失**。国泰君安数据与用户截图逐项吻合（沪金 +10.47亿等）。
+- 口径改为奇货可查席位持仓结构页「净实值变化」金额列（`broker/structure?broker=X&sortBy=chge_value&sortDirection=desc`），替代手数×保证金。
+- `fetch_seat_flow.py` 改抓 structure 页 → `data/seat_flow_amount_YYYYMMDD.json`；`build_seat_flow()` 每组先汇总成员席位金额再排序取前五净多/净空（不再是手数并集）；前端显示亿元。
+- ⚠️ **structure 页面需要 qhkch VIP 登录态**（`QHKCH_COOKIE` 环境变量，fetch_url 已支持），无 cookie 时除国泰君安（免费样本）外全部「无权访问」。**待用户提供 Cookie 后每日流程需设置 QHKCH_COOKIE 再跑 fetch_seat_flow.py，否则外资组与大部分内资席位缺失**。国泰君安数据与用户截图逐项吻合（沪金 +10.47亿等）。
 - 提交：私有仓 f1e6e7c、公开仓 eb5201a。
+
+## 2026-09-11 20:00 Cookie 配置完成，8/8 席位全量上线
+
+- 用户已提供 qhkch 登录 Cookie，存于 `config/qhkch_cookie.txt`（已 gitignore，不进任何仓库）；`fetch_seat_flow.py` 读取顺序：环境变量 `QHKCH_COOKIE` > 该文件。
+- 用 Cookie 重抓 9/11：8/8 席位成功（外资 3 + 内资 5），汇总排序发布，线上终验通过（公开仓 `5b50fb4`）。
+- ⚠️ **Cookie 有效期有限**（会话型）：日后某日 structure 页返回「无权访问」即 Cookie 失效，需用户重新提供；失败时 seatFlow 组标缺失，不阻塞其他板块。
+- 9/11 终态参考：内资流空前五 沪铜 -91.11亿（五家内资集体）、沪银 -43.62、沪锡 -21.54、焦煤 -21.40、玻璃 -12.60；外资流多前五 棕榈油 +5.96亿、菜油 +3.85（三家外资同向）。
 
 ## 2026-09-11 17:10 第一次正式接管发布（9/11 快照已上线）
 
