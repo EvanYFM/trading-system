@@ -690,6 +690,86 @@ def validate_seat_evidence(
         raise RuntimeError(f"Incomplete seat evidence for {report_date}: {'; '.join(details)}")
 
 
+SEAT_FLOW_FOREIGN = ["高盛期货", "瑞银期货", "摩根大通"]
+SEAT_FLOW_DOMESTIC = ["国泰君安", "东证期货", "永安期货", "中财期货", "东吴期货"]
+SEAT_FLOW_EXCLUDED_SYMBOLS = {"IH", "IF", "IC", "IM", "T", "TF", "TS", "TL"}
+SEAT_FLOW_TOP_N = 5
+
+
+def build_seat_flow(report_date: str) -> dict[str, object] | None:
+    """席位大资金动向：外资/内资两组，各自汇总成员席位当日净持仓变化的前五流多与前五流空。
+
+    口径（2026-09-11 与用户确认）：
+    - 每席位每品种净变化 = Σ(long_chg) - Σ(short_chg)（多合约合计），剔除股指与国债。
+    - 每席位取净变化前五流多与前五流空；组内对席位入选品种取并集（可超过五个），
+      品种净变化为组内合计，并记录入选席位。
+    - 数据来自 scripts/fetch_seat_flow.py 产出的 data/seat_flow_rows_YYYYMMDD.json；
+      文件或席位缺失时返回 None / 空组，不伪造。
+    """
+    rows_path = ROOT / "data" / f"seat_flow_rows_{report_date}.json"
+    payload = read_json(rows_path)
+    if not isinstance(payload, dict) or not payload.get("brokers"):
+        return None
+
+    def group_flow(broker_names: list[str]) -> dict[str, object] | None:
+        per_broker_top: dict[str, dict[str, set[str]]] = {}
+        variety_change: dict[str, float] = {}
+        variety_symbol: dict[str, str] = {}
+        variety_brokers: dict[str, set[str]] = defaultdict(set)
+        for broker in broker_names:
+            rows = payload["brokers"].get(broker) or []
+            variety_net: dict[str, float] = {}
+            for row in rows:
+                symbol = str(row.get("symbol") or "").upper()
+                if symbol in SEAT_FLOW_EXCLUDED_SYMBOLS:
+                    continue
+                variety = str(row.get("variety") or "")
+                if not variety or "股指" in variety or "国债" in variety:
+                    continue
+                try:
+                    change = float(row.get("long_chg") or 0) - float(row.get("short_chg") or 0)
+                except (TypeError, ValueError):
+                    continue
+                variety_net[variety] = variety_net.get(variety, 0.0) + change
+                variety_symbol[variety] = symbol
+            if not variety_net:
+                continue
+            ranked = sorted(variety_net.items(), key=lambda kv: kv[1])
+            top_short = [variety for variety, change in ranked[:SEAT_FLOW_TOP_N] if change < 0]
+            top_long = [variety for variety, change in sorted(ranked, key=lambda kv: kv[1], reverse=True)[:SEAT_FLOW_TOP_N] if change > 0]
+            per_broker_top[broker] = {"long": set(top_long), "short": set(top_short)}
+            for variety, change in variety_net.items():
+                variety_change[variety] = variety_change.get(variety, 0.0) + change
+            for variety in set(top_long) | set(top_short):
+                variety_brokers[variety].add(broker)
+        if not per_broker_top:
+            return None
+        long_union: set[str] = set()
+        short_union: set[str] = set()
+        for tops in per_broker_top.values():
+            long_union |= tops["long"]
+            short_union |= tops["short"]
+
+        def entry(variety: str) -> dict[str, object]:
+            return {
+                "variety": variety,
+                "symbol": variety_symbol.get(variety, ""),
+                "netChange": int(round(variety_change.get(variety, 0.0))),
+                "brokers": sorted(variety_brokers.get(variety, set())),
+            }
+
+        top_long = sorted((entry(variety) for variety in long_union), key=lambda e: e["netChange"], reverse=True)
+        top_short = sorted((entry(variety) for variety in short_union), key=lambda e: e["netChange"])
+        return {"topLong": top_long, "topShort": top_short, "brokers": sorted(per_broker_top)}
+
+    return {
+        "date": payload.get("date", report_date),
+        "fetchedAt": payload.get("fetchedAt", ""),
+        "foreign": group_flow(SEAT_FLOW_FOREIGN),
+        "domestic": group_flow(SEAT_FLOW_DOMESTIC),
+    }
+
+
 def build_snapshot(report_date: str) -> dict[str, object]:
     institutional_dir = OUTPUT_ROOT / f"institutional_seat_report_{report_date}" / "data"
     amount_dir = OUTPUT_ROOT / f"margin_weighted_seat_report_{report_date}" / "data"
@@ -869,6 +949,7 @@ def build_snapshot(report_date: str) -> dict[str, object]:
         "keyEvents": key_events,
         "trendResonance": build_trend_resonance(instruments),
         "brokerHighlights": build_broker_highlights(contract_rows, margin_by_symbol),
+        "seatFlow": build_seat_flow(report_date),
         "instruments": instruments,
         "weather": build_weather(read_csv(institutional_dir / "agri_weather_risk.csv")),
         "stockIndices": build_stock_rows(read_csv(amount_dir / "stock_index_amount_resonance.csv"), trends, index_quotes, ths_markets),

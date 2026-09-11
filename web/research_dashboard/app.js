@@ -157,35 +157,65 @@ function renderTide() {
   }).join("");
 }
 
-function renderKeyEvents() {
-  const events = currentSnapshot().keyEvents || [];
-  $("#keyEventList").innerHTML = events.length ? events.map((item) => `<button class="key-event-row" data-open-symbol="${escapeHtml(item.symbol)}">
-    <span class="key-event-name"><strong>${escapeHtml(item.variety)}</strong><small>${escapeHtml(item.symbol)} · ${escapeHtml(item.sector)}</small></span>
-    <span class="key-event-tags">${(item.events || []).map((label) => `<span>${escapeHtml(label)}</span>`).join("")}</span>
-    <span class="${signClass(item.priceChangePct)}"><small>涨跌</small><strong>${formatSigned(item.priceChangePct, 2)}%</strong></span>
-    <span class="${signClass(item.openInterestChangePct)}"><small>持仓</small><strong>${formatSigned(item.openInterestChangePct, 2)}%</strong></span>
-    <span><small>成交额</small><strong>${(numeric(item.turnover) / 1e8).toLocaleString("zh-CN", {maximumFractionDigits: 2})} 亿</strong></span>
-  </button>`).join("") : `<div class="detail-empty">该日期没有可验证的关键商品事件。</div>`;
+/* 04 净持仓分布变化：全商品按当日资金净流入/流出排序取前五（剔除股指/国债） */
+function renderNetFlowChanges() {
+  const items = currentSnapshot().instruments
+    .filter((item) => {
+      const flow = numeric(item.marketFlow?.capitalFlow);
+      const sector = String(item.sector || "");
+      return item.marketFlow && flow !== 0 && !sector.includes("股指") && !sector.includes("国债");
+    })
+    .sort((a, b) => numeric(b.marketFlow.capitalFlow) - numeric(a.marketFlow.capitalFlow));
+  const fresh = items.filter((item) => item.marketFlow.fresh !== false);
+  const pool = fresh.length >= 10 ? fresh : items;
+  if (!pool.length) {
+    $("#netFlowGrid").innerHTML = `<div class="detail-empty">该日期缺少资金净流动数据（marketFlow 未覆盖）。</div>`;
+    return;
+  }
+  const topLong = pool.slice(0, 5);
+  const topShort = pool.slice(-5).reverse();
+  const side = (list, title, cls) => `<div class="sector-side"><div class="side-title ${cls}">${title}</div>${list.map((item) => `
+    <button class="sector-item" data-open-symbol="${escapeHtml(item.symbol)}" aria-label="查看${escapeHtml(item.variety)}详情">
+      <span class="sector-item-name">${escapeHtml(item.variety)} <small>${escapeHtml(item.symbol)}</small></span>
+      <span class="${signClass(item.marketFlow.capitalFlow)}"><small>资金</small><strong>${(numeric(item.marketFlow.capitalFlow) / 1e8).toLocaleString("zh-CN", {maximumFractionDigits: 2})} 亿</strong></span>
+      <span class="${signClass(item.quote?.changePct)}"><small>涨跌</small><strong>${formatSigned(item.quote?.changePct, 2)}%</strong></span>
+    </button>`).join("")}</div>`;
+  $("#netFlowGrid").innerHTML = `<article class="sector-block netflow-block">
+    <div class="sector-title"><strong>当日资金净流动</strong><span class="sector-count">口径：${escapeHtml(pool[0].marketFlow.source || "同花顺/AKShare 资金流")}</span></div>
+    <div class="sector-sides">
+      ${side(topLong, "净流入前五", "bull-text")}
+      ${side(topShort, "净流出前五", "bear-text")}
+    </div>
+  </article>`;
 }
 
-function sectorSide(items, side) {
-  if (!items.length) return `<div class="empty-side">今天没有净${side === "bullish" ? "多" : "空"}品种</div>`;
-  const scale = maxAbs(items, (item) => item.value);
-  return items.map((item) => `<button class="sector-item" data-open-symbol="${escapeHtml(item.symbol)}" aria-label="查看${escapeHtml(item.variety)}详情">
-    <span class="sector-item-name">${escapeHtml(item.variety)} <small>${escapeHtml(item.symbol)}</small></span>
-    <span class="sector-meter"><span class="sector-meter-fill ${dirClass(item.value)}" style="width:${Math.max(5, Math.abs(item.value) / scale * 100)}%"></span></span>
-    <strong class="${signClass(item.value)}">${formatAmount(item.value)}</strong>
+/* 05 席位大资金动向：外资/内资两组，各成员席位前五流多/流空的并集（build 预计算 seatFlow） */
+function seatFlowSide(group, side, cls) {
+  const list = group?.[side] || [];
+  if (!list.length) return `<p class="empty-side">该方向暂无席位入选</p>`;
+  return list.map((item) => `<button class="sector-item" data-open-symbol="${escapeHtml(item.symbol)}" aria-label="查看${escapeHtml(item.variety)}详情">
+    <span class="sector-item-name">${escapeHtml(item.variety)} <small>${escapeHtml(item.symbol)}</small><em class="seatflow-brokers">${escapeHtml((item.brokers || []).join(" / "))}</em></span>
+    <span class="sector-meter"><span class="sector-meter-fill ${item.netChange > 0 ? "bull-text" : "bear-text"}" style="width:${Math.max(5, Math.min(100, Math.abs(item.netChange)))}%"></span></span>
+    <strong class="${signClass(item.netChange)}">${formatSigned(item.netChange, 0)} 手</strong>
   </button>`).join("");
 }
 
-function renderSectors() {
-  $("#sectorGrid").innerHTML = currentSnapshot().sectorSummary.map((sector) => `<article class="sector-block">
-    <div class="sector-title"><strong>${escapeHtml(sector.sector)}</strong><span class="sector-count">${sector.bullishCount} 多 · ${sector.bearishCount} 空</span></div>
+function renderSeatFlow() {
+  const seatFlow = currentSnapshot().seatFlow;
+  if (!seatFlow) {
+    $("#seatFlowGrid").innerHTML = `<div class="detail-empty">该日期缺少席位净流数据（scripts/fetch_seat_flow.py 未覆盖），缺失不回填旧日值。</div>`;
+    return;
+  }
+  const block = (label, group, note) => `<article class="sector-block seatflow-block">
+    <div class="sector-title"><strong>${label}</strong><span class="sector-count">${escapeHtml(note)}</span></div>
     <div class="sector-sides">
-      <div class="sector-side"><div class="side-title bull-text">净多前三</div>${sectorSide(sector.bullish, "bullish")}</div>
-      <div class="sector-side"><div class="side-title bear-text">净空前三</div>${sectorSide(sector.bearish, "bearish")}</div>
+      <div class="sector-side"><div class="side-title bull-text">净流多（前五合并）</div>${seatFlowSide(group, "topLong", "bull-text")}</div>
+      <div class="sector-side"><div class="side-title bear-text">净流空（前五合并）</div>${seatFlowSide(group, "topShort", "bear-text")}</div>
     </div>
-  </article>`).join("");
+  </article>`;
+  $("#seatFlowGrid").innerHTML =
+    block("外资席位", seatFlow.foreign, "高盛期货 / 瑞银期货 / 摩根大通") +
+    block("内资席位", seatFlow.domestic, "国泰君安 / 东证 / 永安 / 中财 / 东吴");
 }
 
 function coreItems() {
@@ -923,9 +953,9 @@ function renderAll() {
   renderSummary();
   renderFocus();
   renderTide();
-  renderKeyEvents();
-  renderSectors();
   renderCorePanorama();
+  renderNetFlowChanges();
+  renderSeatFlow();
   renderBrokerHighlights();
   renderStockIndices();
   renderOverviewStatus();

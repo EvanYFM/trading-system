@@ -841,3 +841,7 @@ button.decision-signal { width: 100%; text-align: left; font: inherit; color: in
 .history-plan b { font-size: 12px; font-weight: 500; line-height: 1.6; }
 
 .history-sync-status { font-size: 11px; color: var(--muted); align-self: center; }
+
+.netflow-grid, .seatflow-grid { display: grid; gap: 14px; }
+.seatflow-brokers { display: block; margin-top: 2px; color: var(--muted, #647181); font-size: 10px; font-style: normal; }
+.netflow-block .sector-item span strong { font-variant-numeric: tabular-nums; }
