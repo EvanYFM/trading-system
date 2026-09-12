@@ -90,9 +90,12 @@ $env:REPORT_DATE="YYYYMMDD"
 运行测试：
 
 ```powershell
+& $py -m py_compile scripts/*.py
 & $py -m unittest discover -s tests -p "test_*.py"
 node --check web\research_dashboard\app.js
 ```
+
+py_compile 全量编译是 CI（ci.yml）的检查项：**任何 scripts 下新增或改动的 .py，推送前必须先全量编译一遍**，否则推送后 Actions 直接失败（2026-09-12 教训：seed_journal 存档 stub 引号错配，连续两轮 CI 失败）。
 
 若测试失败，先判断是本次数据链路失败，还是远端“交易与决策”改版后测试断言未同步；不得为让测试变绿而回滚用户页面。
 
